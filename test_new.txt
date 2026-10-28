@@ -1,0 +1,2921 @@
+﻿
+   PASS  Tests\Unit\BengaliTextTest
+  Γ£ô it treats the two spellings of αª»αª╝ as the same word                                       0.01s  
+  Γ£ô it handles the other composed Bengali letters (αªíαª╝ αªóαª╝ αºï αºî)
+  Γ£ô it does not confuse different words and tolerates null
+
+   PASS  Tests\Unit\ExampleTest
+  Γ£ô that true is true                                                                        0.01s  
+
+   PASS  Tests\Unit\HtmlSanitizerTest
+  Γ£ô it keeps safe formatting and Bengali text untouched
+  Γ£ô it keeps CKEditor images and tables
+  Γ£ô it removes dangerous markup with dataset "script tag"
+  Γ£ô it removes dangerous markup with dataset "img onerror"
+  Γ£ô it removes dangerous markup with dataset "javascript href"
+  Γ£ô it removes dangerous markup with dataset "javascript href with newline"
+  Γ£ô it removes dangerous markup with dataset "javascript href with entity"
+  Γ£ô it removes dangerous markup with dataset "data url image"
+  Γ£ô it removes dangerous markup with dataset "svg onload"
+  Γ£ô it removes dangerous markup with dataset "iframe"
+  Γ£ô it removes dangerous markup with dataset "inline handler and style"
+  Γ£ô it removes dangerous markup with dataset "html comment"
+  Γ£ô it adds rel="noopener" to links that open a new tab
+  Γ£ô it unwraps unknown tags but keeps their text
+  Γ£ô it returns an empty string for empty or fully malicious input
+
+   PASS  Tests\Unit\TagNamesTest
+  Γ£ô it cleans a raw tag name                                                                 0.02s  
+  Γ£ô it splits input at ASCII, Arabic and full-width commas and line breaks
+  Γ£ô it gives equal-looking and equal-meaning names the same slug
+  Γ£ô it keeps Bengali letters, vowel signs and conjuncts in the slug
+  Γ£ô it falls back to "tag" when nothing usable is left
+  Γ£ô it limits the slug length
+
+   PASS  Tests\Feature\Admin\AccessControlTest
+  Γ£ô it redirects guests to the login page with dataset "dashboard"                           0.42s  
+  Γ£ô it redirects guests to the login page with dataset "news index"                          0.03s  
+  Γ£ô it redirects guests to the login page with dataset "news create"                         0.02s  
+  Γ£ô it redirects guests to the login page with dataset "categories index"                    0.02s  
+  Γ£ô it redirects guests to the login page with dataset "categories create"                   0.02s  
+  Γ£ô it forbids authenticated users without a CMS role with dataset "dashboard"               0.08s  
+  Γ£ô it forbids authenticated users without a CMS role with dataset "news index"              0.03s  
+  Γ£ô it forbids authenticated users without a CMS role with dataset "news create"             0.03s  
+  Γ£ô it forbids authenticated users without a CMS role with dataset "categories index"        0.03s  
+  Γ£ô it forbids authenticated users without a CMS role with dataset "categories create"       0.04s  
+  Γ£ô it lets every staff role into the news workspace with dataset "dashboard"                0.47s  
+  Γ£ô it lets every staff role into the news workspace with dataset "news index"               0.29s  
+  Γ£ô it lets every staff role into the news workspace with dataset "news create"              0.25s  
+  Γ£ô it keeps categories for editors and admins only with dataset "categories index"          0.05s  
+  Γ£ô it keeps categories for editors and admins only with dataset "categories create"         0.14s  
+  Γ£ô it keeps users and the audit log for admins only with dataset "users index"              0.05s  
+  Γ£ô it keeps users and the audit log for admins only with dataset "users create"             0.05s  
+  Γ£ô it keeps users and the audit log for admins only with dataset "activity log"             0.13s  
+  Γ£ô it locks deactivated staff out of the panel immediately with dataset "dashboard"         0.03s  
+  Γ£ô it locks deactivated staff out of the panel immediately with dataset "news index"        0.03s  
+  Γ£ô it locks deactivated staff out of the panel immediately with dataset "news create"       0.02s  
+  Γ£ô it hides links a role may not use                                                        0.05s  
+  Γ£ô it does not let a plain user write, update or delete                                     0.04s  
+  Γ£ô it keeps role from being mass assigned                                                   0.02s  
+  Γ£ô it lets any authenticated user use their own profile page                                1.95s  
+
+   PASS  Tests\Feature\Admin\CategoryHierarchyTest
+  Γ£ô it creates a sub-category under a top-level parent                                       0.06s  
+  Γ£ô it allows only one level of sub-categories                                               0.03s  
+  Γ£ô it does not let a category become its own parent                                         0.03s  
+  Γ£ô it does not let a category with sub-categories become a sub-category itself              0.03s  
+  Γ£ô it rejects a parent that does not exist                                                  0.03s  
+  Γ£ô it moves a sub-category to another parent or back to the top level                       0.04s  
+  Γ£ô it keeps the parent when an update does not mention it                                   0.03s  
+  Γ£ô it stores menu visibility and SEO fields                                                 0.04s  
+  Γ£ô it orders categories by serial and then id, so equal serials are stable                  0.03s  
+  Γ£ô it includes active sub-categories, and only those, in categoryIds()                      0.02s  
+  Γ£ô it keeps category changes away from reporters and plain users                            0.05s  
+  Γ£ô it lets editors manage categories                                                        0.03s  
+  Γ£ô it refuses to delete a category that has sub-categories                                  0.03s  
+  Γ£ô it refuses to delete a category with articles unless a destination is given              0.03s  
+  Γ£ô it rejects an invalid move destination                                                   0.04s  
+  Γ£ô it moves every article, trashed ones included, to the chosen category and then deletes   0.04s  
+  Γ£ô it deletes an empty category without asking for a destination                            0.03s  
+  Γ£ô it writes category changes to the audit log                                              0.03s  
+  Γ£ô it renders the category tree with sub-categories under their parent                      0.03s  
+  Γ£ô it shows an edit link for every category (it used to be unreachable from the list)       0.03s  
+  Γ£ô it offers the move-and-delete form only where articles exist                             0.03s  
+  Γ£ô it renders the create and edit forms, offering only valid parents                        0.05s  
+  Γ£ô it authorizes category requests by capability even without the route middleware          0.04s  
+
+   PASS  Tests\Feature\Admin\CategoryManagementTest
+  Γ£ô it creates a category from the form (name only) and generates the slug                   0.05s  
+  Γ£ô it rejects duplicate and malformed slugs                                                 0.04s  
+  Γ£ô it allows updating a category while keeping its own slug                                 0.03s  
+  Γ£ô it refuses to delete a category that still has news                                      0.03s  
+  Γ£ô it deletes an empty category                                                             0.03s  
+
+   PASS  Tests\Feature\Admin\LocationsTest
+  Γ£ô it stores the most specific choice: upazila, then district, then division                0.42s  
+  Γ£ô it accepts an upazila or district without the levels above it                            0.38s  
+  Γ£ô it leaves the place empty for national news                                              0.36s  
+  Γ£ô it rejects choices that do not describe one place with dataset "district from another dΓÇª 0.37s  
+  Γ£ô it rejects choices that do not describe one place with dataset "upazila from another diΓÇª 0.35s  
+  Γ£ô it rejects choices that do not describe one place with dataset "upazila from another diΓÇª 0.37s  
+  Γ£ô it rejects choices that do not describe one place with dataset "all three, upazila elseΓÇª 0.36s  
+  Γ£ô it rejects ids of the wrong kind or that do not exist                                    0.38s  
+  Γ£ô it changes the place on update, and clears it when the form sends none                   0.37s  
+  Γ£ô it keeps the place when an update never mentions it                                      0.37s  
+  Γ£ô it shows the current place in the edit form, with all three selects                      0.42s  
+  Γ£ô it tells the editor how to load the places when none exist                               0.40s  
+  Γ£ô it lets a district correspondent report only for their own district and its upazilas     0.41s  
+  Γ£ô it defaults a correspondent's article to their own district when they pick nothing       0.37s  
+  Γ£ô it does not let a correspondent smuggle an out-of-district place past the form           0.38s  
+  Γ£ô it stops a correspondent moving their article out of the district on update              0.34s  
+  Γ£ô it still lets a correspondent edit an old article whose place is left unchanged after bΓÇª 0.39s  
+  Γ£ô it does not restrict reporters without a district, editors or admins                     0.36s  
+  Γ£ô it shows a correspondent only their own district in the form hint                        0.59s  
+  Γ£ô it resolves choices to one place and decides who may use it                              0.44s  
+  Γ£ô it assigns a district to a reporter from the user form                                   0.37s  
+  Γ£ô it drops the district when the role is not reporter, and refuses anything that is not aΓÇª 0.37s  
+  Γ£ô it clears the district when a reporter is promoted, and lets it be changed or removed    0.37s  
+  Γ£ô it does not let district_id be set through mass assignment                               0.38s  
+  Γ£ô it renders the user forms with the districts                                             0.41s  
+  Γ£ô it keeps the place in revisions and restores it, tolerating a vanished place             0.42s  
+  Γ£ô it leaves the place alone when restoring a revision that predates locations              0.37s  
+  Γ£ô it detaches articles from a place that is deleted instead of deleting them               0.36s  
+
+   FAIL  Tests\Feature\Admin\NewsManagementTest
+  Γ£ô it creates an article and sanitizes the HTML body                                        0.06s  
+  Γ£ô it rejects a body that is empty after sanitizing                                         0.03s  
+  Γ£ô it validates category, status and field lengths                                          0.04s  
+  Γ£ô it stores unchecked checkboxes as false and checked ones as true                         0.04s  
+  Γ£ô it generates a non-empty unique slug, also for Bengali and duplicate titles              0.05s  
+  Γ£ô it keeps the slug stable when the title changes                                          0.04s  
+  Γ£ô it stores uploads under a random name so two uploads in one second cannot collide        0.08s  
+  Γ£ô it rejects non-image uploads                                                             0.03s  
+  Γ¿» it replaces the image on update and removes the old file only afterwards                 0.07s  
+  Γ£ô it keeps the existing image when no new one is uploaded                                  0.05s  
+  Γ£ô it soft-deletes an article and keeps its image so it can be restored                     0.05s  
+  Γ£ô it does not reuse the slug of a soft-deleted article                                     0.05s  
+  Γ£ô it never deletes files outside the upload folder, even with a tampered image value       0.05s  
+
+   PASS  Tests\Feature\Admin\NewsWorkflowTest
+  Γ£ô it lets a reporter save a draft and sets them as the author                              0.05s  
+  Γ£ô it stops a reporter from creating an article directly as published or scheduled with ('ΓÇª 0.04s  
+  Γ£ô it stops a reporter from creating an article directly as published or scheduled with ('ΓÇª 0.03s  
+  Γ£ô it stops a reporter from creating an article directly as published or scheduled with ('ΓÇª 0.03s  
+  Γ£ô it ignores editorial flags sent by a reporter                                            0.03s  
+  Γ£ô it does not wipe editor flags when a reporter edits their own pending article            0.04s  
+  Γ£ô it moves a reporter article draft -> pending -> draft, but never to published            0.05s  
+  Γ£ô it keeps a reporter away from other reporters articles                                   0.06s  
+  Γ£ô it freezes a reporter out of their own article once it is published                      0.05s  
+  Γ£ô it lets a reporter delete only their own drafts                                          0.05s  
+  Γ£ô it shows a reporter only their own articles in the list                                  0.04s  
+  Γ£ô it lets an editor publish a pending article and stamps the publish time                  0.24s  
+  Γ£ô it requires a reason when an editor sends someone else's article back                    0.04s  
+  Γ£ô it rejects status changes that are not on the allowed path                               0.04s  
+  Γ£ô it removes an article from the public site when it is unpublished or archived            0.09s  
+  Γ£ô it publishes through the edit form when the editor picks "published"                     0.05s  
+  Γ£ô it previews a draft for the author and editors but keeps it off the public site          0.06s  
+  Γ£ô it needs a future time to schedule, and a past-or-now time to publish                    0.05s  
+  Γ£ô it keeps a scheduled article hidden until the command publishes it at the due time       0.07s  
+  Γ£ô it registers the scheduled-publish command with the scheduler every minute               0.02s  
+  Γ£ô it records every status change in the audit log and revision history                     0.04s  
+  Γ£ô it keeps a revision on every save and can restore an older version                       0.05s  
+  Γ£ô it refuses to restore a revision that belongs to another article                         0.05s  
+  Γ£ô it re-sanitizes content when restoring a revision                                        0.04s  
+  Γ£ô it trims the revision history to the configured limit                                    0.08s  
+  Γ£ô it shows the audit log to admins only                                                    0.04s  
+
+   FAIL  Tests\Feature\Admin\PagesRenderTest
+  Γ£ô it renders the edit form with the current values and only the statuses the user may picΓÇª 0.06s  
+  Γ£ô it renders the create form per role                                                      0.04s  
+  Γ£ô it renders the revisions page                                                            0.16s  
+  Γ£ô it renders the news list with status filters, search and pagination                      0.10s  
+  Γ£ô it lists trashed articles for editors only                                               0.04s  
+  Γ£ô it shows the right workflow buttons in the list                                          0.04s  
+  Γ£ô it renders the user pages                                                                0.06s  
+  Γ¿» it renders the dashboard with real numbers                                               0.04s  
+  Γ£ô it renders the public site with a scheduled-then-published article date                  0.04s  
+
+   PASS  Tests\Feature\Admin\TagsTest
+  Γ£ô it creates tags from the article form and attaches them                                  0.04s  
+  Γ£ô it accepts comma-separated text when JavaScript is not available                         0.04s  
+  Γ£ô it reuses an existing tag instead of creating a duplicate, whatever the case or spellinΓÇª 0.05s  
+  Γ£ô it collapses duplicates within one article                                               0.04s  
+  Γ£ô it limits an article to ten tags and each tag to fifty characters                        0.06s  
+  Γ£ô it stores tag names as plain text                                                        0.04s  
+  Γ£ô it replaces the tags on update and removes them when none are sent                       0.05s  
+  Γ£ô it leaves the tags alone when an update does not mention them at all                     0.04s  
+  Γ£ô it lets a reporter tag their own article but not anyone else's                           0.05s  
+  Γ£ô it keeps tags in the revision history and restores them with an old version              0.05s  
+  Γ£ô it restores an old revision that predates tags without touching the current tags         0.04s  
+  Γ£ô it shows the current tags in the edit form                                               0.04s  
+  Γ£ô it keeps the typed tags when the form fails validation                                   0.04s  
+  Γ£ô it suggests existing tags, most used first                                               0.04s  
+  Γ£ô it returns nothing for an empty query and requires login                                 0.04s  
+  Γ£ô it treats % and _ in a suggestion query literally                                        0.03s  
+  Γ£ô it shows a tag page with its published articles only                                     0.06s  
+  Γ£ô it finds a tag whichever way the Bengali letters are spelled in the URL                  0.06s  
+  Γ£ô it returns 404 for unknown tags and for tags with nothing public (never revealing draftΓÇª 0.04s  
+  Γ£ô it paginates a tag page, newest first                                                    0.07s  
+  Γ£ô it shows the tags, as links, on the article page                                         0.04s  
+  Γ£ô it escapes tag names everywhere on the public site                                       0.49s  
+  Γ£ô it shows popular tags from recent published articles on the home page                    0.07s  
+  Γ£ô it leaves out tags that only belong to old, draft or deleted articles                    0.06s  
+  Γ£ô it updates the popular tags immediately (cache is flushed by tag changes)                0.08s  
+  Γ£ô it keeps tag management away from reporters and plain users                              0.06s  
+  Γ£ô it lets editors and admins list, search and sort tags                                    0.20s  
+  Γ£ô it renames a tag but keeps its slug, so public links do not break                        0.03s  
+  Γ£ô it changes the slug only when asked, and refuses a slug another tag uses                 0.05s  
+  Γ£ô it validates the tag name                                                                0.04s  
+  Γ£ô it merges a tag into another: articles move over, duplicates are not created, the old tΓÇª 0.04s  
+  Γ£ô it merges trashed and unpublished articles too                                           0.04s  
+  Γ£ô it refuses to merge a tag into itself or into a tag that does not exist                  0.04s  
+  Γ£ô it deletes a tag and detaches it from articles, keeping the articles                     0.05s  
+  Γ£ô it removes tag links when an article is deleted for good                                 0.03s  
+  Γ£ô it renders the tag admin pages                                                           0.07s  
+  Γ£ô it caps tags per article in the model too, not only in the form request                  0.05s  
+  Γ£ô it re-ranks popular tags at once when an EXISTING tag is attached to EXISTING articlesΓÇª  0.09s  
+
+   PASS  Tests\Feature\Admin\UserManagementTest
+  Γ£ô it creates a user with a hashed password, the chosen role and a verified email           0.06s  
+  Γ£ô it validates new users                                                                   0.04s  
+  Γ£ô it forbids non-admins from creating, editing or deleting users                           0.05s  
+  Γ£ô it changes a role and keeps the password when the field is left blank                    0.03s  
+  Γ£ô it changes the password when one is given                                                0.05s  
+  Γ£ô it does not let an admin change their own role or deactivate themselves                  0.04s  
+  Γ£ô it never leaves the system without an active admin                                       0.02s  
+  Γ£ô it does not let an admin delete themselves                                               0.03s  
+  Γ£ô it refuses to delete a user who has articles, trashed ones included                      0.03s  
+  Γ£ô it deletes a user without articles and logs it                                           0.03s  
+  Γ£ô it lets a second admin demote another admin while one admin always remains               0.04s  
+  Γ£ô it blocks deactivated users from logging in, even with the right password                0.23s  
+  Γ£ô it lets an active reporter log in and reach the dashboard                                0.08s  
+  Γ£ô it searches users by name or email                                                       0.04s  
+  Γ£ô it logs role changes with before and after values                                        0.04s  
+
+   PASS  Tests\Feature\Auth\AuthenticationTest
+  Γ£ô login screen can be rendered                                                             0.09s  
+  Γ£ô users can authenticate using the login screen                                            0.04s  
+  Γ£ô users can not authenticate with invalid password                                         0.25s  
+  Γ£ô users can logout                                                                         0.05s  
+
+   PASS  Tests\Feature\Auth\EmailVerificationTest
+  Γ£ô email verification screen can be rendered                                                0.03s  
+  Γ£ô email can be verified                                                                    0.03s  
+  Γ£ô email is not verified with invalid hash                                                  0.03s  
+
+   PASS  Tests\Feature\Auth\PasswordConfirmationTest
+  Γ£ô confirm password screen can be rendered                                                  0.44s  
+  Γ£ô password can be confirmed                                                                0.03s  
+  Γ£ô password is not confirmed with invalid password                                          0.25s  
+
+   PASS  Tests\Feature\Auth\PasswordResetTest
+  Γ£ô reset password link screen can be rendered                                               0.54s  
+  Γ£ô reset password link can be requested                                                     0.24s  
+  Γ£ô reset password screen can be rendered                                                    1.19s  
+  Γ£ô password can be reset with valid token                                                   0.29s  
+
+   PASS  Tests\Feature\Auth\PasswordUpdateTest
+  Γ£ô password can be updated                                                                  0.05s  
+  Γ£ô correct password must be provided to update password                                     0.03s  
+
+   PASS  Tests\Feature\Auth\RegistrationTest
+  Γ£ô registration screen is not available                                                     0.03s  
+  Γ£ô public registration is disabled                                                          0.03s  
+
+   PASS  Tests\Feature\ConsoleCommandsTest
+  Γ£ô it creates an admin with a hashed password                                               0.04s  
+  Γ£ô it refuses weak or mismatching passwords                                                 0.02s  
+  Γ£ô it promotes an existing user to admin                                                    0.03s  
+  Γ£ô it sanitizes legacy articles and supports --dry-run                                      0.04s  
+
+   PASS  Tests\Feature\ExampleTest
+  Γ£ô it returns a successful response                                                         0.04s  
+
+   FAIL  Tests\Feature\FrontendCategoryTest
+  Γ£ô it shows a category page with its own articles                                           0.04s  
+  Γ£ô it puts articles of a sub-category on the parent page too, labelled with their own cateΓÇª 0.06s  
+  Γ£ô it lists only published articles                                                         0.05s  
+  Γ£ô it leaves out articles of an inactive sub-category                                       0.05s  
+  Γ£ô it returns 404 for unknown, inactive and orphaned categories                             0.04s  
+  Γ£ô it paginates, newest first                                                               0.06s  
+  Γ£ô it shows sub-category chips on a parent page and a breadcrumb on the child page          0.05s  
+  Γ£ô it uses the SEO title and description when set, and the name otherwise                   0.05s  
+  Γ£ô it escapes category names and SEO fields                                                 0.04s  
+  Γ£ô it builds the menu with real links instead of "#" placeholders                           0.05s  
+  Γ£ô it lists sub-categories in a dropdown under their parent                                 0.05s  
+  Γ£ô it hides inactive and "not in menu" categories from the menu                             0.05s  
+  Γ£ô it hides the children of an inactive parent from the menu                                0.04s  
+  Γ¿» it puts categories outside the main menu list under "αªàαª¿αºìαª»αª╛αª¿αºìαª»", with their sub-categoriΓÇª 0.05s  
+  Γ£ô it updates the menu immediately when a category changes (cache is flushed)               0.09s  
+  Γ¿» it orders menu items by serial                                                           0.07s  
+  Γ£ô it shows a sub-category's news in its parent's home block                                0.08s  
+  Γ£ô it keeps the home page working when sections reference a category that became a sub-catΓÇª 0.06s  
+  Γ¿» it keeps a category in the main menu whichever way its name was typed                    0.05s  
+
+   FAIL  Tests\Feature\FrontendLocationTest
+  Γ£ô it shows a division page with the news of its districts and upazilas, and nothing else   0.44s  
+  Γ£ô it shows a district page with its upazilas' news but not the division-level or other diΓÇª 0.40s  
+  Γ£ô it shows an upazila page with only that upazila's news                                   0.51s  
+  Γ£ô it lists only published, live articles                                                   0.40s  
+  Γ£ô it links the districts of a division and the upazilas of a district                      0.50s  
+  Γ£ô it shows a breadcrumb from the division down to the page                                 0.37s  
+  Γ£ô it answers 404 for places that do not exist or are in the wrong place in the hierarchy   0.41s  
+  Γ£ô it does not mistake a district or upazila for a division                                 0.38s  
+  Γ£ô it paginates, newest first                                                               0.43s  
+  Γ£ô it says so when a place has no news yet, instead of a 404                                0.39s  
+  Γ£ô it sets the page title from the place                                                    0.41s  
+  Γ¿» it puts the 8 divisions under "αª╕αª╛αª░αª╛αªªαºçαª╢" in the menu, each linking to its page            0.42s  
+  Γ£ô it keeps the "αª╕αª╛αª░αª╛αªªαºçαª╢" menu working before any location is loaded                        0.41s  
+  Γ£ô it does not add division dropdowns to other categories                                   0.39s  
+  Γ¿» it updates the menu at once when a division changes                                      0.39s  
+  Γ£ô it shows where the article is about, as links from the most general to the most specifiΓÇª 0.40s  
+  Γ£ô it omits the place line when the article has none                                        0.42s  
+  Γ£ô it escapes place names                                                                   0.39s  
+  Γ¿» it renders a freshly seeded site with the geography loaded                               0.57s  
+
+   PASS  Tests\Feature\FrontendTest
+  Γ£ô it renders the home page with categories and articles                                    0.08s  
+  Γ£ô it shows a published article and hides drafts                                            0.04s  
+  Γ£ô it does not run category/breaking-news queries for every view                            0.05s  
+  Γ£ô it shows new articles immediately even though the home page blocks are cached            0.07s  
+  Γ£ô it stops showing an article right after it is unpublished                                0.07s  
+
+   FAIL  Tests\Feature\LocationDataTest
+  Γ£ô it loads 8 divisions and 64 districts                                                    0.38s  
+  Γ£ô it puts every district under the right division                                          0.35s  
+  Γ£ô it gives every district at least one upazila, and a plausible total                      0.38s  
+  Γ£ô it knows upazilas that are certain                                                       0.38s  
+  Γ£ô it has Bengali names that are real Bengali, trimmed and in one canonical Unicode form    0.45s  
+  Γ£ô it has unique slugs among siblings and only valid parent/child types                     0.39s  
+  Γ£ô it uses readable English slugs, with the official spellings                              0.38s  
+  Γ£ô it lets the same upazila name exist in different districts                               0.36s  
+  Γ£ô it can be imported twice without duplicating anything                                    0.60s  
+  Γ£ô it repairs a changed name on re-import but never deletes a place or its articles         0.59s  
+  Γ£ô it reports a missing or broken data file instead of failing silently                     0.59s  
+  Γ£ô it builds paths, names and URLs from a place up to its division                          0.35s  
+  Γ£ô it collects a place and everything below it                                              0.37s  
+  Γ¿» it can be rolled back and migrated again WITH data loaded (a populated, self-referencinΓÇª 0.39s  
+
+   PASS  Tests\Feature\ProfileTest
+  Γ£ô profile page is displayed                                                                0.05s  
+  Γ£ô profile information can be updated                                                       0.03s  
+  Γ£ô email verification status is unchanged when the email address is unchanged               0.02s  
+  Γ£ô user can delete their account                                                            0.03s  
+  Γ£ô correct password must be provided to delete account                                      0.04s  
+
+   PASS  Tests\Feature\SeedersTest
+  Γ£ô it seeds every category slug that the home page sections look up                         0.06s  
+  Γ£ô it seeds readable slugs and a deterministic menu order                                   0.05s  
+  Γ£ô it can be run twice without duplicating categories or undoing admin edits                0.05s  
+  Γ£ô it renders a home page with category sections on a freshly seeded database               0.19s  
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ  
+   FAILED  Tests\Feature\Admin\NewsManagementTest > it replaces the image on update and removesΓÇª    
+  Failed asserting that true is false.
+
+  at tests\Feature\Admin\NewsManagementTest.php:138
+    134Γûò     $new = $news->fresh()->image;
+    135Γûò 
+    136Γûò     expect($new)->not->toBe($old)
+    137Γûò         ->and(File::exists($this->publicDir.'/uploads/news/'.$new))->toBeTrue()
+  Γ₧£ 138Γûò         ->and(File::exists($this->publicDir.'/uploads/news/'.$old))->toBeFalse();
+    139Γûò });
+    140Γûò 
+    141Γûò it('keeps the existing image when no new one is uploaded', function () {
+    142Γûò     $this->actingAs($this->admin)->post('/admin/news', newsPayload(['image' => UploadedFile::fake()->image('a.jpg')]));
+
+  1   tests\Feature\Admin\NewsManagementTest.php:138
+
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ  
+   FAILED  Tests\Feature\Admin\PagesRenderTest > it renders the dashboard with real numbers         
+  Failed asserting that '<!DOCTYPE html>\n
+<html lang="en">\n
+<head>\n
+    <meta charset="utf-8">\n
+    <meta name="viewport" content="width=device-width, initial-scale=1">\n
+    <meta name="csrf-token" content="SMYJ3shMjSoQEJ5nFKow7zo49UiMc8V6rquLBJDP">\n
+\n
+    <title>Laravel CMS</title>\n
+\n
+    <link rel="preconnect" href="https://fonts.googleapis.com">\n
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">\n
+\n
+    <link rel="preload" as="style" href="http://localhost/build/assets/app-Cdbew4Dn.css" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/app-BfpX1doZ.js" /><link rel="stylesheet" href="http://localhost/build/assets/app-Cdbew4Dn.css" /><script type="module" src="http://localhost/build/assets/app-BfpX1doZ.js"></script>    <link rel="stylesheet" href="http://localhost/css/admin.css">\n
+</head>\n
+\n
+<body class="ad-body antialiased"\n
+      x-data="{ menu: false }"\n
+      x-on:keydown.escape.window="menu = false">\n
+\n
+    <aside class="ad-sidebar" x-bind:class="{ 'is-open': menu }">\n
+\n
+    <div class="ad-brand">\n
+        <span class="ad-logo">\n
+            \n
+    <img src="http://localhost/images/logo.png" alt="αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï">   \n
+        </span>\n
+        <h2 class="ad-brand-name">αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï</h2>\n
+        <div class="ad-brand-sub">CMS v2</div>\n
+    </div>\n
+\n
+    <nav class="ad-nav">\n
+\n
+        <a href="http://localhost/dashboard"\n
+           class="ad-link is-active">\n
+            <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>\n
+            αªíαºìαª»αª╛αª╕αª¼αºïαª░αºìαªí\n
+        </a>\n
+\n
+        <div class="ad-nav-label">αªòαª¿αªƒαºçαª¿αºìαªƒ</div>\n
+\n
+        <a href="http://localhost/admin/news"\n
+           class="ad-link ">\n
+            <svg class="ad-ico" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>\n
+            αª╕αªéαª¼αª╛αªª\n
+        </a>\n
+\n
+                    <a href="http://localhost/admin/categories"\n
+               class="ad-link ">\n
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>\n
+                αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐\n
+            </a>\n
+        \n
+                    <a href="http://localhost/admin/tags"\n
+               class="ad-link ">\n
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="8.5" r="1.2"/></svg>\n
+                αªƒαºìαª»αª╛αªù\n
+            </a>\n
+        \n
+                    <a href="http://localhost/admin/home-layout"\n
+               class="ad-link ">\n
+                <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>\n
+                αª╣αºïαª«αª¬αºçαª£ αª╕αª╛αª£αª╛αª¿\n
+            </a>\n
+        \n
+                    <a href="http://localhost/admin/menu"\n
+               class="ad-link ">\n
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>\n
+                αª«αºçαª¿αºü αª╕αª╛αª£αª╛αª¿\n
+            </a>\n
+        \n
+                    <a href="http://localhost/admin/sidebar"\n
+               class="ad-link ">\n
+                <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>\n
+                αª╕αª╛αªçαªíαª¼αª╛αª░ αª╕αª╛αª£αª╛αª¿\n
+            </a>\n
+          \n
+\n
+                    <a href="http://localhost/admin/photocards"\n
+               class="ad-link ">\n
+                <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15l3-4 3 3 2-2 3 3"/></svg>\n
+                αª½αªƒαºïαªòαª╛αª░αºìαªí\n
+            </a>\n
+        \n
+        \n
+                    <a href="http://localhost/admin/ads"\n
+               class="ad-link ">\n
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M3 11v2a1 1 0 001 1h2l5 4V6L6 10H4a1 1 0 00-1 1z"/><path d="M15 9a4 4 0 010 6M18 6a8 8 0 010 12"/></svg>\n
+                αª¼αª┐αª£αºìαª₧αª╛αª¬αª¿\n
+            </a>\n
+        \n
+            <a href="http://localhost/admin/media"\n
+           class="ad-link ">\n
+            <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></svg>\n
+            αª½αªƒαºï αªùαºìαª»αª╛αª▓αª╛αª░αª┐\n
+        </a>\n
+\n
+                    <a href="http://localhost/admin/videos"\n
+               class="ad-link ">\n
+                <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3V9z"/></svg>\n
+                αª¡αª┐αªíαª┐αªô αªùαºìαª»αª╛αª▓αª╛αª░αª┐\n
+            </a>\n
+        \n
+                    <div class="ad-nav-label">αª╕αª┐αª╕αºìαªƒαºçαª«</div>\n
+\n
+            <a href="http://localhost/admin/users"\n
+               class="ad-link ">\n
+                <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.7a3.5 3.5 0 010 6.6M18 14.3c2.2.8 3.5 2.7 3.5 5.7"/></svg>\n
+                αªçαªëαª£αª╛αª░\n
+            </a>\n
+\n
+            <a href="http://localhost/admin/activity"\n
+               class="ad-link ">\n
+                <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>\n
+                αªòαª╛αª░αºìαª»αªòαª▓αª╛αª¬ αª▓αªù\n
+            </a>\n
+            <a href="http://localhost/admin/site-settings"\n
+               class="ad-link ">\n
+                <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3h0a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5h0a1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8v0a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>\n
+                αª╕αª╛αªçαªƒ αª╕αºçαªƒαª┐αªé\n
+            </a> \n
+        \n
+        <div class="ad-nav-label">αªàαºìαª»αª╛αªòαª╛αªëαª¿αºìαªƒ</div>\n
+\n
+        <a href="http://localhost/profile"\n
+           class="ad-link ">\n
+            <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>\n
+            αªåαª«αª╛αª░ αª¬αºìαª░αºïαª½αª╛αªçαª▓\n
+        </a>\n
+\n
+        <a href="http://localhost" target="_blank" rel="noopener" class="ad-link">\n
+            <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>\n
+            αª╕αª╛αªçαªƒ αªªαºçαªûαºüαª¿\n
+        </a>\n
+\n
+        <form method="POST" action="http://localhost/logout" class="mt-3">\n
+            <input type="hidden" name="_token" value="SMYJ3shMjSoQEJ5nFKow7zo49UiMc8V6rquLBJDP" autocomplete="off">            <button type="submit" class="ad-link is-danger">\n
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M9 4H5a2 2 0 00-2 2v12a2 2 0 002 2h4M16 8l4 4-4 4M20 12H9"/></svg>\n
+                αª▓αªùαªåαªëαªƒ\n
+            </button>\n
+        </form>\n
+\n
+    </nav>\n
+\n
+</aside>\n
+    <div class="ad-backdrop" x-show="menu" x-cloak x-on:click="menu = false"></div>\n
+\n
+    <div class="ad-main">\n
+\n
+        <div class="ad-topbar">\n
+            <button type="button" class="ad-burger" x-on:click="menu = true" aria-label="αª«αºçαª¿αºü αªûαºüαª▓αºüαª¿">\n
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>\n
+            </button>\n
+\n
+            <div class="ad-topbar-spacer"></div>\n
+\n
+            <a href="http://localhost" target="_blank" rel="noopener" class="ad-site-link">αª╕αª╛αªçαªƒ αªªαºçαªûαºüαª¿</a>\n
+\n
+            <div class="ad-user">\n
+                <span class="ad-avatar">A</span>\n
+                <div class="ad-user-meta">\n
+                    <div class="ad-user-name">Arvel Donnelly</div>\n
+                    <div class="ad-user-role">αªàαºìαª»αª╛αªíαª«αª┐αª¿</div>\n
+                </div>\n
+            </div>\n
+        </div>\n
+\n
+                    <header class="ad-header">\n
+                <div class="max-w-7xl mx-auto py-5 px-4 sm:px-6 lg:px-8">\n
+                    <h2 class="font-semibold text-xl text-gray-800 leading-tight">αªíαºìαª»αª╛αª╕αª¼αºïαª░αºìαªí</h2>\n
+                </div>\n
+            </header>\n
+        \n
+        <main>\n
+            <div class="ad-page">\n
+\n
+        \n
+        <div class="ad-hero">\n
+            <div>\n
+                <h1>αª╢αºüαª¡ αªàαª¬αª░αª╛αª╣αºìαª¿, Arvel Donnelly</h1>\n
+                <p>\n
+                    αªàαºìαª»αª╛αªíαª«αª┐αª¿\n
+                    &nbsp;|&nbsp;\n
+                    25 October 2026, Sunday\n
+                </p>\n
+            </div>\n
+            <a href="http://localhost/admin/news/create" class="ad-btn">\n
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>\n
+                αª¿αªñαºüαª¿ αª╕αªéαª¼αª╛αªª αª▓αª┐αªûαºüαª¿\n
+            </a>\n
+        </div>\n
+\n
+        \n
+        <div class="ad-stats">\n
+                            <a href="http://localhost/admin/news" class="ad-stat">\n
+                    <span class="ad-stat-ico tone-blue">\n
+                        <svg class="ad-ico" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>\n
+                    </span>\n
+                    <span>\n
+                        <div class="ad-stat-value">4</div>\n
+                        <div class="ad-stat-label">αª«αºïαªƒ αª╕αªéαª¼αª╛αªª</div>\n
+                    </span>\n
+                </a>\n
+                            <a href="http://localhost/admin/news?status=published" class="ad-stat">\n
+                    <span class="ad-stat-ico tone-green">\n
+                        <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>\n
+                    </span>\n
+                    <span>\n
+                        <div class="ad-stat-value">2</div>\n
+                        <div class="ad-stat-label">αª¬αºìαª░αªòαª╛αª╢αª┐αªñ</div>\n
+                    </span>\n
+                </a>\n
+                            <a href="http://localhost/admin/news?status=draft" class="ad-stat">\n
+                    <span class="ad-stat-ico tone-red">\n
+                        <svg class="ad-ico" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>\n
+                    </span>\n
+                    <span>\n
+                        <div class="ad-stat-value">1</div>\n
+                        <div class="ad-stat-label">αªûαª╕αªíαª╝αª╛</div>\n
+                    </span>\n
+                </a>\n
+                            <a href="http://localhost/admin/news?status=pending" class="ad-stat">\n
+                    <span class="ad-stat-ico tone-amber">\n
+                        <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>\n
+                    </span>\n
+                    <span>\n
+                        <div class="ad-stat-value">1</div>\n
+                        <div class="ad-stat-label">αª¬αª░αºìαª»αª╛αª▓αºïαªÜαª¿αª╛αª░ αªàαª¬αºçαªòαºìαª╖αª╛αª»αª╝</div>\n
+                    </span>\n
+                </a>\n
+                            <a href="http://localhost/admin/news?status=scheduled" class="ad-stat">\n
+                    <span class="ad-stat-ico tone-sky">\n
+                        <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>\n
+                    </span>\n
+                    <span>\n
+                        <div class="ad-stat-value">0</div>\n
+                        <div class="ad-stat-label">αª¿αª┐αª░αºìαªºαª╛αª░αª┐αªñ</div>\n
+                    </span>\n
+                </a>\n
+                            <a href="http://localhost/admin/categories" class="ad-stat">\n
+                    <span class="ad-stat-ico tone-teal">\n
+                        <svg class="ad-ico" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>\n
+                    </span>\n
+                    <span>\n
+                        <div class="ad-stat-value">1</div>\n
+                        <div class="ad-stat-label">αª«αºïαªƒ αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐</div>\n
+                    </span>\n
+                </a>\n
+                            <a href="http://localhost/admin/users" class="ad-stat">\n
+                    <span class="ad-stat-ico tone-purple">\n
+                        <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/></svg>\n
+                    </span>\n
+                    <span>\n
+                        <div class="ad-stat-value">3</div>\n
+                        <div class="ad-stat-label">αª«αºïαªƒ αªçαªëαª£αª╛αª░</div>\n
+                    </span>\n
+                </a>\n
+                    </div>\n
+\n
+        <div class="ad-grid">\n
+\n
+            \n
+            <div class="ad-col">\n
+\n
+                <div class="ad-panel">\n
+                    <div class="ad-panel-head">\n
+                        <h2>αªùαªñ αº¡ αªªαª┐αª¿αºç αª¬αºìαª░αªòαª╛αª╢αª┐αªñ</h2>\n
+                        <span class="ad-panel-note">αª«αºïαªƒ 2αªƒαª┐</span>\n
+                    </div>\n
+                    <div class="ad-panel-body">\n
+                        <div class="ad-chart">\n
+                                                            <div class="ad-bar-col">\n
+                                    <span class="ad-bar-num">0</span>\n
+                                    <div class="ad-bar is-zero"\n
+                                         style="height:4px"></div>\n
+                                    <span class="ad-bar-label">19 Oct</span>\n
+                                </div>\n
+                                                            <div class="ad-bar-col">\n
+                                    <span class="ad-bar-num">0</span>\n
+                                    <div class="ad-bar is-zero"\n
+                                         style="height:4px"></div>\n
+                                    <span class="ad-bar-label">20 Oct</span>\n
+                                </div>\n
+                                                            <div class="ad-bar-col">\n
+                                    <span class="ad-bar-num">0</span>\n
+                                    <div class="ad-bar is-zero"\n
+                                         style="height:4px"></div>\n
+                                    <span class="ad-bar-label">21 Oct</span>\n
+                                </div>\n
+                                                            <div class="ad-bar-col">\n
+                                    <span class="ad-bar-num">0</span>\n
+                                    <div class="ad-bar is-zero"\n
+                                         style="height:4px"></div>\n
+                                    <span class="ad-bar-label">22 Oct</span>\n
+                                </div>\n
+                                                            <div class="ad-bar-col">\n
+                                    <span class="ad-bar-num">0</span>\n
+                                    <div class="ad-bar is-zero"\n
+                                         style="height:4px"></div>\n
+                                    <span class="ad-bar-label">23 Oct</span>\n
+                                </div>\n
+                                                            <div class="ad-bar-col">\n
+                                    <span class="ad-bar-num">0</span>\n
+                                    <div class="ad-bar is-zero"\n
+                                         style="height:4px"></div>\n
+                                    <span class="ad-bar-label">24 Oct</span>\n
+                                </div>\n
+                                                            <div class="ad-bar-col">\n
+                                    <span class="ad-bar-num">2</span>\n
+                                    <div class="ad-bar "\n
+                                         style="height:150px"></div>\n
+                                    <span class="ad-bar-label">25 Oct</span>\n
+                                </div>\n
+                                                    </div>\n
+                    </div>\n
+                </div>\n
+\n
+                <div class="ad-panel">\n
+                    <div class="ad-panel-head">\n
+                        <h2>αª╕αª╛αª«αºìαª¬αºìαª░αªñαª┐αªò αª╕αªéαª¼αª╛αªª</h2>\n
+                        <a href="http://localhost/admin/news">αª╕αª¼ αªªαºçαªûαºüαª¿ ┬╗</a>\n
+                    </div>\n
+                                            <a href="http://localhost/admin/news/1/edit" class="ad-row">\n
+                            <div class="ad-row-main">\n
+                                <div class="ad-row-title">αª░αºçαª¿αºìαªíαª╛αª░ αª╕αªéαª¼αª╛αªª 24</div>\n
+                                <div class="ad-row-sub">\n
+                                    αª£αª╛αªñαºÇαª»αª╝\n
+                                    &middot;\n
+                                    25 Oct, 07:00 AM\n
+                                </div>\n
+                            </div>\n
+                            <span class="ad-badge st-published">αª¬αºìαª░αªòαª╛αª╢αª┐αªñ</span>\n
+                        </a>\n
+                                            <a href="http://localhost/admin/news/2/edit" class="ad-row">\n
+                            <div class="ad-row-main">\n
+                                <div class="ad-row-title">αª░αºçαª¿αºìαªíαª╛αª░ αª╕αªéαª¼αª╛αªª 25</div>\n
+                                <div class="ad-row-sub">\n
+                                    αª£αª╛αªñαºÇαª»αª╝\n
+                                    &middot;\n
+                                    25 Oct, 07:00 AM\n
+                                </div>\n
+                            </div>\n
+                            <span class="ad-badge st-published">αª¬αºìαª░αªòαª╛αª╢αª┐αªñ</span>\n
+                        </a>\n
+                                            <a href="http://localhost/admin/news/3/edit" class="ad-row">\n
+                            <div class="ad-row-main">\n
+                                <div class="ad-row-title">αª░αºçαª¿αºìαªíαª╛αª░ αª╕αªéαª¼αª╛αªª 26</div>\n
+                                <div class="ad-row-sub">\n
+                                    αª£αª╛αªñαºÇαª»αª╝\n
+                                    &middot;\n
+                                    25 Oct, 07:00 AM\n
+                                </div>\n
+                            </div>\n
+                            <span class="ad-badge st-draft">αªûαª╕αªíαª╝αª╛</span>\n
+                        </a>\n
+                                            <a href="http://localhost/admin/news/4/edit" class="ad-row">\n
+                            <div class="ad-row-main">\n
+                                <div class="ad-row-title">αª░αºçαª¿αºìαªíαª╛αª░ αª╕αªéαª¼αª╛αªª 27</div>\n
+                                <div class="ad-row-sub">\n
+                                    αª£αª╛αªñαºÇαª»αª╝\n
+                                    &middot;\n
+                                    25 Oct, 07:00 AM\n
+                                </div>\n
+                            </div>\n
+                            <span class="ad-badge st-pending">αª¬αª░αºìαª»αª╛αª▓αºïαªÜαª¿αª╛αª»αª╝</span>\n
+                        </a>\n
+                                    </div>\n
+\n
+            </div>\n
+\n
+            \n
+            <div class="ad-col">\n
+\n
+                                    <div class="ad-panel">\n
+                        <div class="ad-panel-head">\n
+                            <h2>αªàαª¿αºüαª«αºïαªªαª¿αºçαª░ αªàαª¬αºçαªòαºìαª╖αª╛αª»αª╝</h2>\n
+                            <a href="http://localhost/admin/news?status=pending">αª╕αª¼ ┬╗</a>\n
+                        </div>\n
+                                                    <a href="http://localhost/admin/news/4/edit" class="ad-row">\n
+                                <div class="ad-row-main">\n
+                                    <div class="ad-row-title">αª░αºçαª¿αºìαªíαª╛αª░ αª╕αªéαª¼αª╛αªª 27</div>\n
+                                    <div class="ad-row-sub">\n
+                                        Miss Lilian Satterfield DVM\n
+                                        &middot;\n
+                                        αª£αª╛αªñαºÇαª»αª╝\n
+                                    </div>\n
+                                </div>\n
+                            </a>\n
+                                            </div>\n
+\n
+                                            <div class="ad-panel">\n
+                            <div class="ad-panel-head">\n
+                                <h2>αª╕αª¼αªÜαºçαª»αª╝αºç αª╕αªòαºìαª░αª┐αª»αª╝ αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐</h2>\n
+                            </div>\n
+                            <div style="padding:8px 0;">\n
+                                                                    <div class="ad-meter">\n
+                                        <div class="ad-meter-top">\n
+                                            <span>αª£αª╛αªñαºÇαª»αª╝</span>\n
+                                            <strong>2</strong>\n
+                                        </div>\n
+                                        <div class="ad-meter-track">\n
+                                            <div class="ad-meter-fill" style="width:100%"></div>\n
+                                        </div>\n
+                                    </div>\n
+                                                            </div>\n
+                        </div>\n
+                                    \n
+                <div class="ad-panel">\n
+                    <div class="ad-panel-head"><h2>αªªαºìαª░αºüαªñ αªòαª╛αª£</h2></div>\n
+                    <div class="ad-panel-body">\n
+                        <div class="ad-quick">\n
+                            <a href="http://localhost/admin/news/create">\n
+                                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>\n
+                                αª¿αªñαºüαª¿ αª╕αªéαª¼αª╛αªª\n
+                            </a>\n
+                                                            <a href="http://localhost/admin/categories">\n
+                                    <svg class="ad-ico" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>\n
+                                    αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐\n
+                                </a>\n
+                                                                                        <a href="http://localhost/admin/tags">\n
+                                    <svg class="ad-ico" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="8.5" r="1.2"/></svg>\n
+                                    αªƒαºìαª»αª╛αªù\n
+                                </a>\n
+                                                                                        <a href="http://localhost/admin/users">\n
+                                    <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/></svg>\n
+                                    αªçαªëαª£αª╛αª░\n
+                                </a>\n
+                                <a href="http://localhost/admin/activity">\n
+                                    <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>\n
+                                    αªòαª╛αª░αºìαª»αªòαª▓αª╛αª¬\n
+                                </a>\n
+                                                    </div>\n
+                    </div>\n
+                </div>\n
+\n
+            </div>\n
+\n
+        </div>\n
+\n
+    </div>\n
+        </main>\n
+\n
+    </div>\n
+\n
+</body>\n
+</html>' matches PCRE pattern "/αª¬αºìαª░αªòαª╛αª╢αª┐αªñ<\/h3>\s*<p[^>]*>\s*2\s*<\/p>/u".
+
+  at tests\Feature\Admin\PagesRenderTest.php:127
+    123Γûò     $response = $this->actingAs($this->admin)->get('/dashboard')->assertOk();
+    124Γûò     $html = $response->getContent();
+    125Γûò 
+    126Γûò     // published count 2 appears inside the "αª¬αºìαª░αªòαª╛αª╢αª┐αªñ" card
+  Γ₧£ 127Γûò     expect($html)->toMatch('/αª¬αºìαª░αªòαª╛αª╢αª┐αªñ<\/h3>\s*<p[^>]*>\s*2\s*<\/p>/u')
+    128Γûò         ->and($html)->toMatch('/αª«αºïαªƒ αª╕αªéαª¼αª╛αªª\s*<\/h3>\s*<p[^>]*>\s*4\s*<\/p>/u');
+    129Γûò 
+    130Γûò     // a reporter only counts their own
+    131Γûò     pgArticle($this->reporter, 'draft');
+
+  1   tests\Feature\Admin\PagesRenderTest.php:127
+
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ  
+   FAILED  Tests\Feature\FrontendCategoryTest > it puts categories outside the main menu list unΓÇª   
+  Expecting false not to be false .
+
+  at tests\Feature\FrontendCategoryTest.php:176
+    172Γûò 
+    173Γûò     $html = $this->get('/')->assertOk()->getContent();
+    174Γûò     $others = strpos($html, 'αªàαª¿αºìαª»αª╛αª¿αºìαª»');
+    175Γûò 
+  Γ₧£ 176Γûò     expect($others)->not->toBeFalse()
+    177Γûò         ->and(strpos($html, '/category/sahitya', $others))->not->toBeFalse()
+    178Γûò         ->and(strpos($html, '/category/kobita', $others))->not->toBeFalse();
+    179Γûò });
+    180Γûò
+
+  1   tests\Feature\FrontendCategoryTest.php:176
+
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ  
+   FAILED  Tests\Feature\FrontendCategoryTest > it orders menu items by serial                      
+  Failed asserting that 5830 is less than 5202.
+
+  at tests\Feature\FrontendCategoryTest.php:199
+    195Γûò 
+    196Γûò     $this->parent->update(['serial' => 99]);
+    197Γûò     $html = $this->get('/')->getContent();
+    198Γûò 
+  Γ₧£ 199Γûò     expect(strpos($html, '/category/rajniti'))->toBeLessThan(strpos($html, '/category/jatiyo'));
+    200Γûò });
+    201Γûò 
+    202Γûò // -------------------------------------------------------------- home blocks
+    203Γûò
+
+  1   tests\Feature\FrontendCategoryTest.php:199
+
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ  
+   FAILED  Tests\Feature\FrontendCategoryTest > it keeps a category in the main menu whichever wΓÇª   
+  variant 0 was demoted to αªàαª¿αºìαª»αª╛αª¿αºìαª»
+Failed asserting that 5202 is less than 0.
+
+  at tests\Feature\FrontendCategoryTest.php:241
+    237Γûò         $firstMenuItem = strpos($html, '/category/jatiyo');
+    238Γûò         $others = strpos($html, 'αªàαª¿αºìαª»αª╛αª¿αºìαª»');
+    239Γûò 
+    240Γûò         // in the main bar (before the "αªàαª¿αºìαª»αª╛αª¿αºìαª»" dropdown), not demoted into it
+  Γ₧£ 241Γûò         expect($firstMenuItem)->toBeLessThan($others, "variant {$i} was demoted to αªàαª¿αºìαª»αª╛αª¿αºìαª»");
+    242Γûò     }
+    243Γûò });
+    244Γûò
+
+  1   tests\Feature\FrontendCategoryTest.php:241
+
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ  
+   FAILED  Tests\Feature\FrontendLocationTest > it puts the 8 divisions under "αª╕αª╛αª░αª╛αªªαºçαª╢" in the mΓÇª   
+  Expecting false not to be false 'division barishal missing froΓÇªe menu'.
+
+  at tests\Feature\FrontendLocationTest.php:143
+    139Γûò     expect($nationwide)->not->toBeFalse();
+    140Γûò 
+    141Γûò     foreach (Location::divisions()->get() as $division) {
+    142Γûò         $pos = strpos($html, 'href="'.$division->url().'"');
+  Γ₧£ 143Γûò         expect($pos)->not->toBeFalse("division {$division->slug} missing from the menu")
+    144Γûò             ->and($pos)->toBeGreaterThan($nationwide);
+    145Γûò     }
+    146Γûò 
+    147Γûò     expect(substr_count($html, 'href="http://localhost/location/'))->toBeGreaterThanOrEqual(8);
+
+  1   tests\Feature\FrontendLocationTest.php:143
+
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ  
+   FAILED  Tests\Feature\FrontendLocationTest > it updates the menu at once when a division chanΓÇª   
+  Expected: ∩╗┐<!DOCTYPE html>\n
+<html lang="bn">\n
+<head>\n
+    <meta charset="UTF-8">\n
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n
+    \n
+    <title>αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï</title>\n
+    \n
+      <link rel="preload" as="style" href="http://localhost/build/assets/app-Cdbew4Dn.css" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/app-BfpX1doZ.js" /><link rel="stylesheet" href="http://localhost/build/assets/app-Cdbew4Dn.css" /><script type="module" src="http://localhost/build/assets/app-BfpX1doZ.js"></script>    \n
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">\n
+\n
+    <style>\n
+\n
+body{\n
+    background:#fff;\n
+    font-family:"Noto Sans Bengali",sans-serif;\n
+}\n
+\n
+.topbar{\n
+    background:#f5f5f5;\n
+    border-bottom:1px solid #ddd;\n
+    padding:8px 0;\n
+    font-size:15px;\n
+}\n
+\n
+.site-header{\n
+    padding:20px 0;\n
+}\n
+\n
+.site-logo{\n
+    max-height:90px;\n
+}\n
+\n
+.ad-box{\n
+    height:90px;\n
+    border:1px solid #ddd;\n
+    background:#fafafa;\n
+    display:flex;\n
+    justify-content:center;\n
+    align-items:center;\n
+    color:#777;\n
+    font-size:22px;\n
+}\n
+\n
+.navbar-custom{\n
+    background:#123b68;\n
+    padding:0;\n
+    box-shadow:0 2px 8px rgba(0,0,0,.08);\n
+    position:sticky;\n
+    top:0;\n
+    z-index:999;\n
+}\n
+\n
+.navbar-custom .navbar-nav{\n
+    width:100%;\n
+    row-gap:2px;\n
+}\n
+\n
+.navbar-custom .nav-item{\n
+    white-space:nowrap;\n
+}\n
+\n
+.navbar-custom .nav-link{\n
+    color:#fff !important;\n
+    padding:12px 15px;\n
+    font-size:15px;\n
+    font-weight:600;\n
+    transition:.3s;\n
+}\n
+\n
+.navbar-custom .nav-link:hover{\n
+    background:#0b2745;\n
+}\n
+\n
+.navbar-custom .navbar-toggler{\n
+    border-color:#fff;\n
+}\n
+\n
+.navbar-custom .navbar-toggler-icon{\n
+    filter:brightness(0) invert(1);\n
+}\n
+\n
+.breaking{\n
+    background:#fff8e1;\n
+    border-top:1px solid #ddd;\n
+    border-bottom:1px solid #ddd;\n
+    padding:8px 0;\n
+}\n
+\n
+.breaking-news{\n
+    background:#fff;\n
+    border-top:1px solid #ddd;\n
+    border-bottom:1px solid #ddd;\n
+    margin-bottom:20px;\n
+}\n
+\n
+.breaking-label{\n
+    background:#d60000;\n
+    color:#fff;\n
+    font-weight:700;\n
+    text-align:center;\n
+    padding:12px 10px;\n
+    font-size:16px;\n
+}\n
+\n
+.breaking-ticker{\n
+    background:#fafafa;\n
+    padding:10px 15px;\n
+    overflow:hidden;\n
+}\n
+\n
+.breaking-ticker a{\n
+    color:#222;\n
+    font-size:15px;\n
+}\n
+\n
+.breaking-ticker a:hover{\n
+    color:#d60000;\n
+}\n
+\n
+\n
+/* sub-categories: hover dropdown on desktop, always-open indented list on mobile */\n
+@media (min-width:992px){\n
+    .navbar-custom .nav-item.dropdown:hover > .dropdown-menu{\n
+        display:block !important;\n
+        visibility:visible !important;\n
+        opacity:1 !important;\n
+        margin-top:0;\n
+    }\n
+}\n
+@media (max-width:991.98px){\n
+    .navbar-custom .nav-item.dropdown > .dropdown-menu{\n
+        display:block; position:static; background:#0e2d50; border:0; border-radius:0;\n
+    }\n
+    .navbar-custom .dropdown-item{ color:#fff; padding-left:2rem; }\n
+    .navbar-custom .dropdown-item:hover{ background:#0b2745; color:#fff; }\n
+}\n
+\n
+</style>\n
+<link rel="preconnect" href="https://fonts.googleapis.com">\n
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">\n
+<link rel="stylesheet" href="http://localhost/css/frontend.css">\n
+</head>\n
+<body>\n
+\n
+\n
+∩╗┐\n
+<div class="topbar">\n
+    <div class="container">\n
+        <div class="d-flex justify-content-between align-items-center">\n
+            <div>\n
+                                    25 October 2026, Sunday\n
+                            </div>\n
+            <div>\n
+                αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï | αª╕αªñαºìαª»αºçαª░ αª¬αªÑαºç αª¿αª┐αª░αºìαª¡αºÇαªò            </div>\n
+        </div>\n
+    </div>\n
+</div>\n
+\n
+\n
+<header class="site-header bg-white">\n
+    <div class="container">\n
+        <div class="row align-items-center">\n
+            <div class="col-lg-3 col-md-3 text-center text-md-start">\n
+                <a href="http://localhost">\n
+                    <img src="http://localhost/images/logo.png"\n
+                         alt="αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï"\n
+                         class="site-logo img-fluid">\n
+                </a>\n
+            </div>\n
+            <div class="col-lg-9 col-md-9">\n
+                            </div>\n
+        </div>\n
+    </div>\n
+</header>\n
+\n
+\n
+<nav class="navbar navbar-expand-lg navbar-light navbar-custom">\n
+    <div class="container">\n
+\n
+        <button class="navbar-toggler"\n
+                type="button"\n
+                data-bs-toggle="collapse"\n
+                data-bs-target="#mainMenu">\n
+            <span class="navbar-toggler-icon"></span>\n
+        </button>\n
+\n
+        <div class="navbar-collapse collapse visible" id="mainMenu">\n
+\n
+            <ul class="navbar-nav flex-wrap justify-content-center w-100">\n
+\n
+                \n
+                    \n
+                                                <li class="nav-item">\n
+                            <a class="nav-link" href="http://localhost" >αª╣αºïαª«</a>\n
+                        </li>\n
+\n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/saradesh">αª╕αª╛αª░αª╛αªªαºçαª╢</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                                                <li class="nav-item">\n
+                            <a class="nav-link" href="http://localhost/videos" >αª¡αª┐αªíαª┐αªô</a>\n
+                        </li>\n
+\n
+                    \n
+                \n
+                \n
+            </ul>\n
+\n
+        </div>\n
+    </div>\n
+</nav>\n
+\n
+\n
+\n
+\n
+<div class="container mt-4">\n
+    \n
+\n
+\n
+    \n
+        \n
+        <div class="row g-4">\n
+\n
+            <div class="col-lg-8">\n
+                                    <div class="sa-sec" style="--cat:#123b68;">\r\n
+\r\n
+                        <section class="mb-5">\n
+\n
+    <div class="sa-block-head">\n
+        <h2>αª╕αª░αºìαª¼αª╢αºçαª╖ αª╕αªéαª¼αª╛αªª</h2>\n
+        <span class="text-muted small">αª«αºïαªƒ 0αªƒαª┐ αª╕αªéαª¼αª╛αªª</span>\n
+    </div>\n
+\n
+    \n
+        <p class="text-muted py-4 text-center">αªÅαªç αª«αºüαª╣αºéαª░αºìαªñαºç αªªαºçαªûαª╛αª¿αºïαª░ αª«αªñαºï αªòαºïαª¿αºï αª╕αªéαª¼αª╛αªª αª¿αºçαªçαÑñ</p>\n
+\n
+    \n
+    \n
+</section>                \r\n
+    </div>\r\n
+\r\n
+                            </div>\n
+\n
+            <div class="col-lg-4">\n
+                                    <div class="sa-widget">\r\n
+\r\n
+    <ul class="nav sa-tabs" role="tablist">\r\n
+        <li class="nav-item flex-fill d-flex">\r\n
+            <button class="nav-link active w-100" data-bs-toggle="tab" data-bs-target="#latestNews" type="button">\r\n
+                αª╕αª░αºìαª¼αª╢αºçαª╖\r\n
+            </button>\r\n
+        </li>\r\n
+        <li class="nav-item flex-fill d-flex">\r\n
+            <button class="nav-link w-100" data-bs-toggle="tab" data-bs-target="#popularNews" type="button">\r\n
+                αª£αª¿αª¬αºìαª░αª┐αª»αª╝\r\n
+            </button>\r\n
+        </li>\r\n
+    </ul>\r\n
+\r\n
+    <div class="tab-content">\r\n
+\r\n
+        <div class="tab-pane fade show active" id="latestNews">\r\n
+                    </div>\r\n
+\r\n
+        <div class="tab-pane fade" id="popularNews">\r\n
+                    </div>\r\n
+\r\n
+    </div>\r\n
+\r\n
+</div>                                                                                </div>\n
+\n
+        </div>\n
+\n
+    \n
+\n
+</div>\n
+\n
+<footer class="sa-footer">\n
+\n
+    <div class="container py-5">\n
+        <div class="row g-4">\n
+\n
+            <div class="col-lg-4">\n
+                <h3 class="sa-footer-title">αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï</h3>\n
+\n
+                                    <p><strong class="text-white">αª╕αªñαºìαª»αºçαª░ αª¬αªÑαºç αª¿αª┐αª░αºìαª¡αºÇαªò</strong></p>\n
+                \n
+                                    <p>αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï αªÅαªòαªƒαª┐ αª¿αª┐αª░αºìαª¡αª░αª»αºïαªùαºìαª», αª¼αª╕αºìαªñαºüαª¿αª┐αª╖αºìαªá αªô αªåαªºαºüαª¿αª┐αªò αª¼αª╛αªéαª▓αª╛ αªàαª¿αª▓αª╛αªçαª¿ αª╕αªéαª¼αª╛αªªαª«αª╛αªºαºìαª»αª«αÑñ αªªαºçαª╢-αª¼αª┐αªªαºçαª╢αºçαª░ αª╕αª░αºìαª¼αª╢αºçαª╖ αª╕αªéαª¼αª╛αªª αªªαºìαª░αºüαªñ αªô αª¿αª┐αª░αºìαª¡αºüαª▓αª¡αª╛αª¼αºç αª¬αª╛αªáαªòαºçαª░ αªòαª╛αª¢αºç αª¬αºîαªüαª¢αºç αªªαºçαªôαª»αª╝αª╛αªç αªåαª«αª╛αªªαºçαª░ αª▓αªòαºìαª╖αºìαª»αÑñ</p>\n
+                            </div>\n
+\n
+                            <div class="col-lg-4">\n
+                                            <h3 class="sa-footer-title">αªùαºüαª░αºüαªñαºìαª¼αª¬αºéαª░αºìαªú αª¼αª┐αª¡αª╛αªù</h3>\n
+                        <ul class="sa-footer-links">\n
+                                                            <li><a href="http://localhost/category/saradesh">αª╕αª╛αª░αª╛αªªαºçαª╢</a></li>\n
+                                                    </ul>\n
+                    \n
+                                    </div>\n
+            \n
+                            <div class="col-lg-4">\n
+                    <h3 class="sa-footer-title">αª»αºïαªùαª╛αª»αºïαªù</h3>\n
+\n
+                                            <p>αªçαª«αºçαªçαª▓: <a href="mailto:info@shadhinalo.com">info@shadhinalo.com</a></p>\n
+                    \n
+                    \n
+                                            <p>αªáαª┐αªòαª╛αª¿αª╛: αª¼αª╛αªéαª▓αª╛αªªαºçαª╢</p>\n
+                    \n
+                                    </div>\n
+            \n
+        </div>\n
+    </div>\n
+\n
+    <div class="sa-footer-bottom">\n
+        <div class="container">\n
+            ┬⌐ 2026 <strong class="text-white">αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï</strong> | αª╕αª░αºìαª¼αª╕αºìαª¼αªñαºìαª¼ αª╕αªéαª░αªòαºìαª╖αª┐αªñ                            <span class="mx-2">|</span>\n
+                Developed by <strong class="text-white">Nexton BD Tech</strong>\n
+                    </div>\n
+    </div>\n
+\n
+</footer>\n
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>\n
+\n
+</body>\n
+</html>\n
+
+
+  To contain: αªóαª╛αªòαª╛
+
+  at tests\Feature\FrontendLocationTest.php:168
+    164Γûò         ->and(substr($html, $start, 160))->not->toContain('/location/');
+    165Γûò });
+    166Γûò 
+    167Γûò it('updates the menu at once when a division changes', function () {
+  Γ₧£ 168Γûò     $this->get('/')->assertOk()->assertSee('αªóαª╛αªòαª╛');
+    169Γûò 
+    170Γûò     $this->dhakaDiv->update(['name_bn' => 'αªóαª╛αªòαª╛-αª¬αª░αª┐αª¼αª░αºìαªñαª┐αªñ']);
+    171Γûò 
+    172Γûò     $this->get('/')->assertSee('αªóαª╛αªòαª╛-αª¬αª░αª┐αª¼αª░αºìαªñαª┐αªñ');
+
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ  
+   FAILED  Tests\Feature\FrontendLocationTest > it renders a freshly seeded site with the geograΓÇª   
+  Expected: ∩╗┐<!DOCTYPE html>\n
+<html lang="bn">\n
+<head>\n
+    <meta charset="UTF-8">\n
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n
+    \n
+    <title>αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï</title>\n
+    \n
+      <link rel="preload" as="style" href="http://localhost/build/assets/app-Cdbew4Dn.css" /><link rel="modulepreload" as="script" href="http://localhost/build/assets/app-BfpX1doZ.js" /><link rel="stylesheet" href="http://localhost/build/assets/app-Cdbew4Dn.css" /><script type="module" src="http://localhost/build/assets/app-BfpX1doZ.js"></script>    \n
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">\n
+\n
+    <style>\n
+\n
+body{\n
+    background:#fff;\n
+    font-family:"Noto Sans Bengali",sans-serif;\n
+}\n
+\n
+.topbar{\n
+    background:#f5f5f5;\n
+    border-bottom:1px solid #ddd;\n
+    padding:8px 0;\n
+    font-size:15px;\n
+}\n
+\n
+.site-header{\n
+    padding:20px 0;\n
+}\n
+\n
+.site-logo{\n
+    max-height:90px;\n
+}\n
+\n
+.ad-box{\n
+    height:90px;\n
+    border:1px solid #ddd;\n
+    background:#fafafa;\n
+    display:flex;\n
+    justify-content:center;\n
+    align-items:center;\n
+    color:#777;\n
+    font-size:22px;\n
+}\n
+\n
+.navbar-custom{\n
+    background:#123b68;\n
+    padding:0;\n
+    box-shadow:0 2px 8px rgba(0,0,0,.08);\n
+    position:sticky;\n
+    top:0;\n
+    z-index:999;\n
+}\n
+\n
+.navbar-custom .navbar-nav{\n
+    width:100%;\n
+    row-gap:2px;\n
+}\n
+\n
+.navbar-custom .nav-item{\n
+    white-space:nowrap;\n
+}\n
+\n
+.navbar-custom .nav-link{\n
+    color:#fff !important;\n
+    padding:12px 15px;\n
+    font-size:15px;\n
+    font-weight:600;\n
+    transition:.3s;\n
+}\n
+\n
+.navbar-custom .nav-link:hover{\n
+    background:#0b2745;\n
+}\n
+\n
+.navbar-custom .navbar-toggler{\n
+    border-color:#fff;\n
+}\n
+\n
+.navbar-custom .navbar-toggler-icon{\n
+    filter:brightness(0) invert(1);\n
+}\n
+\n
+.breaking{\n
+    background:#fff8e1;\n
+    border-top:1px solid #ddd;\n
+    border-bottom:1px solid #ddd;\n
+    padding:8px 0;\n
+}\n
+\n
+.breaking-news{\n
+    background:#fff;\n
+    border-top:1px solid #ddd;\n
+    border-bottom:1px solid #ddd;\n
+    margin-bottom:20px;\n
+}\n
+\n
+.breaking-label{\n
+    background:#d60000;\n
+    color:#fff;\n
+    font-weight:700;\n
+    text-align:center;\n
+    padding:12px 10px;\n
+    font-size:16px;\n
+}\n
+\n
+.breaking-ticker{\n
+    background:#fafafa;\n
+    padding:10px 15px;\n
+    overflow:hidden;\n
+}\n
+\n
+.breaking-ticker a{\n
+    color:#222;\n
+    font-size:15px;\n
+}\n
+\n
+.breaking-ticker a:hover{\n
+    color:#d60000;\n
+}\n
+\n
+\n
+/* sub-categories: hover dropdown on desktop, always-open indented list on mobile */\n
+@media (min-width:992px){\n
+    .navbar-custom .nav-item.dropdown:hover > .dropdown-menu{\n
+        display:block !important;\n
+        visibility:visible !important;\n
+        opacity:1 !important;\n
+        margin-top:0;\n
+    }\n
+}\n
+@media (max-width:991.98px){\n
+    .navbar-custom .nav-item.dropdown > .dropdown-menu{\n
+        display:block; position:static; background:#0e2d50; border:0; border-radius:0;\n
+    }\n
+    .navbar-custom .dropdown-item{ color:#fff; padding-left:2rem; }\n
+    .navbar-custom .dropdown-item:hover{ background:#0b2745; color:#fff; }\n
+}\n
+\n
+</style>\n
+<link rel="preconnect" href="https://fonts.googleapis.com">\n
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">\n
+<link rel="stylesheet" href="http://localhost/css/frontend.css">\n
+</head>\n
+<body>\n
+\n
+\n
+∩╗┐\n
+<div class="topbar">\n
+    <div class="container">\n
+        <div class="d-flex justify-content-between align-items-center">\n
+            <div>\n
+                                    25 October 2026, Sunday\n
+                            </div>\n
+            <div>\n
+                αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï | αª╕αªñαºìαª»αºçαª░ αª¬αªÑαºç αª¿αª┐αª░αºìαª¡αºÇαªò            </div>\n
+        </div>\n
+    </div>\n
+</div>\n
+\n
+\n
+<header class="site-header bg-white">\n
+    <div class="container">\n
+        <div class="row align-items-center">\n
+            <div class="col-lg-3 col-md-3 text-center text-md-start">\n
+                <a href="http://localhost">\n
+                    <img src="http://localhost/images/logo.png"\n
+                         alt="αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï"\n
+                         class="site-logo img-fluid">\n
+                </a>\n
+            </div>\n
+            <div class="col-lg-9 col-md-9">\n
+                            </div>\n
+        </div>\n
+    </div>\n
+</header>\n
+\n
+\n
+<nav class="navbar navbar-expand-lg navbar-light navbar-custom">\n
+    <div class="container">\n
+\n
+        <button class="navbar-toggler"\n
+                type="button"\n
+                data-bs-toggle="collapse"\n
+                data-bs-target="#mainMenu">\n
+            <span class="navbar-toggler-icon"></span>\n
+        </button>\n
+\n
+        <div class="navbar-collapse collapse visible" id="mainMenu">\n
+\n
+            <ul class="navbar-nav flex-wrap justify-content-center w-100">\n
+\n
+                \n
+                    \n
+                                                <li class="nav-item">\n
+                            <a class="nav-link" href="http://localhost" >αª╣αºïαª«</a>\n
+                        </li>\n
+\n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/saradesh">αª╕αª╛αª░αª╛αªªαºçαª╢</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/jatiyo">αª£αª╛αªñαºÇαª»αª╝</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/padmar-epar">αª¬αªªαºìαª«αª╛αª░-αªÅαª¬αª╛αª░</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/rajniti">αª░αª╛αª£αª¿αºÇαªñαª┐</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/agriculture">αªòαºâαª╖αª┐</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/business">αªàαª░αºìαªÑ-αª¼αª╛αªúαª┐αª£αºìαª»</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/sports">αªûαºçαª▓αª╛</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/entertainment">αª¼αª┐αª¿αºïαªªαª¿</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/international">αªåαª¿αºìαªñαª░αºìαª£αª╛αªñαª┐αªò</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/others">αªàαª¿αºìαª»αª╛αª¿αºìαª»</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/law-court">αªåαªçαª¿-αªåαªªαª╛αª▓αªñ</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/lifestyle">αª▓αª╛αªçαª½αª╕αºìαªƒαª╛αªçαª▓</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/education">αª╢αª┐αªòαºìαª╖αª╛</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/health">αª╕αºìαª¼αª╛αª╕αºìαªÑαºìαª»</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/opinion">αª«αªñαª╛αª«αªñ</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/literature">αª╕αª╛αª╣αª┐αªñαºìαª»</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/media">αªùαªúαª«αª╛αªºαºìαª»αª«</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/technology">αª¼αª┐αª£αºìαª₧αª╛αª¿-αª¬αºìαª░αª»αºüαªòαºìαªñαª┐</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/special-report">αª¼αª┐αª╢αºçαª╖ αª░αª┐αª¬αºïαª░αºìαªƒ</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/jobs">αªòαª░αºìαª«αªûαª╛αª▓αª┐</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/photo-gallery">αª½αªƒαºïαªùαºìαª»αª╛αª▓αª╛αª░αºÇ</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/video-gallery">αª¡αª┐αªíαª┐αªôαªùαºìαª»αª╛αª▓αª╛αª░αºÇ</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                        \n
+                                                    <li class="nav-item">\n
+                                <a class="nav-link" href="http://localhost/category/archives">αªåαª░αºìαªòαª╛αªçαª¡αª╕</a>\n
+                            </li>\n
+                        \n
+                    \n
+                \n
+                    \n
+                                                <li class="nav-item">\n
+                            <a class="nav-link" href="http://localhost/videos" >αª¡αª┐αªíαª┐αªô</a>\n
+                        </li>\n
+\n
+                    \n
+                \n
+                \n
+            </ul>\n
+\n
+        </div>\n
+    </div>\n
+</nav>\n
+\n
+\n
+\n
+<div class="container mt-3">\n
+    <div class="sa-ticker">\n
+        <div class="sa-ticker-label">αª¼αºìαª░αºçαªòαª┐αªé αª¿αª┐αªëαª£</div>\n
+        <div class="sa-ticker-viewport">\n
+            <div class="sa-ticker-track" style="animation-duration: 45s">\n
+                                    <a href="http://localhost/article/demo-sngbad-2-2" class="sa-ticker-link">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 2</a>\n
+                    <span class="sa-ticker-dot">ΓùÅ</span>\n
+                                    <a href="http://localhost/article/demo-sngbad-3-3" class="sa-ticker-link">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 3</a>\n
+                    <span class="sa-ticker-dot">ΓùÅ</span>\n
+                                    <a href="http://localhost/article/demo-sngbad-5-5" class="sa-ticker-link">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 5</a>\n
+                    <span class="sa-ticker-dot">ΓùÅ</span>\n
+                                    <a href="http://localhost/article/demo-sngbad-6-6" class="sa-ticker-link">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 6</a>\n
+                    <span class="sa-ticker-dot">ΓùÅ</span>\n
+                                    <a href="http://localhost/article/demo-sngbad-7-7" class="sa-ticker-link">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 7</a>\n
+                    <span class="sa-ticker-dot">ΓùÅ</span>\n
+                                    <a href="http://localhost/article/demo-sngbad-10-10" class="sa-ticker-link">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 10</a>\n
+                    <span class="sa-ticker-dot">ΓùÅ</span>\n
+                                    <a href="http://localhost/article/demo-sngbad-11-11" class="sa-ticker-link">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 11</a>\n
+                    <span class="sa-ticker-dot">ΓùÅ</span>\n
+                                    <a href="http://localhost/article/demo-sngbad-14-14" class="sa-ticker-link">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 14</a>\n
+                    <span class="sa-ticker-dot">ΓùÅ</span>\n
+                                    <a href="http://localhost/article/demo-sngbad-15-15" class="sa-ticker-link">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 15</a>\n
+                    <span class="sa-ticker-dot">ΓùÅ</span>\n
+                                    <a href="http://localhost/article/demo-sngbad-20-20" class="sa-ticker-link">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 20</a>\n
+                    <span class="sa-ticker-dot">ΓùÅ</span>\n
+                            </div>\n
+        </div>\n
+    </div>\n
+</div>\n
+\n
+<div class="container mt-4">\n
+    \n
+\n
+\n
+    \n
+                    <div class="sa-sec sa-full" style="--cat:#123b68;">\r\n
+\r\n
+                                        <section class="mb-5">\n
+    <div class="row g-4">\n
+\n
+        <div class="col-lg-8">\n
+            <a href="http://localhost/article/demo-sngbad-1-1" class="sa-hero-lead">\n
+                \n
+                <div class="sa-hero-overlay">\n
+                    <span class="sa-chip">αª╢αª┐αªòαºìαª╖αª╛</span>\n
+                    <h1 class="sa-hero-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 1</h1>\n
+                    <div class="sa-meta">\n
+                        αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï\n
+                        &nbsp;|&nbsp;\n
+                        25 Oct 2026\n
+                    </div>\n
+                </div>\n
+            </a>\n
+        </div>\n
+\n
+                    <div class="col-lg-4">\n
+                <div class="sa-hero-side">\n
+                                            <a href="http://localhost/article/demo-sngbad-2-2" class="sa-side-item">\n
+                                                            <div class="sa-side-thumb"></div>\n
+                                                        <div>\n
+                                <h2 class="sa-side-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 2</h2>\n
+                                <div class="sa-side-meta">25 Oct 2026</div>\n
+                            </div>\n
+                        </a>\n
+                                            <a href="http://localhost/article/demo-sngbad-3-3" class="sa-side-item">\n
+                                                            <div class="sa-side-thumb"></div>\n
+                                                        <div>\n
+                                <h2 class="sa-side-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 3</h2>\n
+                                <div class="sa-side-meta">25 Oct 2026</div>\n
+                            </div>\n
+                        </a>\n
+                                            <a href="http://localhost/article/demo-sngbad-4-4" class="sa-side-item">\n
+                                                            <div class="sa-side-thumb"></div>\n
+                                                        <div>\n
+                                <h2 class="sa-side-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 4</h2>\n
+                                <div class="sa-side-meta">25 Oct 2026</div>\n
+                            </div>\n
+                        </a>\n
+                                    </div>\n
+            </div>\n
+        \n
+    </div>\n
+</section>\n
+                \r\n
+    </div>\r\n
+\r\n
+        \n
+    \n
+\n
+    \n
+        \n
+        <div class="row g-4">\n
+\n
+            <div class="col-lg-8">\n
+                                    <div class="sa-sec" style="--cat:#123b68;">\r\n
+\r\n
+                        \r\n
+                                    <section class="mb-5">\n
+\n
+    <div class="sa-block-head">\n
+        <h2>αª¿αª┐αª░αºìαª¼αª╛αªÜαª┐αªñ αª╕αªéαª¼αª╛αªª</h2>\n
+    </div>\n
+\n
+    <div class="row g-4">\n
+                            <div class="col-lg-3 col-md-6">\n
+                <a href="http://localhost/article/demo-sngbad-1-1" class="sa-card">\n
+                                        <div class="sa-card-body">\n
+                        <span class="sa-chip">αª╢αª┐αªòαºìαª╖αª╛</span>\n
+                        <h3 class="sa-feat-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 1</h3>\n
+                    </div>\n
+                </a>\n
+            </div>\n
+                    <div class="col-lg-3 col-md-6">\n
+                <a href="http://localhost/article/demo-sngbad-2-2" class="sa-card">\n
+                                        <div class="sa-card-body">\n
+                        <span class="sa-chip">αªåαª¿αºìαªñαª░αºìαª£αª╛αªñαª┐αªò</span>\n
+                        <h3 class="sa-feat-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 2</h3>\n
+                    </div>\n
+                </a>\n
+            </div>\n
+                    <div class="col-lg-3 col-md-6">\n
+                <a href="http://localhost/article/demo-sngbad-4-4" class="sa-card">\n
+                                        <div class="sa-card-body">\n
+                        <span class="sa-chip">αª£αª╛αªñαºÇαª»αª╝</span>\n
+                        <h3 class="sa-feat-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 4</h3>\n
+                    </div>\n
+                </a>\n
+            </div>\n
+                    <div class="col-lg-3 col-md-6">\n
+                <a href="http://localhost/article/demo-sngbad-5-5" class="sa-card">\n
+                                        <div class="sa-card-body">\n
+                        <span class="sa-chip">αª¼αª┐αª£αºìαª₧αª╛αª¿-αª¬αºìαª░αª»αºüαªòαºìαªñαª┐</span>\n
+                        <h3 class="sa-feat-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 5</h3>\n
+                    </div>\n
+                </a>\n
+            </div>\n
+            </div>\n
+\n
+</section>\n
+\n
+                                \r\n
+    </div>\r\n
+\r\n
+                                    <div class="sa-cat" style="--cat: #d60000;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+       <div class="sa-block-head">\r\n
+    <h2>αª╕αª╛αª░αª╛αªªαºçαª╢</h2>\r\n
+\r\n
+            <a href="http://localhost/category/saradesh">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="row g-4">\r\n
+\r\n
+        <div class="col-md-6">\r\n
+            <a href="http://localhost/article/demo-sngbad-6-6" class="sa-card">\r\n
+                                <div class="sa-card-body">\r\n
+                    <h3 class="sa-card-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 6</h3>\r\n
+                    <p class="sa-card-text">\r\n
+                        αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\r\n
+                    </p>\r\n
+                </div>\r\n
+            </a>\r\n
+        </div>\r\n
+\r\n
+        <div class="col-md-6">\r\n
+            <div class="sa-list">\r\n
+                                    <a href="http://localhost/article/demo-sngbad-11-11" class="sa-list-item">\r\n
+                                                <div>\r\n
+                            <h4 class="sa-list-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 11</h4>\r\n
+                            <small class="text-muted">24 Oct 2026</small>\r\n
+                        </div>\r\n
+                    </a>\r\n
+                                    <a href="http://localhost/article/demo-sngbad-13-13" class="sa-list-item">\r\n
+                                                <div>\r\n
+                            <h4 class="sa-list-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 13</h4>\r\n
+                            <small class="text-muted">24 Oct 2026</small>\r\n
+                        </div>\r\n
+                    </a>\r\n
+                                    <a href="http://localhost/article/demo-sngbad-34-34" class="sa-list-item">\r\n
+                                                <div>\r\n
+                            <h4 class="sa-list-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 34</h4>\r\n
+                            <small class="text-muted">23 Oct 2026</small>\r\n
+                        </div>\r\n
+                    </a>\r\n
+                                    <a href="http://localhost/article/demo-sngbad-49-49" class="sa-list-item">\r\n
+                                                <div>\r\n
+                            <h4 class="sa-list-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 49</h4>\r\n
+                            <small class="text-muted">23 Oct 2026</small>\r\n
+                        </div>\r\n
+                    </a>\r\n
+                            </div>\r\n
+        </div>\r\n
+\r\n
+    </div>\r\n
+\r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #123b68;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+    <div class="sa-block-head">\r\n
+    <h2>αª£αª╛αªñαºÇαª»αª╝</h2>\r\n
+\r\n
+            <a href="http://localhost/category/jatiyo">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="row g-3">\r\n
+                    <div class="col-6 col-lg-3">\r\n
+                <a href="http://localhost/article/demo-sngbad-4-4" class="sa-g4">\r\n
+                    <span class="sa-g4-img">\r\n
+                                            </span>\r\n
+                    <h3 class="sa-g4-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 4</h3>\r\n
+                    <span class="sa-vmeta">25 Oct 2026</span>\r\n
+                </a>\r\n
+            </div>\r\n
+            </div>\r\n
+\r\n
+    \r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #b45309;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+    <div class="sa-block-head">\r\n
+    <h2>αª░αª╛αª£αª¿αºÇαªñαª┐</h2>\r\n
+\r\n
+            <a href="http://localhost/category/rajniti">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="row g-4">\r\n
+\r\n
+        <div class="col-md-5">\r\n
+            <a href="http://localhost/article/demo-sngbad-10-10" class="sa-card">\r\n
+                                <div class="sa-card-body">\r\n
+                    <h3 class="sa-card-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 10</h3>\r\n
+                    <p class="sa-card-text">\r\n
+                        αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\r\n
+                    </p>\r\n
+                </div>\r\n
+            </a>\r\n
+        </div>\r\n
+\r\n
+        <div class="col-md-7">\r\n
+            <ol class="sa-num-list">\r\n
+                                    <li class="sa-num-item">\r\n
+                        <span class="sa-num-no">αºº</span>\r\n
+                        <div>\r\n
+                            <a href="http://localhost/article/demo-sngbad-16-16" class="sa-num-link">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 16</a>\r\n
+                            <div class="sa-vmeta">24 Oct 2026</div>\r\n
+                        </div>\r\n
+                    </li>\r\n
+                                    <li class="sa-num-item">\r\n
+                        <span class="sa-num-no">αº¿</span>\r\n
+                        <div>\r\n
+                            <a href="http://localhost/article/demo-sngbad-30-30" class="sa-num-link">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 30</a>\r\n
+                            <div class="sa-vmeta">24 Oct 2026</div>\r\n
+                        </div>\r\n
+                    </li>\r\n
+                            </ol>\r\n
+        </div>\r\n
+\r\n
+    </div>\r\n
+\r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #7e22ce;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+    <div class="sa-block-head">\r\n
+    <h2>αªòαºâαª╖αª┐</h2>\r\n
+\r\n
+            <a href="http://localhost/category/agriculture">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="sa-scroll">\r\n
+                    <a href="http://localhost/article/demo-sngbad-8-8" class="sa-card sa-scroll-card">\r\n
+                                <div class="sa-card-body">\r\n
+                    <h3 class="sa-card-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 8</h3>\r\n
+                    <small class="text-muted">24 Oct 2026</small>\r\n
+                </div>\r\n
+            </a>\r\n
+                    <a href="http://localhost/article/demo-sngbad-32-32" class="sa-card sa-scroll-card">\r\n
+                                <div class="sa-card-body">\r\n
+                    <h3 class="sa-card-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 32</h3>\r\n
+                    <small class="text-muted">23 Oct 2026</small>\r\n
+                </div>\r\n
+            </a>\r\n
+                    <a href="http://localhost/article/demo-sngbad-42-42" class="sa-card sa-scroll-card">\r\n
+                                <div class="sa-card-body">\r\n
+                    <h3 class="sa-card-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 42</h3>\r\n
+                    <small class="text-muted">23 Oct 2026</small>\r\n
+                </div>\r\n
+            </a>\r\n
+            </div>\r\n
+\r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #be185d;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+    <div class="sa-block-head">\r\n
+    <h2>αªûαºçαª▓αª╛</h2>\r\n
+\r\n
+            <a href="http://localhost/category/sports">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <a href="http://localhost/article/demo-sngbad-29-29" class="sa-wide-lead">\r\n
+                <span class="sa-wide-body">\r\n
+            <h3 class="sa-wide-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 29</h3>\r\n
+            <p class="sa-card-text">αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ</p>\r\n
+            <span class="sa-vmeta">αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï &middot; 24 Oct 2026</span>\r\n
+        </span>\r\n
+    </a>\r\n
+\r\n
+    \r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #15803d;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+    <div class="sa-block-head">\r\n
+    <h2>αª¼αª┐αª¿αºïαªªαª¿</h2>\r\n
+\r\n
+            <a href="http://localhost/category/entertainment">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="row g-3 mb-4">\r\n
+                    <div class="col-md-4">\r\n
+                <a href="http://localhost/article/demo-sngbad-12-12" class="sa-card">\r\n
+                                        <div class="sa-card-body">\r\n
+                        <h3 class="sa-feat-title" style="margin-top:0;">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 12</h3>\r\n
+                        <small class="text-muted">24 Oct 2026</small>\r\n
+                    </div>\r\n
+                </a>\r\n
+            </div>\r\n
+                    <div class="col-md-4">\r\n
+                <a href="http://localhost/article/demo-sngbad-25-25" class="sa-card">\r\n
+                                        <div class="sa-card-body">\r\n
+                        <h3 class="sa-feat-title" style="margin-top:0;">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 25</h3>\r\n
+                        <small class="text-muted">24 Oct 2026</small>\r\n
+                    </div>\r\n
+                </a>\r\n
+            </div>\r\n
+                    <div class="col-md-4">\r\n
+                <a href="http://localhost/article/demo-sngbad-35-35" class="sa-card">\r\n
+                                        <div class="sa-card-body">\r\n
+                        <h3 class="sa-feat-title" style="margin-top:0;">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 35</h3>\r\n
+                        <small class="text-muted">23 Oct 2026</small>\r\n
+                    </div>\r\n
+                </a>\r\n
+            </div>\r\n
+            </div>\r\n
+\r\n
+            <div class="sa-two-col">\r\n
+                            <a href="http://localhost/article/demo-sngbad-47-47" class="sa-list-item">\r\n
+                                        <div>\r\n
+                        <h4 class="sa-list-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 47</h4>\r\n
+                        <small class="text-muted">23 Oct 2026</small>\r\n
+                    </div>\r\n
+                </a>\r\n
+                    </div>\r\n
+    \r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #c2410c;">\r\n
+    <section class="mb-5">\r\n
+    <div class="sa-dark">\r\n
+\r\n
+        <div class="sa-dark-head">\r\n
+            <h2>αªåαª¿αºìαªñαª░αºìαª£αª╛αªñαª┐αªò</h2>\r\n
+                            <a href="http://localhost/category/international">αªåαª░αªô ┬╗</a>\r\n
+                    </div>\r\n
+\r\n
+        <div class="row g-4">\r\n
+\r\n
+            <div class="col-md-7">\r\n
+                <a href="http://localhost/article/demo-sngbad-2-2" class="sa-dlead">\r\n
+                                        <span class="sa-dlead-body">\r\n
+                        <span class="sa-dlead-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 2</span>\r\n
+                        <span class="sa-dlead-meta">25 Oct 2026</span>\r\n
+                    </span>\r\n
+                </a>\r\n
+            </div>\r\n
+\r\n
+            <div class="col-md-5">\r\n
+                                    <div class="sa-dside">\r\n
+                                                    <a href="http://localhost/article/demo-sngbad-43-43" class="sa-ditem">\r\n
+                                                                <span>\r\n
+                                    <span class="sa-ditem-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 43</span>\r\n
+                                    <span class="sa-ditem-meta">23 Oct 2026</span>\r\n
+                                </span>\r\n
+                            </a>\r\n
+                                                    <a href="http://localhost/article/demo-sngbad-48-48" class="sa-ditem">\r\n
+                                                                <span>\r\n
+                                    <span class="sa-ditem-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 48</span>\r\n
+                                    <span class="sa-ditem-meta">23 Oct 2026</span>\r\n
+                                </span>\r\n
+                            </a>\r\n
+                                            </div>\r\n
+                            </div>\r\n
+\r\n
+        </div>\r\n
+\r\n
+    </div>\r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #475569;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+    <div class="sa-block-head">\r\n
+    <h2>αªàαª¿αºìαª»αª╛αª¿αºìαª»</h2>\r\n
+\r\n
+            <a href="http://localhost/category/others">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="sa-op-grid">\r\n
+                                <a href="http://localhost/article/demo-sngbad-3-3" class="sa-op-card">\r\n
+                <h3 class="sa-op-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 3</h3>\r\n
+                <div class="sa-op-author">\r\n
+                    <span class="sa-op-avatar">αª╕</span>\r\n
+                    <span>\r\n
+                        αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï<br>\r\n
+                        <small>25 Oct 2026</small>\r\n
+                    </span>\r\n
+                </div>\r\n
+            </a>\r\n
+                                <a href="http://localhost/article/demo-sngbad-26-26" class="sa-op-card">\r\n
+                <h3 class="sa-op-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 26</h3>\r\n
+                <div class="sa-op-author">\r\n
+                    <span class="sa-op-avatar">αª╕</span>\r\n
+                    <span>\r\n
+                        αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï<br>\r\n
+                        <small>24 Oct 2026</small>\r\n
+                    </span>\r\n
+                </div>\r\n
+            </a>\r\n
+                                <a href="http://localhost/article/demo-sngbad-28-28" class="sa-op-card">\r\n
+                <h3 class="sa-op-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 28</h3>\r\n
+                <div class="sa-op-author">\r\n
+                    <span class="sa-op-avatar">αª╕</span>\r\n
+                    <span>\r\n
+                        αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï<br>\r\n
+                        <small>24 Oct 2026</small>\r\n
+                    </span>\r\n
+                </div>\r\n
+            </a>\r\n
+                                <a href="http://localhost/article/demo-sngbad-31-31" class="sa-op-card">\r\n
+                <h3 class="sa-op-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 31</h3>\r\n
+                <div class="sa-op-author">\r\n
+                    <span class="sa-op-avatar">αª╕</span>\r\n
+                    <span>\r\n
+                        αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï<br>\r\n
+                        <small>24 Oct 2026</small>\r\n
+                    </span>\r\n
+                </div>\r\n
+            </a>\r\n
+            </div>\r\n
+\r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #d60000;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+       <div class="sa-block-head">\r\n
+    <h2>αªåαªçαª¿-αªåαªªαª╛αª▓αªñ</h2>\r\n
+\r\n
+            <a href="http://localhost/category/law-court">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="row g-4">\r\n
+\r\n
+        <div class="col-md-6">\r\n
+            <a href="http://localhost/article/demo-sngbad-24-24" class="sa-card">\r\n
+                                <div class="sa-card-body">\r\n
+                    <h3 class="sa-card-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 24</h3>\r\n
+                    <p class="sa-card-text">\r\n
+                        αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\r\n
+                    </p>\r\n
+                </div>\r\n
+            </a>\r\n
+        </div>\r\n
+\r\n
+        <div class="col-md-6">\r\n
+            <div class="sa-list">\r\n
+                            </div>\r\n
+        </div>\r\n
+\r\n
+    </div>\r\n
+\r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #123b68;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+    <div class="sa-block-head">\r\n
+    <h2>αª▓αª╛αªçαª½αª╕αºìαªƒαª╛αªçαª▓</h2>\r\n
+\r\n
+            <a href="http://localhost/category/lifestyle">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="row g-3">\r\n
+                    <div class="col-6 col-lg-3">\r\n
+                <a href="http://localhost/article/demo-sngbad-7-7" class="sa-g4">\r\n
+                    <span class="sa-g4-img">\r\n
+                                            </span>\r\n
+                    <h3 class="sa-g4-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 7</h3>\r\n
+                    <span class="sa-vmeta">25 Oct 2026</span>\r\n
+                </a>\r\n
+            </div>\r\n
+            </div>\r\n
+\r\n
+    \r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #0f766e;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+    <div class="sa-block-head">\r\n
+    <h2>αª╢αª┐αªòαºìαª╖αª╛</h2>\r\n
+\r\n
+            <a href="http://localhost/category/education">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="sa-mosaic">\r\n
+                   <a href="http://localhost/article/demo-sngbad-1-1" class="sa-tile">\r\n
+                                <div class="sa-tile-body">\r\n
+                    <h3 class="sa-tile-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 1</h3>\r\n
+                    <div class="sa-tile-meta">25 Oct 2026</div>\r\n
+                </div>\r\n
+            </a>\r\n
+            </div>\r\n
+\r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #b45309;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+    <div class="sa-block-head">\r\n
+    <h2>αª╕αºìαª¼αª╛αª╕αºìαªÑαºìαª»</h2>\r\n
+\r\n
+            <a href="http://localhost/category/health">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="row g-4">\r\n
+\r\n
+        <div class="col-md-5">\r\n
+            <a href="http://localhost/article/demo-sngbad-15-15" class="sa-card">\r\n
+                                <div class="sa-card-body">\r\n
+                    <h3 class="sa-card-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 15</h3>\r\n
+                    <p class="sa-card-text">\r\n
+                        αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\r\n
+                    </p>\r\n
+                </div>\r\n
+            </a>\r\n
+        </div>\r\n
+\r\n
+        <div class="col-md-7">\r\n
+            <ol class="sa-num-list">\r\n
+                            </ol>\r\n
+        </div>\r\n
+\r\n
+    </div>\r\n
+\r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #7e22ce;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+    <div class="sa-block-head">\r\n
+    <h2>αª«αªñαª╛αª«αªñ</h2>\r\n
+\r\n
+            <a href="http://localhost/category/opinion">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="sa-scroll">\r\n
+                    <a href="http://localhost/article/demo-sngbad-19-19" class="sa-card sa-scroll-card">\r\n
+                                <div class="sa-card-body">\r\n
+                    <h3 class="sa-card-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 19</h3>\r\n
+                    <small class="text-muted">24 Oct 2026</small>\r\n
+                </div>\r\n
+            </a>\r\n
+                    <a href="http://localhost/article/demo-sngbad-27-27" class="sa-card sa-scroll-card">\r\n
+                                <div class="sa-card-body">\r\n
+                    <h3 class="sa-card-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 27</h3>\r\n
+                    <small class="text-muted">24 Oct 2026</small>\r\n
+                </div>\r\n
+            </a>\r\n
+                    <a href="http://localhost/article/demo-sngbad-38-38" class="sa-card sa-scroll-card">\r\n
+                                <div class="sa-card-body">\r\n
+                    <h3 class="sa-card-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 38</h3>\r\n
+                    <small class="text-muted">23 Oct 2026</small>\r\n
+                </div>\r\n
+            </a>\r\n
+                    <a href="http://localhost/article/demo-sngbad-50-50" class="sa-card sa-scroll-card">\r\n
+                                <div class="sa-card-body">\r\n
+                    <h3 class="sa-card-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 50</h3>\r\n
+                    <small class="text-muted">23 Oct 2026</small>\r\n
+                </div>\r\n
+            </a>\r\n
+            </div>\r\n
+\r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #0369a1;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+    <div class="sa-block-head">\r\n
+    <h2>αª╕αª╛αª╣αª┐αªñαºìαª»</h2>\r\n
+\r\n
+            <a href="http://localhost/category/literature">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="sa-trio">\r\n
+                    <a href="http://localhost/article/demo-sngbad-41-41" class="sa-ttile">\r\n
+                                <span class="sa-ttile-body">\r\n
+                    <span class="sa-ttile-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 41</span>\r\n
+                    <span class="sa-ttile-meta">23 Oct 2026</span>\r\n
+                </span>\r\n
+            </a>\r\n
+                    <a href="http://localhost/article/demo-sngbad-45-45" class="sa-ttile">\r\n
+                                <span class="sa-ttile-body">\r\n
+                    <span class="sa-ttile-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 45</span>\r\n
+                    <span class="sa-ttile-meta">23 Oct 2026</span>\r\n
+                </span>\r\n
+            </a>\r\n
+            </div>\r\n
+\r\n
+    \r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #be185d;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+    <div class="sa-block-head">\r\n
+    <h2>αªùαªúαª«αª╛αªºαºìαª»αª«</h2>\r\n
+\r\n
+            <a href="http://localhost/category/media">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <a href="http://localhost/article/demo-sngbad-18-18" class="sa-wide-lead">\r\n
+                <span class="sa-wide-body">\r\n
+            <h3 class="sa-wide-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 18</h3>\r\n
+            <p class="sa-card-text">αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ</p>\r\n
+            <span class="sa-vmeta">αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï &middot; 24 Oct 2026</span>\r\n
+        </span>\r\n
+    </a>\r\n
+\r\n
+            <div class="sa-two-col mt-3">\r\n
+                            <a href="http://localhost/article/demo-sngbad-20-20" class="sa-text-row">\r\n
+                    αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 20\r\n
+                    <small>24 Oct 2026</small>\r\n
+                </a>\r\n
+                            <a href="http://localhost/article/demo-sngbad-44-44" class="sa-text-row">\r\n
+                    αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 44\r\n
+                    <small>23 Oct 2026</small>\r\n
+                </a>\r\n
+                    </div>\r\n
+    \r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #15803d;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+    <div class="sa-block-head">\r\n
+    <h2>αª¼αª┐αª£αºìαª₧αª╛αª¿-αª¬αºìαª░αª»αºüαªòαºìαªñαª┐</h2>\r\n
+\r\n
+            <a href="http://localhost/category/technology">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="row g-3 mb-4">\r\n
+                    <div class="col-md-4">\r\n
+                <a href="http://localhost/article/demo-sngbad-5-5" class="sa-card">\r\n
+                                        <div class="sa-card-body">\r\n
+                        <h3 class="sa-feat-title" style="margin-top:0;">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 5</h3>\r\n
+                        <small class="text-muted">25 Oct 2026</small>\r\n
+                    </div>\r\n
+                </a>\r\n
+            </div>\r\n
+                    <div class="col-md-4">\r\n
+                <a href="http://localhost/article/demo-sngbad-17-17" class="sa-card">\r\n
+                                        <div class="sa-card-body">\r\n
+                        <h3 class="sa-feat-title" style="margin-top:0;">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 17</h3>\r\n
+                        <small class="text-muted">24 Oct 2026</small>\r\n
+                    </div>\r\n
+                </a>\r\n
+            </div>\r\n
+                    <div class="col-md-4">\r\n
+                <a href="http://localhost/article/demo-sngbad-39-39" class="sa-card">\r\n
+                                        <div class="sa-card-body">\r\n
+                        <h3 class="sa-feat-title" style="margin-top:0;">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 39</h3>\r\n
+                        <small class="text-muted">23 Oct 2026</small>\r\n
+                    </div>\r\n
+                </a>\r\n
+            </div>\r\n
+            </div>\r\n
+\r\n
+            <div class="sa-two-col">\r\n
+                            <a href="http://localhost/article/demo-sngbad-40-40" class="sa-list-item">\r\n
+                                        <div>\r\n
+                        <h4 class="sa-list-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 40</h4>\r\n
+                        <small class="text-muted">23 Oct 2026</small>\r\n
+                    </div>\r\n
+                </a>\r\n
+                    </div>\r\n
+    \r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #c2410c;">\r\n
+    <section class="mb-5">\r\n
+    <div class="sa-dark">\r\n
+\r\n
+        <div class="sa-dark-head">\r\n
+            <h2>αª¼αª┐αª╢αºçαª╖ αª░αª┐αª¬αºïαª░αºìαªƒ</h2>\r\n
+                            <a href="http://localhost/category/special-report">αªåαª░αªô ┬╗</a>\r\n
+                    </div>\r\n
+\r\n
+        <div class="row g-4">\r\n
+\r\n
+            <div class="col-md-7">\r\n
+                <a href="http://localhost/article/demo-sngbad-22-22" class="sa-dlead">\r\n
+                                        <span class="sa-dlead-body">\r\n
+                        <span class="sa-dlead-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 22</span>\r\n
+                        <span class="sa-dlead-meta">24 Oct 2026</span>\r\n
+                    </span>\r\n
+                </a>\r\n
+            </div>\r\n
+\r\n
+            <div class="col-md-5">\r\n
+                                    <div class="sa-dside">\r\n
+                                                    <a href="http://localhost/article/demo-sngbad-23-23" class="sa-ditem">\r\n
+                                                                <span>\r\n
+                                    <span class="sa-ditem-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 23</span>\r\n
+                                    <span class="sa-ditem-meta">24 Oct 2026</span>\r\n
+                                </span>\r\n
+                            </a>\r\n
+                                            </div>\r\n
+                            </div>\r\n
+\r\n
+        </div>\r\n
+\r\n
+    </div>\r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #475569;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+    <div class="sa-block-head">\r\n
+    <h2>αªòαª░αºìαª«αªûαª╛αª▓αª┐</h2>\r\n
+\r\n
+            <a href="http://localhost/category/jobs">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="sa-op-grid">\r\n
+                                <a href="http://localhost/article/demo-sngbad-14-14" class="sa-op-card">\r\n
+                <h3 class="sa-op-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 14</h3>\r\n
+                <div class="sa-op-author">\r\n
+                    <span class="sa-op-avatar">αª╕</span>\r\n
+                    <span>\r\n
+                        αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï<br>\r\n
+                        <small>24 Oct 2026</small>\r\n
+                    </span>\r\n
+                </div>\r\n
+            </a>\r\n
+                                <a href="http://localhost/article/demo-sngbad-46-46" class="sa-op-card">\r\n
+                <h3 class="sa-op-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 46</h3>\r\n
+                <div class="sa-op-author">\r\n
+                    <span class="sa-op-avatar">αª╕</span>\r\n
+                    <span>\r\n
+                        αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï<br>\r\n
+                        <small>23 Oct 2026</small>\r\n
+                    </span>\r\n
+                </div>\r\n
+            </a>\r\n
+            </div>\r\n
+\r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #d60000;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+       <div class="sa-block-head">\r\n
+    <h2>αª½αªƒαºïαªùαºìαª»αª╛αª▓αª╛αª░αºÇ</h2>\r\n
+\r\n
+            <a href="http://localhost/category/photo-gallery">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="row g-4">\r\n
+\r\n
+        <div class="col-md-6">\r\n
+            <a href="http://localhost/article/demo-sngbad-9-9" class="sa-card">\r\n
+                                <div class="sa-card-body">\r\n
+                    <h3 class="sa-card-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 9</h3>\r\n
+                    <p class="sa-card-text">\r\n
+                        αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\r\n
+                    </p>\r\n
+                </div>\r\n
+            </a>\r\n
+        </div>\r\n
+\r\n
+        <div class="col-md-6">\r\n
+            <div class="sa-list">\r\n
+                                    <a href="http://localhost/article/demo-sngbad-21-21" class="sa-list-item">\r\n
+                                                <div>\r\n
+                            <h4 class="sa-list-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 21</h4>\r\n
+                            <small class="text-muted">24 Oct 2026</small>\r\n
+                        </div>\r\n
+                    </a>\r\n
+                                    <a href="http://localhost/article/demo-sngbad-33-33" class="sa-list-item">\r\n
+                                                <div>\r\n
+                            <h4 class="sa-list-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 33</h4>\r\n
+                            <small class="text-muted">23 Oct 2026</small>\r\n
+                        </div>\r\n
+                    </a>\r\n
+                            </div>\r\n
+        </div>\r\n
+\r\n
+    </div>\r\n
+\r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-cat" style="--cat: #0f766e;">\r\n
+    <section class="mb-5">\r\n
+\r\n
+    <div class="sa-block-head">\r\n
+    <h2>αªåαª░αºìαªòαª╛αªçαª¡αª╕</h2>\r\n
+\r\n
+            <a href="http://localhost/category/archives">αªåαª░αªô ┬╗</a>\r\n
+    </div>\r\n
+\r\n
+\r\n
+    <div class="sa-mosaic">\r\n
+                   <a href="http://localhost/article/demo-sngbad-36-36" class="sa-tile">\r\n
+                                <div class="sa-tile-body">\r\n
+                    <h3 class="sa-tile-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 36</h3>\r\n
+                    <div class="sa-tile-meta">23 Oct 2026</div>\r\n
+                </div>\r\n
+            </a>\r\n
+            </div>\r\n
+\r\n
+</section>\r\n
+</div>\r\n
+                                    <div class="sa-sec" style="--cat:#123b68;">\r\n
+\r\n
+                        <section class="mb-5">\n
+\n
+    <div class="sa-block-head">\n
+        <h2>αª╕αª░αºìαª¼αª╢αºçαª╖ αª╕αªéαª¼αª╛αªª</h2>\n
+        <span class="text-muted small">αª«αºïαªƒ 50αªƒαª┐ αª╕αªéαª¼αª╛αªª</span>\n
+    </div>\n
+\n
+    \n
+        <div class="d-flex flex-column gap-3">\n
+                            <a href="http://localhost/article/demo-sngbad-1-1" class="sa-row-card">\n
+                                        <div class="sa-row-body">\n
+                                                    <div class="sa-row-cat">αª╢αª┐αªòαºìαª╖αª╛</div>\n
+                                                <h3 class="sa-row-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 1</h3>\n
+                        <p class="sa-card-text mb-2 d-none d-md-block">\n
+                            αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\n
+                        </p>\n
+                        <time class="small text-muted" datetime="2026-10-25T06:00:57+00:00">\n
+                            25 Oct 2026\n
+                        </time>\n
+                    </div>\n
+                </a>\n
+                            <a href="http://localhost/article/demo-sngbad-2-2" class="sa-row-card">\n
+                                        <div class="sa-row-body">\n
+                                                    <div class="sa-row-cat">αªåαª¿αºìαªñαª░αºìαª£αª╛αªñαª┐αªò</div>\n
+                                                <h3 class="sa-row-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 2</h3>\n
+                        <p class="sa-card-text mb-2 d-none d-md-block">\n
+                            αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\n
+                        </p>\n
+                        <time class="small text-muted" datetime="2026-10-25T05:00:57+00:00">\n
+                            25 Oct 2026\n
+                        </time>\n
+                    </div>\n
+                </a>\n
+                            <a href="http://localhost/article/demo-sngbad-3-3" class="sa-row-card">\n
+                                        <div class="sa-row-body">\n
+                                                    <div class="sa-row-cat">αªàαª¿αºìαª»αª╛αª¿αºìαª»</div>\n
+                                                <h3 class="sa-row-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 3</h3>\n
+                        <p class="sa-card-text mb-2 d-none d-md-block">\n
+                            αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\n
+                        </p>\n
+                        <time class="small text-muted" datetime="2026-10-25T04:00:57+00:00">\n
+                            25 Oct 2026\n
+                        </time>\n
+                    </div>\n
+                </a>\n
+                            <a href="http://localhost/article/demo-sngbad-4-4" class="sa-row-card">\n
+                                        <div class="sa-row-body">\n
+                                                    <div class="sa-row-cat">αª£αª╛αªñαºÇαª»αª╝</div>\n
+                                                <h3 class="sa-row-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 4</h3>\n
+                        <p class="sa-card-text mb-2 d-none d-md-block">\n
+                            αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\n
+                        </p>\n
+                        <time class="small text-muted" datetime="2026-10-25T03:00:57+00:00">\n
+                            25 Oct 2026\n
+                        </time>\n
+                    </div>\n
+                </a>\n
+                            <a href="http://localhost/article/demo-sngbad-5-5" class="sa-row-card">\n
+                                        <div class="sa-row-body">\n
+                                                    <div class="sa-row-cat">αª¼αª┐αª£αºìαª₧αª╛αª¿-αª¬αºìαª░αª»αºüαªòαºìαªñαª┐</div>\n
+                                                <h3 class="sa-row-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 5</h3>\n
+                        <p class="sa-card-text mb-2 d-none d-md-block">\n
+                            αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\n
+                        </p>\n
+                        <time class="small text-muted" datetime="2026-10-25T02:00:57+00:00">\n
+                            25 Oct 2026\n
+                        </time>\n
+                    </div>\n
+                </a>\n
+                            <a href="http://localhost/article/demo-sngbad-6-6" class="sa-row-card">\n
+                                        <div class="sa-row-body">\n
+                                                    <div class="sa-row-cat">αª╕αª╛αª░αª╛αªªαºçαª╢</div>\n
+                                                <h3 class="sa-row-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 6</h3>\n
+                        <p class="sa-card-text mb-2 d-none d-md-block">\n
+                            αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\n
+                        </p>\n
+                        <time class="small text-muted" datetime="2026-10-25T01:00:57+00:00">\n
+                            25 Oct 2026\n
+                        </time>\n
+                    </div>\n
+                </a>\n
+                            <a href="http://localhost/article/demo-sngbad-7-7" class="sa-row-card">\n
+                                        <div class="sa-row-body">\n
+                                                    <div class="sa-row-cat">αª▓αª╛αªçαª½αª╕αºìαªƒαª╛αªçαª▓</div>\n
+                                                <h3 class="sa-row-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 7</h3>\n
+                        <p class="sa-card-text mb-2 d-none d-md-block">\n
+                            αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\n
+                        </p>\n
+                        <time class="small text-muted" datetime="2026-10-25T00:00:57+00:00">\n
+                            25 Oct 2026\n
+                        </time>\n
+                    </div>\n
+                </a>\n
+                            <a href="http://localhost/article/demo-sngbad-8-8" class="sa-row-card">\n
+                                        <div class="sa-row-body">\n
+                                                    <div class="sa-row-cat">αªòαºâαª╖αª┐</div>\n
+                                                <h3 class="sa-row-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 8</h3>\n
+                        <p class="sa-card-text mb-2 d-none d-md-block">\n
+                            αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\n
+                        </p>\n
+                        <time class="small text-muted" datetime="2026-10-24T23:00:57+00:00">\n
+                            24 Oct 2026\n
+                        </time>\n
+                    </div>\n
+                </a>\n
+                            <a href="http://localhost/article/demo-sngbad-9-9" class="sa-row-card">\n
+                                        <div class="sa-row-body">\n
+                                                    <div class="sa-row-cat">αª½αªƒαºïαªùαºìαª»αª╛αª▓αª╛αª░αºÇ</div>\n
+                                                <h3 class="sa-row-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 9</h3>\n
+                        <p class="sa-card-text mb-2 d-none d-md-block">\n
+                            αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\n
+                        </p>\n
+                        <time class="small text-muted" datetime="2026-10-24T22:00:57+00:00">\n
+                            24 Oct 2026\n
+                        </time>\n
+                    </div>\n
+                </a>\n
+                            <a href="http://localhost/article/demo-sngbad-10-10" class="sa-row-card">\n
+                                        <div class="sa-row-body">\n
+                                                    <div class="sa-row-cat">αª░αª╛αª£αª¿αºÇαªñαª┐</div>\n
+                                                <h3 class="sa-row-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 10</h3>\n
+                        <p class="sa-card-text mb-2 d-none d-md-block">\n
+                            αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\n
+                        </p>\n
+                        <time class="small text-muted" datetime="2026-10-24T21:00:57+00:00">\n
+                            24 Oct 2026\n
+                        </time>\n
+                    </div>\n
+                </a>\n
+                            <a href="http://localhost/article/demo-sngbad-11-11" class="sa-row-card">\n
+                                        <div class="sa-row-body">\n
+                                                    <div class="sa-row-cat">αª╕αª╛αª░αª╛αªªαºçαª╢</div>\n
+                                                <h3 class="sa-row-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 11</h3>\n
+                        <p class="sa-card-text mb-2 d-none d-md-block">\n
+                            αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\n
+                        </p>\n
+                        <time class="small text-muted" datetime="2026-10-24T20:00:57+00:00">\n
+                            24 Oct 2026\n
+                        </time>\n
+                    </div>\n
+                </a>\n
+                            <a href="http://localhost/article/demo-sngbad-12-12" class="sa-row-card">\n
+                                        <div class="sa-row-body">\n
+                                                    <div class="sa-row-cat">αª¼αª┐αª¿αºïαªªαª¿</div>\n
+                                                <h3 class="sa-row-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 12</h3>\n
+                        <p class="sa-card-text mb-2 d-none d-md-block">\n
+                            αªÅαªƒαª┐ αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï CMS-αªÅαª░ αªíαºçαª«αºï αª╕αªéαª¼αª╛αªªαÑñ αªÅαªûαª╛αª¿αºç αª¬αª░αª¼αª░αºìαªñαºÇαªñαºç αªåαª╕αª▓ αª╕αªéαª¼αª╛αªª αª¬αºìαª░αªòαª╛αª╢ αªòαª░αª╛ αª╣αª¼αºçαÑñ\n
+                        </p>\n
+                        <time class="small text-muted" datetime="2026-10-24T19:00:57+00:00">\n
+                            24 Oct 2026\n
+                        </time>\n
+                    </div>\n
+                </a>\n
+                    </div>\n
+\n
+    \n
+            <div class="d-flex justify-content-center mt-4">\n
+            <nav class="d-flex justify-items-center justify-content-between">\n
+        <div class="d-flex justify-content-between flex-fill d-sm-none">\n
+            <ul class="pagination">\n
+                \n
+                                    <li class="page-item disabled" aria-disabled="true">\n
+                        <span class="page-link">&laquo; Previous</span>\n
+                    </li>\n
+                \n
+                \n
+                                    <li class="page-item">\n
+                        <a class="page-link" href="http://localhost?page=2" rel="next">Next &raquo;</a>\n
+                    </li>\n
+                            </ul>\n
+        </div>\n
+\n
+        <div class="d-none flex-sm-fill d-sm-flex align-items-sm-center justify-content-sm-between">\n
+            <div>\n
+                <p class="small text-muted">\n
+                    Showing\n
+                    <span class="fw-semibold">1</span>\n
+                    to\n
+                    <span class="fw-semibold">12</span>\n
+                    of\n
+                    <span class="fw-semibold">50</span>\n
+                    results\n
+                </p>\n
+            </div>\n
+\n
+            <div>\n
+                <ul class="pagination">\n
+                    \n
+                                            <li class="page-item disabled" aria-disabled="true" aria-label="&laquo; Previous">\n
+                            <span class="page-link" aria-hidden="true">&lsaquo;</span>\n
+                        </li>\n
+                    \n
+                    \n
+                                            \n
+                        \n
+                        \n
+                                                                                                                        <li class="page-item active" aria-current="page"><span class="page-link">1</span></li>\n
+                                                                                                                                <li class="page-item"><a class="page-link" href="http://localhost?page=2">2</a></li>\n
+                                                                                                                                <li class="page-item"><a class="page-link" href="http://localhost?page=3">3</a></li>\n
+                                                                                                                                <li class="page-item"><a class="page-link" href="http://localhost?page=4">4</a></li>\n
+                                                                                                                                <li class="page-item"><a class="page-link" href="http://localhost?page=5">5</a></li>\n
+                                                                                                        \n
+                    \n
+                                            <li class="page-item">\n
+                            <a class="page-link" href="http://localhost?page=2" rel="next" aria-label="Next &raquo;">&rsaquo;</a>\n
+                        </li>\n
+                                    </ul>\n
+            </div>\n
+        </div>\n
+    </nav>\n
+\n
+        </div>\n
+    \n
+</section>                \r\n
+    </div>\r\n
+\r\n
+                            </div>\n
+\n
+            <div class="col-lg-4">\n
+                                    <div class="sa-widget">\r\n
+\r\n
+    <ul class="nav sa-tabs" role="tablist">\r\n
+        <li class="nav-item flex-fill d-flex">\r\n
+            <button class="nav-link active w-100" data-bs-toggle="tab" data-bs-target="#latestNews" type="button">\r\n
+                αª╕αª░αºìαª¼αª╢αºçαª╖\r\n
+            </button>\r\n
+        </li>\r\n
+        <li class="nav-item flex-fill d-flex">\r\n
+            <button class="nav-link w-100" data-bs-toggle="tab" data-bs-target="#popularNews" type="button">\r\n
+                αª£αª¿αª¬αºìαª░αª┐αª»αª╝\r\n
+            </button>\r\n
+        </li>\r\n
+    </ul>\r\n
+\r\n
+    <div class="tab-content">\r\n
+\r\n
+        <div class="tab-pane fade show active" id="latestNews">\r\n
+                            <a href="http://localhost/article/demo-sngbad-1-1" class="sa-rank">\r\n
+                    <span class="sa-rank-no">1</span>\r\n
+                    <span>\r\n
+                        <span class="sa-rank-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 1</span>\r\n
+                        <small>25 Oct 2026</small>\r\n
+                    </span>\r\n
+                </a>\r\n
+                            <a href="http://localhost/article/demo-sngbad-2-2" class="sa-rank">\r\n
+                    <span class="sa-rank-no">2</span>\r\n
+                    <span>\r\n
+                        <span class="sa-rank-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 2</span>\r\n
+                        <small>25 Oct 2026</small>\r\n
+                    </span>\r\n
+                </a>\r\n
+                            <a href="http://localhost/article/demo-sngbad-3-3" class="sa-rank">\r\n
+                    <span class="sa-rank-no">3</span>\r\n
+                    <span>\r\n
+                        <span class="sa-rank-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 3</span>\r\n
+                        <small>25 Oct 2026</small>\r\n
+                    </span>\r\n
+                </a>\r\n
+                            <a href="http://localhost/article/demo-sngbad-4-4" class="sa-rank">\r\n
+                    <span class="sa-rank-no">4</span>\r\n
+                    <span>\r\n
+                        <span class="sa-rank-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 4</span>\r\n
+                        <small>25 Oct 2026</small>\r\n
+                    </span>\r\n
+                </a>\r\n
+                            <a href="http://localhost/article/demo-sngbad-5-5" class="sa-rank">\r\n
+                    <span class="sa-rank-no">5</span>\r\n
+                    <span>\r\n
+                        <span class="sa-rank-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 5</span>\r\n
+                        <small>25 Oct 2026</small>\r\n
+                    </span>\r\n
+                </a>\r\n
+                    </div>\r\n
+\r\n
+        <div class="tab-pane fade" id="popularNews">\r\n
+                            <a href="http://localhost/article/demo-sngbad-1-1" class="sa-rank">\r\n
+                    <span class="sa-rank-no">1</span>\r\n
+                    <span>\r\n
+                        <span class="sa-rank-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 1</span>\r\n
+                        <small>25 Oct 2026</small>\r\n
+                    </span>\r\n
+                </a>\r\n
+                            <a href="http://localhost/article/demo-sngbad-2-2" class="sa-rank">\r\n
+                    <span class="sa-rank-no">2</span>\r\n
+                    <span>\r\n
+                        <span class="sa-rank-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 2</span>\r\n
+                        <small>25 Oct 2026</small>\r\n
+                    </span>\r\n
+                </a>\r\n
+                            <a href="http://localhost/article/demo-sngbad-3-3" class="sa-rank">\r\n
+                    <span class="sa-rank-no">3</span>\r\n
+                    <span>\r\n
+                        <span class="sa-rank-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 3</span>\r\n
+                        <small>25 Oct 2026</small>\r\n
+                    </span>\r\n
+                </a>\r\n
+                            <a href="http://localhost/article/demo-sngbad-4-4" class="sa-rank">\r\n
+                    <span class="sa-rank-no">4</span>\r\n
+                    <span>\r\n
+                        <span class="sa-rank-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 4</span>\r\n
+                        <small>25 Oct 2026</small>\r\n
+                    </span>\r\n
+                </a>\r\n
+                            <a href="http://localhost/article/demo-sngbad-5-5" class="sa-rank">\r\n
+                    <span class="sa-rank-no">5</span>\r\n
+                    <span>\r\n
+                        <span class="sa-rank-title">αªíαºçαª«αºï αª╕αªéαª¼αª╛αªª 5</span>\r\n
+                        <small>25 Oct 2026</small>\r\n
+                    </span>\r\n
+                </a>\r\n
+                    </div>\r\n
+\r\n
+    </div>\r\n
+\r\n
+</div>                                                                                </div>\n
+\n
+        </div>\n
+\n
+    \n
+\n
+</div>\n
+\n
+<footer class="sa-footer">\n
+\n
+    <div class="container py-5">\n
+        <div class="row g-4">\n
+\n
+            <div class="col-lg-4">\n
+                <h3 class="sa-footer-title">αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï</h3>\n
+\n
+                                    <p><strong class="text-white">αª╕αªñαºìαª»αºçαª░ αª¬αªÑαºç αª¿αª┐αª░αºìαª¡αºÇαªò</strong></p>\n
+                \n
+                                    <p>αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï αªÅαªòαªƒαª┐ αª¿αª┐αª░αºìαª¡αª░αª»αºïαªùαºìαª», αª¼αª╕αºìαªñαºüαª¿αª┐αª╖αºìαªá αªô αªåαªºαºüαª¿αª┐αªò αª¼αª╛αªéαª▓αª╛ αªàαª¿αª▓αª╛αªçαª¿ αª╕αªéαª¼αª╛αªªαª«αª╛αªºαºìαª»αª«αÑñ αªªαºçαª╢-αª¼αª┐αªªαºçαª╢αºçαª░ αª╕αª░αºìαª¼αª╢αºçαª╖ αª╕αªéαª¼αª╛αªª αªªαºìαª░αºüαªñ αªô αª¿αª┐αª░αºìαª¡αºüαª▓αª¡αª╛αª¼αºç αª¬αª╛αªáαªòαºçαª░ αªòαª╛αª¢αºç αª¬αºîαªüαª¢αºç αªªαºçαªôαª»αª╝αª╛αªç αªåαª«αª╛αªªαºçαª░ αª▓αªòαºìαª╖αºìαª»αÑñ</p>\n
+                            </div>\n
+\n
+                            <div class="col-lg-4">\n
+                                            <h3 class="sa-footer-title">αªùαºüαª░αºüαªñαºìαª¼αª¬αºéαª░αºìαªú αª¼αª┐αª¡αª╛αªù</h3>\n
+                        <ul class="sa-footer-links">\n
+                                                            <li><a href="http://localhost/category/saradesh">αª╕αª╛αª░αª╛αªªαºçαª╢</a></li>\n
+                                                            <li><a href="http://localhost/category/jatiyo">αª£αª╛αªñαºÇαª»αª╝</a></li>\n
+                                                            <li><a href="http://localhost/category/padmar-epar">αª¬αªªαºìαª«αª╛αª░-αªÅαª¬αª╛αª░</a></li>\n
+                                                            <li><a href="http://localhost/category/rajniti">αª░αª╛αª£αª¿αºÇαªñαª┐</a></li>\n
+                                                            <li><a href="http://localhost/category/agriculture">αªòαºâαª╖αª┐</a></li>\n
+                                                            <li><a href="http://localhost/category/business">αªàαª░αºìαªÑ-αª¼αª╛αªúαª┐αª£αºìαª»</a></li>\n
+                                                            <li><a href="http://localhost/category/sports">αªûαºçαª▓αª╛</a></li>\n
+                                                            <li><a href="http://localhost/category/entertainment">αª¼αª┐αª¿αºïαªªαª¿</a></li>\n
+                                                            <li><a href="http://localhost/category/international">αªåαª¿αºìαªñαª░αºìαª£αª╛αªñαª┐αªò</a></li>\n
+                                                            <li><a href="http://localhost/category/others">αªàαª¿αºìαª»αª╛αª¿αºìαª»</a></li>\n
+                                                    </ul>\n
+                    \n
+                                    </div>\n
+            \n
+                            <div class="col-lg-4">\n
+                    <h3 class="sa-footer-title">αª»αºïαªùαª╛αª»αºïαªù</h3>\n
+\n
+                                            <p>αªçαª«αºçαªçαª▓: <a href="mailto:info@shadhinalo.com">info@shadhinalo.com</a></p>\n
+                    \n
+                    \n
+                                            <p>αªáαª┐αªòαª╛αª¿αª╛: αª¼αª╛αªéαª▓αª╛αªªαºçαª╢</p>\n
+                    \n
+                                    </div>\n
+            \n
+        </div>\n
+    </div>\n
+\n
+    <div class="sa-footer-bottom">\n
+        <div class="container">\n
+            ┬⌐ 2026 <strong class="text-white">αª╕αºìαª¼αª╛αªºαºÇαª¿ αªåαª▓αºï</strong> | αª╕αª░αºìαª¼αª╕αºìαª¼αªñαºìαª¼ αª╕αªéαª░αªòαºìαª╖αª┐αªñ                            <span class="mx-2">|</span>\n
+                Developed by <strong class="text-white">Nexton BD Tech</strong>\n
+                    </div>\n
+    </div>\n
+\n
+</footer>\n
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>\n
+\n
+</body>\n
+</html>\n
+
+
+  To contain: /location/dhaka
+
+  at tests\Feature\FrontendLocationTest.php:209
+    205Γûò it('renders a freshly seeded site with the geography loaded', function () {
+    206Γûò     $this->seed(\Database\Seeders\CategorySeeder::class);
+    207Γûò     $this->seed(\Database\Seeders\NewsSeeder::class);
+    208Γûò 
+  Γ₧£ 209Γûò     $this->get('/')->assertOk()->assertSee('/location/dhaka', false);
+    210Γûò });
+    211Γûò
+
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ  
+   FAILED  Tests\Feature\LocationDataTest > it can be rolled back and migrated again WITH data lΓÇª   
+  Failed asserting that true is false.
+
+  at tests\Feature\LocationDataTest.php:164
+    160Γûò     $news = News::create(['category_id' => $category->id, 'location_id' => $savar->id, 'title' => 'αª╕αªéαª¼αª╛αªª', 'slug' => 's', 'description' => '<p>x</p>']);
+    161Γûò 
+    162Γûò     $this->artisan('migrate:rollback', ['--step' => 1])->assertSuccessful();
+    163Γûò 
+  Γ₧£ 164Γûò     expect(\Illuminate\Support\Facades\Schema::hasTable('locations'))->toBeFalse()
+    165Γûò         ->and(\Illuminate\Support\Facades\Schema::hasColumn('news', 'location_id'))->toBeFalse()
+    166Γûò         ->and(\Illuminate\Support\Facades\Schema::hasColumn('users', 'district_id'))->toBeFalse()
+    167Γûò         ->and(News::find($news->id))->not->toBeNull()                       // articles survive
+    168Γûò         ->and(\App\Models\User::find($reporter->id))->not->toBeNull();      // users survive
+
+  1   tests\Feature\LocationDataTest.php:164
+
+
+  Tests:    9 failed, 287 passed (5222 assertions)
+  Duration: 42.45s
+

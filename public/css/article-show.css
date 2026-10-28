@@ -1,0 +1,410 @@
+/* ==========================================================
+   Shadhin Alo - article page
+   Load AFTER the main site stylesheet so these rules win.
+   File: public/css/article-show.css
+   ========================================================== */
+
+:root {
+    --sa-ink: #16202a;
+    --sa-slate: #5b6773;
+    --sa-line: #dfe4e9;
+    --sa-mist: #f3f5f7;
+    --sa-paper: #ffffff;
+    --sa-amber: #d98e04;      /* the "light" in Shadhin Alo */
+    --sa-link: #0a5a82;
+    --sa-link-hover: #07405c;
+
+    --sa-font-display: "Noto Serif Bengali", "Kalpurush", "SolaimanLipi", serif;
+    --sa-font-ui: "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+}
+
+/* ---------- Breadcrumb ---------- */
+.sa-breadcrumb-wrap { margin-bottom: 1.25rem; }
+.sa-breadcrumb {
+    margin: 0;
+    padding: 0;
+    font-family: var(--sa-font-ui);
+    font-size: .9rem;
+}
+.sa-breadcrumb a { color: var(--sa-slate); text-decoration: none; }
+.sa-breadcrumb a:hover { color: var(--sa-link); text-decoration: underline; }
+.sa-breadcrumb .active { color: var(--sa-ink); }
+
+/* ---------- Article shell ---------- */
+.sa-article {
+    background: var(--sa-paper);
+    padding: clamp(1rem, 2.5vw, 2rem);
+    border-radius: 6px;
+    border: 1px solid var(--sa-line);
+    font-family: var(--sa-font-ui);
+    color: var(--sa-ink);
+}
+
+/* Shoulder: sits on a short amber bar, like a lit edge */
+.sa-article-shoulder {
+    display: inline-block;
+    margin-bottom: .75rem;
+    padding-left: .75rem;
+    border-left: 4px solid var(--sa-amber);
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--sa-slate);
+    line-height: 1.4;
+}
+
+/* The one memorable element: the headline */
+.sa-article-title {
+    margin: 0 0 .75rem;
+    font-family: var(--sa-font-display);
+    font-weight: 800;
+    font-size: var(--sa-title-size, clamp(1.85rem, 1.2rem + 3vw, 3.1rem));
+    line-height: 1.38;
+    letter-spacing: 0;
+    color: var(--sa-ink);
+    text-wrap: balance;
+}
+
+.sa-article-sub {
+    margin: 0 0 1rem;
+    font-family: var(--sa-font-display);
+    font-size: clamp(1.2rem, 1rem + 1vw, 1.55rem);
+    font-weight: 500;
+    line-height: 1.6;
+    color: var(--sa-slate);
+}
+
+.sa-article-summary {
+    margin: 0 0 1.25rem;
+    padding: 1rem 1.15rem;
+    background: var(--sa-mist);
+    border-left: 4px solid var(--sa-ink);
+    border-radius: 0 6px 6px 0;
+    font-size: 1.125rem;
+    line-height: 1.85;
+}
+
+/* ---------- Meta row ---------- */
+.sa-article-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem 1rem;
+    padding: .85rem 0;
+    margin-bottom: 1.25rem;
+    border-top: 1px solid var(--sa-line);
+    border-bottom: 1px solid var(--sa-line);
+}
+
+.sa-byline { display: flex; align-items: center; gap: .75rem; }
+.sa-byline > span:last-child { display: flex; flex-direction: column; line-height: 1.4; }
+.sa-byline strong { font-size: 1.02rem; }
+.sa-byline time { font-size: .88rem; color: var(--sa-slate); }
+
+.sa-author-mark {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    background: var(--sa-ink);
+    color: var(--sa-amber);
+    font-family: var(--sa-font-display);
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
+.sa-share { display: flex; flex-wrap: wrap; gap: .5rem; }
+.sa-share a {
+    padding: .35rem .85rem;
+    border: 1px solid var(--sa-line);
+    border-radius: 999px;
+    background: var(--sa-paper);
+    color: var(--sa-ink);
+    font-size: .88rem;
+    text-decoration: none;
+    transition: background-color .15s, border-color .15s, color .15s;
+}
+.sa-share a:hover {
+    background: var(--sa-ink);
+    border-color: var(--sa-ink);
+    color: #fff;
+}
+
+/* ---------- Lead image ---------- */
+.sa-figure { margin: 0 0 1.5rem; }
+.sa-figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    /* Same box for every article: small images scale up, large ones scale down. */
+    aspect-ratio: var(--sa-image-ratio, 16 / 9);
+    object-fit: var(--sa-image-fit, cover);
+    border-radius: 6px;
+    background: var(--sa-mist);
+}
+.sa-figure figcaption {
+    margin-top: .6rem;
+    padding-left: .75rem;
+    border-left: 3px solid var(--sa-line);
+    font-size: .92rem;
+    line-height: 1.6;
+    color: var(--sa-slate);
+}
+.sa-figure figcaption span { white-space: nowrap; }
+
+/* ---------- Article body (Bengali reading comfort) ---------- */
+.sa-article-body {
+    max-width: var(--sa-body-width, 44rem);
+    margin-inline: auto;
+    font-family: var(--sa-font-display);
+    font-size: var(--sa-body-size, clamp(1.1rem, 1.02rem + .35vw, 1.3rem));
+    line-height: var(--sa-body-leading, 2);
+    overflow-wrap: anywhere;
+}
+.sa-article-body > * { margin-top: 0; margin-bottom: 1.25em; }
+.sa-article-body h2,
+.sa-article-body h3,
+.sa-article-body h4 {
+    margin-top: 1.8em;
+    font-weight: 700;
+    line-height: 1.5;
+}
+.sa-article-body h2 { font-size: 1.4em; }
+.sa-article-body h3 { font-size: 1.2em; }
+.sa-article-body a {
+    color: var(--sa-link);
+    text-decoration: underline;
+    text-underline-offset: .2em;
+}
+.sa-article-body a:hover { color: var(--sa-link-hover); }
+.sa-article-body img,
+.sa-article-body video {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+}
+.sa-article-body iframe { max-width: 100%; border: 0; }
+.sa-article-body blockquote {
+    margin-inline: 0;
+    padding: .25rem 0 .25rem 1.25rem;
+    border-left: 4px solid var(--sa-amber);
+    font-size: 1.1em;
+    font-weight: 500;
+    color: var(--sa-slate);
+}
+.sa-article-body ul,
+.sa-article-body ol { padding-left: 1.5em; }
+.sa-article-body li { margin-bottom: .4em; }
+.sa-article-body table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+    font-family: var(--sa-font-ui);
+    font-size: .95em;
+}
+.sa-article-body th,
+.sa-article-body td { padding: .55rem .75rem; border: 1px solid var(--sa-line); }
+.sa-article-body th { background: var(--sa-mist); text-align: left; }
+
+/* ---------- Inline chart shortcode ---------- */
+.sa-html-chart {
+    margin: 2rem 0;
+    padding: 1.15rem;
+    border: 1px solid var(--sa-line);
+    border-radius: 6px;
+    background: var(--sa-mist);
+    font-family: var(--sa-font-ui);
+}
+.sa-html-chart-title { margin-bottom: 1rem; font-weight: 700; font-size: 1.05rem; }
+.sa-chart-bars { display: grid; gap: .65rem; }
+.sa-chart-row {
+    display: grid;
+    grid-template-columns: minmax(5rem, 9rem) 1fr auto;
+    align-items: center;
+    gap: .75rem;
+    font-size: .95rem;
+}
+.sa-chart-track { height: .85rem; background: var(--sa-line); border-radius: 999px; overflow: hidden; }
+.sa-chart-bar { display: block; height: 100%; background: var(--sa-amber); border-radius: 999px; }
+.sa-chart-value { font-weight: 700; min-width: 2.5rem; text-align: right; }
+.sa-chart-note { margin: .85rem 0 0; font-size: .82rem; color: var(--sa-slate); }
+.sa-chart-error { color: #b42318; }
+
+/* ---------- Location and tags ---------- */
+.sa-article-location,
+.sa-article-tags {
+    margin-top: 1.25rem;
+    font-family: var(--sa-font-ui);
+    line-height: 2;
+}
+.sa-article-location a { color: var(--sa-link); text-decoration: none; }
+.sa-article-location a:hover { text-decoration: underline; }
+
+.sa-tag {
+    display: inline-block;
+    margin: 0 .35rem .4rem 0;
+    padding: .2rem .8rem;
+    border: 1px solid var(--sa-line);
+    border-radius: 999px;
+    background: var(--sa-paper);
+    color: var(--sa-ink);
+    font-size: .9rem;
+    line-height: 1.6;
+    text-decoration: none;
+    transition: background-color .15s, border-color .15s;
+}
+.sa-tag:hover { background: var(--sa-mist); border-color: var(--sa-slate); color: var(--sa-ink); }
+
+/* ---------- Section and widget headings ---------- */
+.sa-section-title,
+.sa-widget-head {
+    margin: 0;
+    font-family: var(--sa-font-display);
+    font-size: 1.2rem;
+    font-weight: 800;
+    line-height: 1.5;
+}
+.sa-section-title {
+    margin: 2rem 0 1rem;
+    padding-top: .75rem;
+    border-top: 3px solid var(--sa-ink);
+}
+
+/* ---------- Related (mobile) ---------- */
+.sa-related-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+.sa-related-card {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    color: var(--sa-ink);
+    font-family: var(--sa-font-display);
+    font-weight: 600;
+    line-height: 1.6;
+    text-decoration: none;
+}
+.sa-related-card img {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border-radius: 6px;
+}
+.sa-related-card:hover span { color: var(--sa-link); }
+
+@media (min-width: 992px) {
+    .sa-related-mobile:not(.sa-related-always) { display: none; }
+}
+@media (max-width: 575.98px) {
+    .sa-related-grid { grid-template-columns: 1fr; }
+    .sa-chart-row { grid-template-columns: 1fr auto; }
+    .sa-chart-label { grid-column: 1 / -1; font-weight: 600; }
+    .sa-chart-track { grid-column: 1; }
+}
+
+/* ---------- Sidebar ---------- */
+.sa-sticky { position: sticky; top: 1rem; display: grid; gap: 1.25rem; }
+
+.sa-widget {
+    background: var(--sa-paper);
+    border: 1px solid var(--sa-line);
+    border-radius: 6px;
+    overflow: hidden;
+}
+.sa-widget-head {
+    padding: .8rem 1rem;
+    border-bottom: 3px solid var(--sa-amber);
+    font-size: 1.1rem;
+}
+
+.sa-list { display: flex; flex-direction: column; }
+.sa-list-item {
+    display: flex;
+    gap: .75rem;
+    padding: .8rem 1rem;
+    color: var(--sa-ink);
+    text-decoration: none;
+    transition: background-color .15s;
+}
+.sa-list-item + .sa-list-item { border-top: 1px solid var(--sa-line); }
+.sa-list-item:hover { background: var(--sa-mist); }
+.sa-list-thumb {
+    flex: 0 0 auto;
+    width: 5rem;
+    height: 3.75rem;
+    object-fit: cover;
+    border-radius: 4px;
+}
+.sa-list-copy { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+.sa-list-title {
+    font-family: var(--sa-font-display);
+    font-size: .98rem;
+    font-weight: 600;
+    line-height: 1.55;
+}
+.sa-list-copy time { font-size: .8rem; color: var(--sa-slate); }
+
+/* ---------- Accessibility ---------- */
+.sa-article a:focus-visible,
+.sa-widget a:focus-visible,
+.sa-breadcrumb a:focus-visible,
+.sa-related-card:focus-visible {
+    outline: 3px solid var(--sa-amber);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sa-share a, .sa-tag, .sa-list-item { transition: none; }
+}
+
+/* ---------- Auto-loaded next articles ---------- */
+.sa-autoload { min-height: 1px; }
+
+.sa-autoload-item.is-loaded {
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 3px solid var(--sa-ink);
+}
+
+.sa-autoload-status {
+    margin: 1rem 0;
+    text-align: center;
+    font-family: var(--sa-font-ui);
+    color: var(--sa-slate);
+}
+.sa-autoload-status:empty { display: none; }
+
+.sa-autoload-retry {
+    margin-left: .5rem;
+    padding: .3rem .9rem;
+    border: 1px solid var(--sa-line);
+    border-radius: 999px;
+    background: var(--sa-paper);
+    color: var(--sa-ink);
+    cursor: pointer;
+}
+.sa-autoload-retry:hover { background: var(--sa-ink); border-color: var(--sa-ink); color: #fff; }
+.sa-autoload-retry:focus-visible { outline: 3px solid var(--sa-amber); outline-offset: 2px; }
+
+/* ---------- Sticky sidebar: keeps following the auto-loaded articles ---------- */
+/* Higher specificity on purpose: this file loads before frontend.css. */
+.row.sa-article-layout { align-items: stretch; }
+
+@media (min-width: 992px) {
+    .row.sa-article-layout > .sa-article-sidebar { align-self: stretch; }
+
+    .sa-article-sidebar .sa-sticky {
+        position: sticky;
+        top: 4rem;                          /* stays below the sticky site menu */
+        max-height: calc(100vh - 5rem);     /* a tall sidebar scrolls inside itself */
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .sa-article-sidebar .sa-sticky { position: static; max-height: none; overflow: visible; }
+}

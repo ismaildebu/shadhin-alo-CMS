@@ -1,0 +1,27 @@
+﻿
+   FAILED  Tests\Feature\Admin\NewsManagementTest > it replaces the image on update and removesΓÇª 
+   
+  Failed asserting that true is false.
+   FAILED  Tests\Feature\Admin\PagesRenderTest > it renders the dashboard with real numbers        
+ 
+  Failed asserting that '<!DOCTYPE html>\n
+   FAILED  Tests\Feature\FrontendCategoryTest > it puts categories outside the main menu list 
+unΓÇª   
+   FAILED  Tests\Feature\FrontendCategoryTest > it orders menu items by serial                     
+ 
+  Failed asserting that 5830 is less than 5202.
+   FAILED  Tests\Feature\FrontendCategoryTest > it keeps a category in the main menu whichever 
+wΓÇª   
+Failed asserting that 5202 is less than 0.
+   FAILED  Tests\Feature\FrontendLocationTest > it puts the 8 divisions under 
+"αª╕αª╛αª░αª╛αªªαºçαª╢" in the mΓÇª   
+   FAILED  Tests\Feature\FrontendLocationTest > it updates the menu at once when a division 
+chanΓÇª   
+   FAILED  Tests\Feature\FrontendLocationTest > it renders a freshly seeded site with the 
+geograΓÇª   
+   FAILED  Tests\Feature\LocationDataTest > it can be rolled back and migrated again WITH data 
+lΓÇª   
+  Failed asserting that true is false.
+  Tests:    9 failed, 287 passed (5222 assertions)
+
+

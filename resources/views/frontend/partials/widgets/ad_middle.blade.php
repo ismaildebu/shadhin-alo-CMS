@@ -1,0 +1,1 @@
+@include('frontend.partials.ad', ['slot' => 'sidebar_middle'])

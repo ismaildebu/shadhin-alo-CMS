@@ -1,0 +1,29 @@
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">সংবাদ সম্পাদনা</h2>
+    </x-slot>
+
+    <div class="ad-page">
+
+        <div class="ad-pagehead">
+            <h1>সংবাদ সম্পাদনা করুন</h1>
+            <div class="ad-tabs" style="margin-bottom:0;">
+                <a href="{{ route('news.preview', $news) }}" target="_blank" class="ad-tab">প্রিভিউ</a>
+                <a href="{{ route('news.revisions.index', $news) }}" class="ad-tab">সংস্করণ ইতিহাস</a>
+                <a href="{{ route('news.card', $news) }}" class="ad-tab">ফটোকার্ড</a>
+                <a href="{{ route('news.index') }}" class="ad-tab">← সংবাদ তালিকা</a>
+            </div>
+        </div>
+
+        <p class="ad-note">
+            লিংক: <code>/article/{{ $news->slug }}</code> (প্রকাশের পর পরিবর্তন হয় না)
+        </p>
+
+        <form action="{{ route('news.update', $news) }}" method="POST" enctype="multipart/form-data" class="ad-form">
+            @csrf
+            @method('PUT')
+            @include('admin.news._form')
+        </form>
+
+    </div>
+</x-app-layout>

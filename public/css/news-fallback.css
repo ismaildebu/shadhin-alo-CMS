@@ -1,0 +1,77 @@
+/* ==========================================================
+   Shadhin Alo - placeholder for news without an image
+   Logo + category + location text, with the division map on the side.
+   ========================================================== */
+
+.sa-noimg {
+    position: relative;
+    display: flex;
+    overflow: hidden;
+    min-height: 14rem;
+    aspect-ratio: var(--sa-image-ratio, 16 / 9);   /* same box as real images */
+    padding: clamp(1rem, 3vw, 2rem);
+    border-radius: 6px;
+    background:
+        radial-gradient(circle at 85% 20%, rgba(255, 255, 255, .10), transparent 45%),
+        linear-gradient(135deg, #0f2a44 0%, #123b68 55%, #1b5a8c 100%);
+    color: #fff;
+    font-family: var(--sa-font-ui, "Hind Siliguri", system-ui, sans-serif);
+}
+
+.sa-noimg-copy {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1rem;
+    max-width: 58%;
+    min-width: 0;
+}
+
+.sa-noimg-logo {
+    align-self: flex-start;
+    display: inline-flex;
+    padding: .45rem .8rem;
+    border-radius: 6px;
+    background: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .25);
+}
+.sa-noimg-logo img { display: block; height: 2.4rem; width: auto; max-width: 11rem; object-fit: contain; }
+
+.sa-noimg-cat {
+    display: inline-block;
+    padding: .15rem .75rem;
+    border-radius: 999px;
+    background: var(--sa-amber, #d98e04);
+    color: #16202a;
+    font-size: .9rem;
+    font-weight: 700;
+}
+.sa-noimg-place { margin: .5rem 0 0; font-size: 1.1rem; font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
+
+.sa-noimg-map {
+    position: absolute;
+    top: 1rem;
+    bottom: 1rem;
+    right: clamp(1rem, 4vw, 3rem);
+    height: calc(100% - 2rem);
+    width: auto;
+    aspect-ratio: 340 / 473;
+}
+.sa-noimg-dim { fill: rgba(255, 255, 255, .14); stroke: rgba(255, 255, 255, .35); stroke-width: 1; }
+.sa-noimg-hl { fill: var(--sa-amber, #d98e04); stroke: #fff; stroke-width: 1.6; }
+
+/* ---------- Compact variant for card lists ---------- */
+.sa-noimg-card { min-height: 0; aspect-ratio: 16 / 10; padding: .7rem; }
+.sa-noimg-card .sa-noimg-logo { padding: .25rem .5rem; }
+.sa-noimg-card .sa-noimg-logo img { height: 1.5rem; max-width: 7rem; }
+.sa-noimg-card .sa-noimg-place { display: none; }
+.sa-noimg-card .sa-noimg-cat { font-size: .78rem; padding: .05rem .55rem; }
+.sa-noimg-card .sa-noimg-map { top: .5rem; bottom: .5rem; height: calc(100% - 1rem); right: .7rem; }
+
+@media (max-width: 575.98px) {
+    .sa-noimg { min-height: 12rem; }
+    .sa-noimg-place { font-size: 1rem; }
+    .sa-noimg-logo img { height: 2rem; max-width: 8rem; }
+}
