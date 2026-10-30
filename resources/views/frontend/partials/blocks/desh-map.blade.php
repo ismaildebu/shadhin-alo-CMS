@@ -55,8 +55,10 @@
             <div class="sa-nb-ls-lead">
                 <a href="{{ route('frontend.news.show', $lead->slug) }}" class="sa-nb-lead">
                     @if($leadImg)
-                        <img src="{{ $leadImg }}" alt="{{ $lead->title }}" class="sa-nb-lead-img" loading="lazy">
-                    @endif
+<img src="{{ $leadImg }}" alt="{{ $lead->title }}" class="sa-nb-lead-img" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $lead, 'sizeClass' => 'sa-nb-lead-img'])
+@endif
                     <span class="sa-nb-lead-title">@if($lead->shoulder)<span class="sa-nb-sh">{{ $lead->shoulder }}</span>@endif{{ $lead->title }}</span>
                     @if($leadText !== '')
                         <span class="sa-nb-lead-text">{{ $leadText }}</span>

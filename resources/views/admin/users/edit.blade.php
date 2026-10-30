@@ -10,6 +10,10 @@
             <a href="{{ route('users.index') }}" class="ad-tab">← ইউজার তালিকা</a>
         </div>
 
+        @if(session('success'))
+            <div class="ad-alert ad-alert-ok">{{ session('success') }}</div>
+        @endif
+
         <form action="{{ route('users.update', $user) }}" method="POST" class="ad-form">
             @csrf
             @method('PUT')
@@ -19,6 +23,17 @@
                 </div>
             </div>
         </form>
+
+        <div class="ad-panel" style="margin-top:20px;">
+            <div class="ad-panel-head"><h2>প্রোফাইল ছবি</h2></div>
+            <div class="ad-panel-body">
+                @include('admin.avatar-form', [
+                    'avatarUser' => $user,
+                    'storeUrl' => route('users.avatar.store', $user),
+                    'destroyUrl' => route('users.avatar.destroy', $user),
+                ])
+            </div>
+        </div>
 
     </div>
 </x-app-layout>

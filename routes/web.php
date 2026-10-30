@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\Admin\NewsRevisionController;
 use App\Http\Controllers\Admin\NewsWorkflowController;
 use App\Http\Controllers\Admin\TagController;
+use App\Http\Controllers\Admin\RolePermissionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VideoController;
 use App\Http\Controllers\Admin\VideoChannelController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Frontend\LocationController;
 use App\Http\Controllers\Frontend\TagController as FrontendTagController;
 use App\Http\Controllers\Frontend\VideoController as FrontendVideoController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AvatarController;
 use Illuminate\Support\Facades\Route;
 
 // Frontend
@@ -71,6 +73,7 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
 
         // News: admin, editor and reporter (reporters are limited to their own by the policy)
         Route::resource('news', NewsController::class)->except('show');
+        Route::post('news/bulk-destroy', [NewsController::class, 'bulkDestroy'])->name('news.bulk-destroy');
         Route::post('news/{news}/restore', [NewsController::class, 'restore'])->name('news.restore')->withTrashed();
         Route::get('news/{news}/preview', [NewsController::class, 'preview'])->name('news.preview');
         
@@ -93,7 +96,8 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
         Route::post('media', [MediaController::class, 'store'])->name('media.store');
         Route::get('media/list', [MediaController::class, 'list'])->middleware('throttle:60,1')->name('media.list');
         Route::delete('media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
-                Route::post('media/editor-upload', [MediaController::class, 'editorUpload'])->middleware('throttle:30,1')->name('media.editor-upload');
+        Route::post('media/bulk-destroy', [MediaController::class, 'bulkDestroy'])->name('media.bulk-destroy');
+        Route::post('media/editor-upload', [MediaController::class, 'editorUpload'])->middleware('throttle:30,1')->name('media.editor-upload');
         
         // Tag management (rename, merge, delete): admin and editor
         Route::middleware('can:manage-tags')->group(function () {
@@ -145,10 +149,19 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
         });
         
 
+        // Roles & permissions matrix: super administrator only
+        Route::middleware('can:manage-roles')->group(function () {
+            Route::get('roles', [RolePermissionController::class, 'edit'])->name('roles.edit');
+            Route::put('roles', [RolePermissionController::class, 'update'])->name('roles.update');
+            Route::post('roles/reset', [RolePermissionController::class, 'reset'])->name('roles.reset');
+        });
+
         // Users and audit log: admin only
         Route::middleware('can:manage-users')->group(function () {
 
             Route::resource('users', UserController::class)->except('show');
+            Route::post('users/{user}/avatar', [AvatarController::class, 'storeFor'])->name('users.avatar.store');
+            Route::delete('users/{user}/avatar', [AvatarController::class, 'destroyFor'])->name('users.avatar.destroy');
             Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
             Route::get('site-settings', [SiteSettingController::class, 'edit'])->name('site-settings.edit');
             Route::put('site-settings', [SiteSettingController::class, 'update'])->name('site-settings.update');
@@ -161,6 +174,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/profile/avatar', [AvatarController::class, 'storeOwn'])->name('profile.avatar.store');
+    Route::delete('/profile/avatar', [AvatarController::class, 'destroyOwn'])->name('profile.avatar.destroy');
 });
 
 require __DIR__.'/auth.php';

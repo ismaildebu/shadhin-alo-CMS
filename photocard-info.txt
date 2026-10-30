@@ -1,0 +1,2931 @@
+=== PHP image support
+exif
+fileinfo
+gd
+
+=== composer.json (image related)
+
+=== routes about photocards
+\routes\web.php:142: Route::get('photocards', [NewsCardController::class, 'center'])->name('photocards.index');
+\routes\web.php:143: Route::get('photocards/queue', [NewsCardController::class, 'queue'])->name('photocards.queue');
+\routes\web.php:144: Route::put('photocards/defaults', [NewsCardController::class, 'saveDefaults'])->name('photocards.defaults');
+
+=== PHP and Blade files that deal with photocards (full text)
+--- \app\Http\Controllers\Admin\NewsCardController.php
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\News;
+use App\Support\Settings;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
+
+class NewsCardController extends Controller
+{
+    public const DIR = 'uploads/cards';
+        /** কার্ডের ডিজাইন: কী => লেবেল। নতুন ডিজাইন যোগ করলে এখানে ও admin-photocard.js এ যোগ করতে হয়। */
+        public const TEMPLATES = [
+        'top' => 'ওপরে শিরোনাম, নিচে ছবি (পোর্ট্রেটে ভালো)',
+        'quote' => 'উদ্ধৃতি কার্ড, ব্যক্তির ছবিসহ (পোর্ট্রেটে ভালো)',
+        'cream' => 'ক্রিম পটভূমিতে লেখা ও সারাংশ (পোর্ট্রেটে ভালো)',
+        'column' => 'কলাম কার্ড, লেখকের গোল ছবিসহ (পোর্ট্রেটে ভালো)',
+        'brand' => 'ব্র্যান্ড ফ্রেম, সোশ্যাল হ্যান্ডেল ও ফিতা (পোর্ট্রেটে ভালো)',
+        'overlay' => 'ছবির ওপর লেখা',
+        'split' => 'ওপরে ছবি, নিচে লেখা',
+        'bar' => 'সাদা ফলকে লেখা',
+        'center' => 'মাঝখানে লেখা (বক্তব্য)',
+        'frame' => 'সাদা ফ্রেমে ছবি',
+        'side' => 'পাশে রঙিন প্যানেল',
+        'breaking' => 'ব্রেকিং নিউজ',
+        'slant' => 'তেরছা রঙিন ব্যান্ড',
+        'text' => 'শুধু লেখা (ছবি ছাড়া)',
+    ];
+
+    /** একটি খবরের কার্ড তৈরির পেজ। */
+    public function show(News $news): View
+    {
+        Gate::authorize('view', $news);
+
+        $news->loadMissing('category');
+
+        return view('admin.news.card', [
+            'news' => $news,
+            'card' => $this->payload($news),
+            'defaults' => $this->currentDefaults(),
+            'templates' => self::TEMPLATES,
+        ]);
+    }
+
+    /** ব্রাউজারে আঁকা কার্ড (JPG) সংরক্ষণ। */
+    public function store(Request $request, News $news): JsonResponse|RedirectResponse
+    {
+        Gate::authorize('update', $news);
+
+        $request->validate([
+            'card' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:6144'],
+        ], [
+            'card.required' => 'কার্ডের ছবি পাওয়া যায়নি।',
+            'card.mimes' => 'কার্ড jpg বা png হতে হবে।',
+            'card.max' => 'কার্ডের ছবি সর্বোচ্চ ৬ MB হতে পারবে।',
+            'card.uploaded' => 'আপলোড ব্যর্থ হয়েছে (সার্ভারের আপলোড সীমা কম হতে পারে)।',
+        ]);
+
+        $file = $request->file('card');
+        $name = $news->id.'-'.Str::uuid().'.'.$file->extension();
+        $file->move(public_path(self::DIR), $name);
+
+        $old = $news->card_image;
+
+        // সরাসরি কোয়েরি: খবরের updated_at বা অন্য ইভেন্ট ছোঁয়া হয় না।
+        News::whereKey($news->id)->update(['card_image' => $name]);
+
+        $this->deleteFile($old);
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true, 'url' => '/'.self::DIR.'/'.$name]);
+        }
+
+        return back()->with('success', 'ফটোকার্ড সংরক্ষণ হয়েছে।');
+    }
+
+    public function destroy(Request $request, News $news): JsonResponse|RedirectResponse
+    {
+        Gate::authorize('update', $news);
+
+        $old = $news->card_image;
+
+        News::whereKey($news->id)->update(['card_image' => null]);
+
+        $this->deleteFile($old);
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
+        return back()->with('success', 'ফটোকার্ড মোছা হয়েছে।');
+    }
+
+    /** ফটোকার্ড কেন্দ্র (অ্যাডমিন ও এডিটর): ডিফল্ট ডিজাইন ও একসাথে তৈরি। */
+    public function center(): View
+    {
+        return view('admin.photocards', [
+            'total' => News::published()->count(),
+            'withCard' => News::published()->whereNotNull('card_image')->count(),
+            'recent' => News::published()->with('category')->latestPublished()->take(20)->get(),
+            'defaults' => $this->currentDefaults(),
+            'templates' => self::TEMPLATES,
+            'queueUrl' => route('photocards.queue', [], false),
+            'footerFallback' => $this->footerText(),
+        ]);
+    }
+
+    /** কার্ড নেই এমন প্রকাশিত খবরের তালিকা (JSON), কেন্দ্রের "সব তৈরি করুন" বোতামের জন্য। */
+    
+    public function queue(): JsonResponse
+    {
+        $items = News::published()
+            ->whereNull('card_image')
+            ->with('category')
+            ->latestPublished()
+            ->take(100)
+            ->get();
+
+        return response()->json([
+            'items' => $items->map(fn (News $n) => [
+                'id' => $n->id,
+                'title' => $n->title,
+                'category' => $n->category->name ?? '',
+                'color' => $n->category?->home_color,
+                'date' => $n->display_date->format('d M Y'),
+                'image' => $n->image ? '/uploads/news/'.$n->image : null,
+                'storeUrl' => route('news.card.store', $n, false),
+                'excerpt' => $this->plain($n->summary ?: $n->description, 280),
+                'caption' => $this->caption($n),
+                'byline' => (string) $n->reporter,
+            ])->values(),
+            'logo' => $this->path(Settings::logoUrl()),
+            'emblem' => $this->emblem(),
+            'siteName' => Settings::get('site_name'),
+            'tagline' => Settings::get('site_tagline'),
+            'footer' => $this->footerText(),
+            'social' => $this->social(),
+        ]);
+    }
+
+    public function saveDefaults(Request $request): RedirectResponse
+    {
+        $request->validate([
+            
+            'card_template' => ['required', Rule::in(array_keys(self::TEMPLATES))],
+            'card_size' => ['required', Rule::in(['landscape', 'square', 'portrait'])],
+            'card_accent' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'card_footer' => ['nullable', 'string', 'max:80'],
+        ], [
+            'card_accent.regex' => 'রংটি সঠিক নয়।',
+        ]);
+
+        Settings::set([
+            'card_template' => (string) $request->input('card_template'),
+            'card_size' => (string) $request->input('card_size'),
+            'card_accent' => (string) $request->input('card_accent'),
+            'card_footer' => trim((string) $request->input('card_footer', '')),
+            'card_logo' => $request->boolean('card_logo') ? '1' : '0',
+            'card_category' => $request->boolean('card_category') ? '1' : '0',
+            'card_date' => $request->boolean('card_date') ? '1' : '0',
+        ]);
+
+        return back()->with('success', 'ডিফল্ট ডিজাইন সংরক্ষণ হয়েছে।');
+    }
+
+    private function payload(News $news): array
+    {
+        return [
+            'id' => $news->id,
+            'title' => $news->title,
+            'category' => $news->category->name ?? '',
+            'color' => $news->category?->home_color,
+            'date' => $news->display_date->format('d M Y'),
+            'image' => $news->image ? '/uploads/news/'.$news->image : null,
+            'logo' => $this->path(Settings::logoUrl()),
+            'emblem' => $this->emblem(),
+            'siteName' => Settings::get('site_name'),
+            'tagline' => Settings::get('site_tagline'),
+            'footer' => $this->footerText(),
+            'excerpt' => $this->plain($news->summary ?: $news->description, 280),
+            'caption' => $this->caption($news),
+            'byline' => (string) $news->reporter,
+            'social' => $this->social(),
+            'card' => $news->card_image ? '/'.self::DIR.'/'.$news->card_image : null,
+            'storeUrl' => route('news.card.store', $news, false),
+            'deleteUrl' => route('news.card.destroy', $news, false),
+        ];
+    }
+
+    private function currentDefaults(): array
+    {
+        return [
+            'template' => Settings::get('card_template'),
+            'size' => Settings::get('card_size'),
+            'logo' => Settings::get('card_logo') === '1',
+            'category' => Settings::get('card_category') === '1',
+            'date' => Settings::get('card_date') === '1',
+            'accent' => Settings::get('card_accent'),
+            'footer' => Settings::get('card_footer'),
+        ];
+    }
+
+    /** কার্ডের নিচে ডানে যে লেখা বসবে: সেটিংয়ের লেখা, না থাকলে সাইটের ডোমেইন। */
+    private function footerText(): string
+    {
+        $custom = Settings::get('card_footer');
+
+        if ($custom !== '') {
+            return $custom;
+        }
+
+        return (string) (parse_url((string) config('app.url'), PHP_URL_HOST) ?? '');
+    }
+
+    /** পূর্ণ ঠিকানা থেকে শুধু পথ (একই উৎসের ছবি, ক্যানভাস নিরাপদ থাকে)। */
+    private function path(string $url): string
+    {
+        return parse_url($url, PHP_URL_PATH) ?: $url;
+    }
+
+    /** HTML থেকে সাধারণ লেখা: ট্যাগ বাদ, সংক্ষিপ্ত করা। */
+    private function plain(?string $html, int $limit): string
+    {
+        $text = html_entity_decode(strip_tags((string) $html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return Str::limit(trim((string) preg_replace('/\s+/u', ' ', $text)), $limit, '…');
+    }
+
+    private function caption(News $news): string
+    {
+        $caption = trim((string) $news->image_caption);
+        $credit = trim((string) $news->image_credit);
+
+        return trim($caption.($credit !== '' ? ' (ছবি: '.$credit.')' : ''));
+    }
+
+    /** গোল প্রতীকের জন্য ফেভিকন (সেট করা থাকলে)। */
+    private function emblem(): ?string
+    {
+        $url = Settings::faviconUrl();
+
+        return $url ? $this->path($url) : null;
+    }
+
+    /**
+     * সাইট সেটিংয়ের সোশ্যাল লিংক থেকে হ্যান্ডেলের নাম (যেমন facebook.com/abc হলে "abc")।
+     *
+     * @return list<array{type: string, text: string}>
+     */
+    private function social(): array
+    {
+        $items = [];
+
+        foreach (['facebook' => 'social_facebook', 'instagram' => 'social_instagram', 'youtube' => 'social_youtube', 'x' => 'social_x'] as $type => $key) {
+            $url = Settings::get($key);
+
+            if ($url === '') {
+                continue;
+            }
+
+            $path = trim((string) parse_url($url, PHP_URL_PATH), '/');
+            $handle = ltrim(Str::afterLast($path, '/'), '@');
+
+            $items[] = [
+                'type' => $type,
+                'text' => $handle !== '' ? $handle : (string) parse_url($url, PHP_URL_HOST),
+            ];
+        }
+
+        return $items;
+    }
+
+    private function deleteFile(?string $name): void
+    {
+        if ($name) {
+            File::delete(public_path(self::DIR.'/'.basename($name)));
+        }
+    }
+}
+
+--- \app\Support\ArticleDesign.php
+<?php
+
+namespace App\Support;
+
+/**
+ * Dashboard-controlled design of the single news (article) page.
+ *
+ * Values are stored through the existing Settings store (keys prefixed "article_").
+ * Only whitelisted keys, validated hex colors and bounded integers ever reach the
+ * page, so the generated <style> block can be printed safely.
+ */
+final class ArticleDesign
+{
+    public const LAYOUTS = [
+        'classic' => ['label' => 'ক্লাসিক: লেখা ও পাশে সাইডবার', 'main' => 'col-lg-8', 'side' => 'col-lg-4'],
+        'wide' => ['label' => 'বড় লেখা, সরু সাইডবার', 'main' => 'col-lg-9', 'side' => 'col-lg-3'],
+        'single' => ['label' => 'এক কলাম: সাইডবার নেই', 'main' => 'col-lg-10 mx-auto', 'side' => null],
+    ];
+
+    public const SIDES = ['right' => 'ডানে', 'left' => 'বামে'];
+
+    public const FONTS = [
+        'serif' => [
+            'label' => 'সেরিফ (Noto Serif Bengali)',
+            'css' => '"Noto Serif Bengali", "Kalpurush", "SolaimanLipi", serif',
+        ],
+        'sans' => [
+            'label' => 'সানস (Hind Siliguri)',
+            'css' => '"Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif',
+        ],
+    ];
+
+    public const TITLE_SIZES = [
+        'sm' => ['label' => 'ছোট', 'css' => 'clamp(1.6rem, 1.1rem + 2.4vw, 2.5rem)'],
+        'md' => ['label' => 'মাঝারি', 'css' => 'clamp(1.85rem, 1.2rem + 3vw, 3.1rem)'],
+        'lg' => ['label' => 'বড়', 'css' => 'clamp(2.1rem, 1.3rem + 3.6vw, 3.7rem)'],
+    ];
+
+    public const BODY_SIZES = [
+        'sm' => ['label' => 'ছোট', 'css' => 'clamp(1.02rem, .96rem + .3vw, 1.18rem)'],
+        'md' => ['label' => 'মাঝারি', 'css' => 'clamp(1.1rem, 1.02rem + .35vw, 1.3rem)'],
+        'lg' => ['label' => 'বড়', 'css' => 'clamp(1.2rem, 1.1rem + .45vw, 1.45rem)'],
+    ];
+
+    public const BODY_WIDTHS = [
+        'narrow' => ['label' => 'সরু', 'css' => '38rem'],
+        'normal' => ['label' => 'মাঝারি', 'css' => '44rem'],
+        'wide' => ['label' => 'চওড়া', 'css' => '52rem'],
+    ];
+
+    public const LEADINGS = [
+        'compact' => ['label' => 'ঘন', 'css' => '1.8'],
+        'normal' => ['label' => 'স্বাভাবিক', 'css' => '2'],
+        'relaxed' => ['label' => 'ফাঁকা', 'css' => '2.2'],
+    ];
+
+    /** Lead image: every article's image is shown in the same box. */
+    public const IMAGE_RATIOS = [
+        '16x9' => ['label' => '১৬:৯ (চওড়া)', 'css' => '16 / 9'],
+        '3x2' => ['label' => '৩:২', 'css' => '3 / 2'],
+        '4x3' => ['label' => '৪:৩', 'css' => '4 / 3'],
+        'original' => ['label' => 'আসল অনুপাত (প্রতিটি ছবির সাইজ আলাদা হবে)', 'css' => 'auto'],
+    ];
+
+    public const IMAGE_FITS = [
+        'cover' => ['label' => 'পুরো জায়গা ভরবে (ছোট ছবি বড় হবে, বড় ছবি ছোট হবে; কিনারা কাটা পড়তে পারে)', 'css' => 'cover'],
+        'contain' => ['label' => 'পুরো ছবি দেখাবে (কিছুই কাটা পড়বে না; পাশে ফাঁকা থাকতে পারে)', 'css' => 'contain'],
+    ];
+
+    /** Show/hide blocks of the article. */
+    public const TOGGLES = [
+        'breadcrumb' => 'ব্রেডক্রাম্ব (হোম > ক্যাটাগরি > শিরোনাম)',
+        'summary' => 'সারাংশ বক্স',
+        'share' => 'শেয়ার বাটন',
+        'photocard' => 'ফটোকার্ড ডাউনলোড লিংক (শেয়ার বাটনের সাথে)',
+        'location' => 'স্থান (বিভাগ, জেলা, উপজেলা)',
+        'tags' => 'ট্যাগ',
+        'related_bottom' => 'লেখার নিচে সম্পর্কিত সংবাদ',
+        'autoload' => 'লেখার শেষে একই ক্যাটাগরির পরের খবর অটো লোড',
+        'no_image_card' => 'ছবি না থাকলে লোগো ও অবস্থানের মানচিত্রের ডিজাইন দেখাবে',
+    ];
+
+    /** Sidebar parts of the article page; "slot" is the existing ad slot name. */
+    public const WIDGETS = [
+        'ad_top' => ['label' => 'বিজ্ঞাপন: সাইডবারের ওপরে', 'slot' => 'sidebar_top'],
+        'latest' => ['label' => 'সর্বশেষ সংবাদ', 'slot' => null],
+        'ad_middle' => ['label' => 'বিজ্ঞাপন: সাইডবারের মাঝখানে', 'slot' => 'sidebar_middle'],
+        'related' => ['label' => 'সম্পর্কিত সংবাদ', 'slot' => null],
+        'tags' => ['label' => 'জনপ্রিয় ট্যাগ', 'slot' => null],
+        'ad_bottom' => ['label' => 'বিজ্ঞাপন: সাইডবারের নিচে', 'slot' => 'sidebar_bottom'],
+
+        // Same widget files as the main sidebar (frontend/partials/widgets/*).
+        'tabs' => ['label' => 'সর্বশেষ ও জনপ্রিয় (ট্যাব)', 'slot' => null, 'note' => 'মূল সাইডবারের ট্যাব; খবরের সংখ্যা "সাইডবার সাজান" পেজ থেকে ঠিক হয়'],
+        'videos' => ['label' => 'সাম্প্রতিক ভিডিও', 'slot' => null, 'note' => 'মূল সাইডবারের ভিডিও; সংখ্যা "সাইডবার সাজান" পেজ থেকে ঠিক হয়'],
+        'facebook' => ['label' => 'ফেসবুক পেজ', 'slot' => null, 'note' => 'সাইট সেটিংয়ে ফেসবুক লিংক না থাকলে কিছু দেখাবে না'],
+        'poll' => ['label' => 'অনলাইন পোল', 'slot' => null, 'note' => 'মূল সাইডবারের পোল'],
+    ];
+
+    public const COUNTS = [
+        'latest' => ['label' => 'সর্বশেষ সংবাদ', 'min' => 3, 'max' => 10, 'default' => 8],
+        'related' => ['label' => 'সম্পর্কিত সংবাদ', 'min' => 2, 'max' => 8, 'default' => 6],
+        'tags' => ['label' => 'জনপ্রিয় ট্যাগ', 'min' => 4, 'max' => 20, 'default' => 20],
+        'autoload' => ['label' => 'অটো লোড হওয়া খবর', 'min' => 1, 'max' => 10, 'default' => 5],
+    ];
+
+    /** Spread into Settings::DEFAULTS. The defaults reproduce the current article page. */
+    public const DEFAULTS = [
+        'article_layout' => 'classic',
+        'article_sidebar_side' => 'right',
+        'article_accent' => '#d98e04',
+        'article_link' => '#0a5a82',
+        'article_font' => 'serif',
+        'article_title_size' => 'md',
+        'article_body_size' => 'md',
+        'article_body_width' => 'normal',
+        'article_leading' => 'normal',
+        'article_image_ratio' => '16x9',
+        'article_image_fit' => 'cover',
+
+        'article_show_breadcrumb' => '1',
+        'article_show_summary' => '1',
+        'article_show_share' => '1',
+        'article_show_photocard' => '1',
+        'article_show_location' => '1',
+        'article_show_tags' => '1',
+        'article_show_related_bottom' => '1',
+        'article_show_autoload' => '1',
+        'article_show_no_image_card' => '1',
+
+        'article_sidebar_order' => 'ad_top,latest,ad_middle,related,tags,ad_bottom',
+        'article_sidebar_hidden' => '',
+
+        'article_latest_count' => '8',
+        'article_related_count' => '6',
+        'article_tags_count' => '20',
+        'article_autoload_count' => '5',
+    ];
+
+    /**
+     * Normalized, safe configuration for the article page.
+     *
+     * @return array{
+     *     opt: array<string, string>,
+     *     main_col: string,
+     *     side_col: ?string,
+     *     toggles: array<string, bool>,
+     *     sidebar: list<string>,
+     *     counts: array<string, int>,
+     *     css: string
+     * }
+     */
+    public static function all(): array
+    {
+        $s = Settings::all();
+
+        $opt = [
+            'layout' => self::pick($s['article_layout'] ?? '', self::LAYOUTS, 'classic'),
+            'side' => self::pick($s['article_sidebar_side'] ?? '', self::SIDES, 'right'),
+            'font' => self::pick($s['article_font'] ?? '', self::FONTS, 'serif'),
+            'title_size' => self::pick($s['article_title_size'] ?? '', self::TITLE_SIZES, 'md'),
+            'body_size' => self::pick($s['article_body_size'] ?? '', self::BODY_SIZES, 'md'),
+            'body_width' => self::pick($s['article_body_width'] ?? '', self::BODY_WIDTHS, 'normal'),
+            'leading' => self::pick($s['article_leading'] ?? '', self::LEADINGS, 'normal'),
+            'image_ratio' => self::pick($s['article_image_ratio'] ?? '', self::IMAGE_RATIOS, '16x9'),
+            'image_fit' => self::pick($s['article_image_fit'] ?? '', self::IMAGE_FITS, 'cover'),
+            'accent' => Colors::isHex($s['article_accent'] ?? null) ? $s['article_accent'] : self::DEFAULTS['article_accent'],
+            'link' => Colors::isHex($s['article_link'] ?? null) ? $s['article_link'] : self::DEFAULTS['article_link'],
+        ];
+
+        $toggles = [];
+
+        foreach (array_keys(self::TOGGLES) as $key) {
+            $toggles[$key] = ($s['article_show_'.$key] ?? '1') === '1';
+        }
+
+        $hidden = self::csv($s['article_sidebar_hidden'] ?? '');
+        // Only widgets present in the saved order are shown, so widgets added later stay hidden
+        // until an editor saves the form.
+        $sidebar = array_values(array_diff(self::csv($s['article_sidebar_order'] ?? ''), $hidden));
+
+        // No sidebar parts selected: use the single-column grid so the page has no empty gap.
+        $columns = self::LAYOUTS[$sidebar === [] ? 'single' : $opt['layout']];
+
+        $counts = [];
+
+        foreach (self::COUNTS as $key => $rule) {
+            $counts[$key] = self::clamp($s['article_'.$key.'_count'] ?? '', $rule);
+        }
+
+        return [
+            'opt' => $opt,
+            'main_col' => $columns['main'],
+            'side_col' => $columns['side'],
+            'toggles' => $toggles,
+            'sidebar' => $sidebar,
+            'counts' => $counts,
+            'css' => self::css($opt),
+        ];
+    }
+
+    /**
+     * Sidebar parts in the saved order, hidden ones included (for the admin form).
+     *
+     * @return list<array{key: string, label: string, note: ?string, visible: bool}>
+     */
+    public static function sidebarRows(): array
+    {
+        $s = Settings::all();
+        $saved = self::csv($s['article_sidebar_order'] ?? '');
+        $hidden = self::csv($s['article_sidebar_hidden'] ?? '');
+
+        return array_map(
+            fn (string $key) => [
+                'key' => $key,
+                'label' => self::WIDGETS[$key]['label'],
+                'note' => self::WIDGETS[$key]['note'] ?? null,
+                'visible' => in_array($key, $saved, true) && ! in_array($key, $hidden, true),
+            ],
+            self::orderedKeys($s['article_sidebar_order'] ?? '')
+        );
+    }
+
+    /**
+     * Turns the submitted sidebar rows into the two stored settings.
+     *
+     * @param  array<string, array<string, mixed>>  $rows  widgets[key][serial|show]
+     * @return array{article_sidebar_order: string, article_sidebar_hidden: string}
+     */
+    public static function sidebarValues(array $rows): array
+    {
+        $sort = [];
+        $position = 0;
+
+        foreach (array_keys(self::WIDGETS) as $key) {
+            $position++;
+            $serial = (int) ($rows[$key]['serial'] ?? $position * 10);
+            $sort[$key] = [$serial, $position];
+        }
+
+        uasort($sort, fn (array $a, array $b) => $a <=> $b);
+
+        $order = array_keys($sort);
+        $hidden = array_values(array_filter(
+            $order,
+            fn (string $key) => ! isset($rows[$key]['show'])
+        ));
+
+        return [
+            'article_sidebar_order' => implode(',', $order),
+            'article_sidebar_hidden' => implode(',', $hidden),
+        ];
+    }
+
+    /** @param array<string, string> $opt */
+    private static function css(array $opt): string
+    {
+        $vars = [
+            '--sa-amber' => $opt['accent'],
+            '--sa-link' => $opt['link'],
+            '--sa-link-hover' => 'color-mix(in srgb, '.$opt['link'].' 75%, #000)',
+            '--sa-font-display' => self::FONTS[$opt['font']]['css'],
+            '--sa-title-size' => self::TITLE_SIZES[$opt['title_size']]['css'],
+            '--sa-body-size' => self::BODY_SIZES[$opt['body_size']]['css'],
+            '--sa-body-width' => self::BODY_WIDTHS[$opt['body_width']]['css'],
+            '--sa-body-leading' => self::LEADINGS[$opt['leading']]['css'],
+            '--sa-image-ratio' => self::IMAGE_RATIOS[$opt['image_ratio']]['css'],
+            '--sa-image-fit' => self::IMAGE_FITS[$opt['image_fit']]['css'],
+        ];
+
+        $css = '';
+
+        foreach ($vars as $name => $value) {
+            $css .= $name.':'.$value.';';
+        }
+
+        return ':root{'.$css.'}';
+    }
+
+    /** @param array<string, mixed> $allowed */
+    private static function pick(mixed $value, array $allowed, string $fallback): string
+    {
+        return is_string($value) && array_key_exists($value, $allowed) ? $value : $fallback;
+    }
+
+    /** @param array{min: int, max: int, default: int} $rule */
+    private static function clamp(mixed $value, array $rule): int
+    {
+        $number = is_numeric($value) ? (int) $value : $rule['default'];
+
+        return max($rule['min'], min($rule['max'], $number));
+    }
+
+    /** @return list<string> known widget keys, de-duplicated, in the given order */
+    private static function csv(string $value): array
+    {
+        $keys = array_map('trim', explode(',', $value));
+
+        return array_values(array_unique(array_filter(
+            $keys,
+            fn (string $key) => isset(self::WIDGETS[$key])
+        )));
+    }
+
+    /** @return list<string> saved order first, then any widget missing from it */
+    private static function orderedKeys(string $saved): array
+    {
+        $keys = self::csv($saved);
+
+        return array_merge($keys, array_values(array_diff(array_keys(self::WIDGETS), $keys)));
+    }
+}
+
+--- \resources\views\admin\news\card.blade.php
+@php
+    $accent = $card['color'] ?: $defaults['accent'];
+@endphp
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">ফটোকার্ড</h2>
+    </x-slot>
+
+    <div class="ad-page">
+
+        <div class="ad-pagehead">
+            <h1>ফটোকার্ড</h1>
+            <div class="ad-tabs" style="margin-bottom:0;">
+                <a href="{{ route('news.index') }}" class="ad-tab">← সংবাদ তালিকা</a>
+                <a href="{{ route('news.edit', $news) }}" class="ad-tab">সংবাদ সম্পাদনা</a>
+            </div>
+        </div>
+
+        <p class="ad-note">
+            <b>{{ $news->title }}</b><br>
+            ডিজাইন বেছে নিয়ে "শেয়ারের ছবি হিসেবে সংরক্ষণ" চাপুন। এরপর খবরের লিংক ফেসবুকে শেয়ার করলে এই কার্ডই দেখাবে।
+        </p>
+
+        <div class="pc-wrap">
+
+            <div class="ad-panel">
+                <div class="ad-panel-body">
+                    <canvas id="card-canvas" class="pc-canvas"></canvas>
+
+                    <div class="pc-btns" style="margin-top:14px;">
+                        <button type="button" id="pc-dl-jpg" class="ad-btn-solid">ডাউনলোড (JPG)</button>
+                        <button type="button" id="pc-dl-png" class="ad-btn-dark">ডাউনলোড (PNG)</button>
+                        <button type="button" id="pc-save" class="ad-act act-ok" style="padding:9px 18px;">শেয়ারের ছবি হিসেবে সংরক্ষণ</button>
+                    </div>
+
+                    <p class="ad-hint" id="pc-status"></p>
+
+                    <div id="pc-saved" @if(! $card['card']) hidden @endif style="margin-top:12px;">
+                        <span class="ad-badge st-published">সংরক্ষিত কার্ড আছে</span>
+                        <a href="{{ $card['card'] }}" id="pc-saved-link" target="_blank" rel="noopener" class="ad-act">দেখুন</a>
+                        <button type="button" id="pc-copy" class="ad-act">লিংক কপি</button>
+                        <button type="button" id="pc-del" class="ad-act act-del">মুছুন</button>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+
+                <div class="ad-panel" style="margin-bottom:20px;">
+                    <div class="ad-panel-head"><h2>ডিজাইন</h2></div>
+                    <div class="ad-panel-body ad-form">
+
+                        <div class="ad-fgroup">
+                            <label class="ad-label">কার্ডে যে শিরোনাম লেখা হবে</label>
+                            <textarea id="pc-title" rows="3" class="ad-field">{{ $card['title'] }}</textarea>
+                            <p class="ad-hint">লম্বা হলে ছোট করে লিখুন। দুই রং চাইলে মাঝে <code>|</code> দিন, যেমন <code>প্রথম অংশ | দ্বিতীয় অংশ</code>। এখানকার বদল খবরের শিরোনাম বদলায় না।</p>
+                        </div>
+
+                        <div class="ad-fgroup">
+                            <label class="ad-label">ডিজাইন</label>
+                            <select id="pc-template" class="ad-field">
+                                @foreach($templates as $key => $label)
+                                    <option value="{{ $key }}" @selected($defaults['template'] === $key)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="ad-fgroup">
+                            <label class="ad-label">মাপ</label>
+                            <select id="pc-size" class="ad-field">
+                                <option value="landscape" @selected($defaults['size'] === 'landscape')>ল্যান্ডস্কেপ ১২০০×৬৩০ (ফেসবুক লিংক)</option>
+                                <option value="square" @selected($defaults['size'] === 'square')>চৌকো ১০৮০×১০৮০</option>
+                                <option value="portrait" @selected($defaults['size'] === 'portrait')>পোর্ট্রেট ১০৮০×১৩৫০</option>
+                            </select>
+                        </div>
+
+                        <div class="ad-fgroup">
+                            <div class="ad-checks">
+                                <label class="ad-check"><input type="checkbox" id="pc-logo" @checked($defaults['logo'])> লোগো</label>
+                                <label class="ad-check"><input type="checkbox" id="pc-category" @checked($defaults['category'])> ক্যাটাগরি</label>
+                                <label class="ad-check"><input type="checkbox" id="pc-date" @checked($defaults['date'])> তারিখ</label>
+                            </div>
+                        </div>
+
+                        <div class="ad-two ad-fgroup">
+                            <div>
+                                <label class="ad-label">রং</label>
+                                <input type="color" id="pc-accent" value="{{ $accent }}" class="ad-color">
+                            </div>
+                            <div>
+                                <label class="ad-label">দ্বিতীয় রং</label>
+                                <input type="color" id="pc-color2" value="#123b68" class="ad-color">
+                            </div>
+                        </div>
+
+                        <div class="ad-fgroup">
+                            <label class="ad-check"><input type="checkbox" id="pc-twotone"> শিরোনাম দুই রংয়ে (অর্ধেক লাইন এক রং, বাকিটা অন্য)</label>
+                        </div>
+
+                        <div class="ad-fgroup">
+                            <label class="ad-label">নিচে ডানের লেখা (সাইটের ঠিকানা)</label>
+                            <input type="text" id="pc-footer" value="{{ $card['footer'] }}" class="ad-field" maxlength="80">
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="ad-panel">
+                    <div class="ad-panel-head"><h2>লেখা ও সাজ (নতুন ডিজাইনের জন্য)</h2></div>
+                    <div class="ad-panel-body ad-form">
+
+                        <div class="ad-fgroup">
+                            <label class="ad-label">নিচের বার্তা</label>
+                            <input type="text" id="pc-cta" value="" class="ad-field" maxlength="60" placeholder="যেমন: বিস্তারিত কমেন্টে, খবরের লিংক কমেন্টে">
+                            <p class="ad-hint">"ওপরে শিরোনাম" ডিজাইনে « » এর ভেতরে আসে; "ব্র্যান্ড ফ্রেম" ডিজাইনে লিখলে তবেই নিচের লাল ফিতা আসে।</p>
+                        </div>
+
+                        <div class="ad-fgroup">
+                            <label class="ad-label">ওপরের লাইন / লেখকের নাম বা পরিচয়</label>
+                            <input type="text" id="pc-kicker" value="{{ $card['byline'] }}" class="ad-field" maxlength="80" placeholder="যেমন: হেলাল মহিউদ্দীনের কলাম">
+                            <p class="ad-hint">কলাম কার্ডে লেখকের গোল ছবির নিচে, উদ্ধৃতি কার্ডে বক্তার নামে বসে।</p>
+                        </div>
+
+                        <div class="ad-fgroup">
+                            <label class="ad-label">ফিতার লেখা</label>
+                            <input type="text" id="pc-badge" value="" class="ad-field" maxlength="40" placeholder="ব্রেকিং নিউজ  /  কথা|অমৃত">
+                            <p class="ad-hint">"ব্রেকিং নিউজ" ডিজাইনে লাল ফিতার লেখা; "উদ্ধৃতি কার্ড" এ সিরিজের নাম (দুই অংশ <code>|</code> দিয়ে)। ফাঁকা রাখলে ডিফল্ট।</p>
+                        </div>
+
+                        <div class="ad-fgroup">
+                            <label class="ad-check"><input type="checkbox" id="pc-excerpt-on" checked> সারাংশ দেখাবে</label>
+                            <textarea id="pc-excerpt" rows="3" class="ad-field" style="margin-top:8px;">{{ $card['excerpt'] }}</textarea>
+                            <p class="ad-hint">উদ্ধৃতি কার্ডে এটি বক্তার পরিচয়, অন্য ডিজাইনে ছোট অনুচ্ছেদ।</p>
+                        </div>
+
+                        <div class="ad-fgroup">
+                            <label class="ad-check"><input type="checkbox" id="pc-caption-on" checked> ছবির ক্যাপশন দেখাবে</label>
+                            <textarea id="pc-caption" rows="2" class="ad-field" style="margin-top:8px;">{{ $card['caption'] }}</textarea>
+                        </div>
+
+                        <div class="ad-fgroup">
+                            <label class="ad-check"><input type="checkbox" id="pc-social" checked> সোশ্যাল হ্যান্ডেল দেখাবে (ব্র্যান্ড ফ্রেম)</label>
+                            @if(empty($card['social']))
+                                <p class="ad-hint">সাইট সেটিংয়ে ফেসবুক বা ইউটিউবের লিংক দিলে এখানে আসবে।</p>
+                            @endif
+                        </div>
+
+                        <div class="ad-fgroup">
+                            <label class="ad-label">লেখকের গোল ছবি (ঐচ্ছিক, কলাম কার্ডে)</label>
+                            <input type="file" id="pc-avatar" accept="image/png,image/jpeg,image/webp" class="ad-file">
+                            <p class="ad-hint">আপনার কম্পিউটার থেকে বেছে নিন; শুধু কার্ডে বসে, আলাদা করে সংরক্ষণ হয় না। না দিলে নামের প্রথম অক্ষর দেখায়।</p>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>window.CARD = @json($card);</script>
+    <script src="{{ asset('js/admin-photocard.js') }}"></script>
+    <script src="{{ asset('js/admin-photocard-more.js') }}"></script>
+    <script>
+        (function () {
+            const d = window.CARD;
+            const canvas = document.getElementById('card-canvas');
+            const el = {
+                title: document.getElementById('pc-title'),
+                template: document.getElementById('pc-template'),
+                size: document.getElementById('pc-size'),
+                logo: document.getElementById('pc-logo'),
+                category: document.getElementById('pc-category'),
+                date: document.getElementById('pc-date'),
+                accent: document.getElementById('pc-accent'),
+                color2: document.getElementById('pc-color2'),
+                twotone: document.getElementById('pc-twotone'),
+                footer: document.getElementById('pc-footer'),
+                cta: document.getElementById('pc-cta'),
+                kicker: document.getElementById('pc-kicker'),
+                badge: document.getElementById('pc-badge'),
+                excerptOn: document.getElementById('pc-excerpt-on'),
+                excerpt: document.getElementById('pc-excerpt'),
+                captionOn: document.getElementById('pc-caption-on'),
+                caption: document.getElementById('pc-caption'),
+                social: document.getElementById('pc-social')
+            };
+            const status = document.getElementById('pc-status');
+            const saved = document.getElementById('pc-saved');
+            const savedLink = document.getElementById('pc-saved-link');
+            const token = document.querySelector('meta[name="csrf-token"]').content;
+            const TALL = ['top', 'quote', 'cream', 'column', 'brand'];
+
+            let avatarUrl = null;
+            let busy = false;
+            let again = false;
+
+            function options() {
+                return {
+                    template: el.template.value,
+                    size: el.size.value,
+                    logo: el.logo.checked,
+                    category: el.category.checked,
+                    date: el.date.checked,
+                    accent: el.accent.value,
+                    color2: el.color2.value,
+                    twoTone: el.twotone.checked,
+                    badge: el.badge.value.trim(),
+                    cta: el.cta.value.trim(),
+                    kicker: el.kicker.value.trim(),
+                    excerpt: el.excerptOn.checked,
+                    caption: el.captionOn.checked,
+                    social: el.social.checked
+                };
+            }
+
+            async function draw() {
+                if (busy) { again = true; return; }
+
+                busy = true;
+
+                do {
+                    again = false;
+
+                    const data = Object.assign({}, d, {
+                        title: el.title.value.trim() || d.title,
+                        footer: el.footer.value.trim(),
+                        excerpt: el.excerpt.value.trim(),
+                        caption: el.caption.value.trim(),
+                        avatar: avatarUrl
+                    });
+
+                    await PhotoCard.render(canvas, data, options());
+                } while (again);
+
+                busy = false;
+            }
+
+            // নতুন (লম্বা ধাঁচের) ডিজাইন বাছলে মাপ ল্যান্ডস্কেপ থাকলে পোর্ট্রেট করে দেয়
+            el.template.addEventListener('change', function () {
+                if (TALL.indexOf(el.template.value) !== -1 && el.size.value === 'landscape') {
+                    el.size.value = 'portrait';
+                }
+            });
+
+            Object.keys(el).forEach(function (key) {
+                el[key].addEventListener('input', draw);
+                el[key].addEventListener('change', draw);
+            });
+
+            document.getElementById('pc-avatar').addEventListener('change', function (event) {
+                const file = event.target.files && event.target.files[0];
+
+                if (avatarUrl) {
+                    URL.revokeObjectURL(avatarUrl);
+                    avatarUrl = null;
+                }
+
+                if (file) { avatarUrl = URL.createObjectURL(file); }
+
+                draw();
+            });
+
+            function download(type, ext) {
+                canvas.toBlob(function (blob) {
+                    const a = document.createElement('a');
+
+                    a.href = URL.createObjectURL(blob);
+                    a.download = 'photocard-' + d.id + '.' + ext;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+
+                    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+                }, type, 0.92);
+            }
+
+            document.getElementById('pc-dl-jpg').addEventListener('click', function () { download('image/jpeg', 'jpg'); });
+            document.getElementById('pc-dl-png').addEventListener('click', function () { download('image/png', 'png'); });
+
+            function showSaved(url) {
+                savedLink.href = url;
+                saved.hidden = false;
+            }
+
+            document.getElementById('pc-save').addEventListener('click', async function () {
+                status.textContent = 'সংরক্ষণ হচ্ছে…';
+
+                try {
+                    const blob = await PhotoCard.toBlob(canvas, 'image/jpeg', 0.92);
+                    const fd = new FormData();
+
+                    fd.append('card', blob, 'card.jpg');
+
+                    const res = await fetch(d.storeUrl, {
+                        method: 'POST',
+                        body: fd,
+                        credentials: 'same-origin',
+                        headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+
+                    const json = await res.json().catch(function () { return {}; });
+
+                    if (!res.ok) {
+                        const first = json.errors && json.errors.card ? json.errors.card[0] : 'সংরক্ষণ ব্যর্থ হয়েছে (কোড ' + res.status + ')।';
+                        throw new Error(first);
+                    }
+
+                    showSaved(json.url);
+                    status.textContent = 'সংরক্ষণ হয়েছে। এখন খবরটি শেয়ার করলে এই কার্ড দেখাবে।';
+                } catch (e) {
+                    status.textContent = e.message;
+                }
+            });
+
+            document.getElementById('pc-copy').addEventListener('click', function () {
+                navigator.clipboard.writeText(location.origin + savedLink.getAttribute('href')).then(function () {
+                    status.textContent = 'কার্ডের লিংক কপি হয়েছে।';
+                });
+            });
+
+            document.getElementById('pc-del').addEventListener('click', async function () {
+                if (!confirm('সংরক্ষিত কার্ডটি মুছে ফেলতে চান? খবরের শেয়ারে আগের মতো মূল ছবি দেখাবে।')) { return; }
+
+                const res = await fetch(d.deleteUrl, {
+                    method: 'POST',
+                    body: new URLSearchParams({ _method: 'DELETE' }),
+                    credentials: 'same-origin',
+                    headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                if (res.ok) {
+                    saved.hidden = true;
+                    status.textContent = 'সংরক্ষিত কার্ড মোছা হয়েছে।';
+                } else {
+                    status.textContent = 'মোছা যায়নি (কোড ' + res.status + ')।';
+                }
+            });
+
+            draw();
+        })();
+    </script>
+</x-app-layout>
+
+--- \resources\views\admin\photocards.blade.php
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">ফটোকার্ড কেন্দ্র</h2>
+    </x-slot>
+
+    <div class="ad-page">
+
+        @if(session('success'))
+            <div class="ad-alert ad-alert-ok">{{ session('success') }}</div>
+        @endif
+
+        @if($errors->any())
+            <div class="ad-alert ad-alert-err">{{ $errors->first() }}</div>
+        @endif
+
+        <div class="ad-pagehead">
+            <h1>ফটোকার্ড কেন্দ্র</h1>
+        </div>
+
+        <div class="ad-stats">
+            <div class="ad-stat">
+                <span class="ad-stat-ico tone-blue"><svg class="ad-ico" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
+                <span><div class="ad-stat-value">{{ $total }}</div><div class="ad-stat-label">প্রকাশিত খবর</div></span>
+            </div>
+            <div class="ad-stat">
+                <span class="ad-stat-ico tone-green"><svg class="ad-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg></span>
+                <span><div class="ad-stat-value">{{ $withCard }}</div><div class="ad-stat-label">কার্ড আছে</div></span>
+            </div>
+            <div class="ad-stat">
+                <span class="ad-stat-ico tone-amber"><svg class="ad-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                <span><div class="ad-stat-value">{{ max(0, $total - $withCard) }}</div><div class="ad-stat-label">কার্ড নেই</div></span>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ route('photocards.defaults') }}" id="pc-defaults" class="ad-form">
+            @csrf
+            @method('PUT')
+
+            <div class="ad-panel" style="margin-bottom:20px;">
+                <div class="ad-panel-head"><h2>ডিফল্ট ডিজাইন</h2></div>
+                <div class="ad-panel-body">
+
+                    <div class="ad-three ad-fgroup">
+                        <div>
+                            <label class="ad-label">ডিজাইন</label>
+                            <select name="card_template" class="ad-field">
+                                @foreach($templates as $key => $label)
+                                    <option value="{{ $key }}" @selected($defaults['template'] === $key)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="ad-label">মাপ</label>
+                            <select name="card_size" class="ad-field">
+                                <option value="landscape" @selected($defaults['size'] === 'landscape')>ল্যান্ডস্কেপ ১২০০×৬৩০</option>
+                                <option value="square" @selected($defaults['size'] === 'square')>চৌকো ১০৮০×১০৮০</option>
+                                <option value="portrait" @selected($defaults['size'] === 'portrait')>পোর্ট্রেট ১০৮০×১৩৫০</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="ad-label">রং (ক্যাটাগরির রং না থাকলে)</label>
+                            <input type="color" name="card_accent" value="{{ $defaults['accent'] }}" class="ad-color">
+                        </div>
+                    </div>
+
+                    <div class="ad-fgroup">
+                        <div class="ad-checks">
+                            <label class="ad-check"><input type="checkbox" name="card_logo" value="1" @checked($defaults['logo'])> লোগো দেখাবে</label>
+                            <label class="ad-check"><input type="checkbox" name="card_category" value="1" @checked($defaults['category'])> ক্যাটাগরি দেখাবে</label>
+                            <label class="ad-check"><input type="checkbox" name="card_date" value="1" @checked($defaults['date'])> তারিখ দেখাবে</label>
+                        </div>
+                    </div>
+
+                    <div class="ad-fgroup" style="max-width:420px;">
+                        <label class="ad-label">নিচে ডানের লেখা (সাইটের ঠিকানা)</label>
+                        <input type="text" name="card_footer" value="{{ $defaults['footer'] }}" class="ad-field" maxlength="80"
+                               placeholder="{{ $footerFallback ?: 'www.example.com' }}">
+                        <p class="ad-hint">ফাঁকা রাখলে .env এর APP_URL এর ডোমেইন বসে ({{ $footerFallback ?: 'নেই' }})।</p>
+                    </div>
+
+                    <button type="submit" class="ad-btn-solid">ডিফল্ট সংরক্ষণ করুন</button>
+
+                </div>
+            </div>
+        </form>
+
+        <div class="ad-panel" style="margin-bottom:20px;">
+            <div class="ad-panel-head"><h2>একসাথে সব কার্ড তৈরি</h2></div>
+            <div class="ad-panel-body">
+                <p class="ad-note" style="margin-bottom:12px;">
+                    কার্ড নেই এমন প্রকাশিত খবরগুলোর (একবারে সর্বোচ্চ ১০০টি, নতুন থেকে পুরোনো) কার্ড ওপরের ডিজাইন অনুযায়ী তৈরি ও সংরক্ষণ হবে।
+                    কাজ চলার সময় এই পেজ খোলা রাখুন। ওপরের ফর্মের বর্তমান মান (সংরক্ষণ না করলেও) ব্যবহার হবে।
+                </p>
+
+                <button type="button" id="pc-run" class="ad-btn-solid">কার্ড নেই এমন সব খবরের কার্ড তৈরি করুন</button>
+
+                <div class="pc-progress" style="margin-top:14px;"><div id="pc-bar"></div></div>
+                <p class="ad-hint" id="pc-progress-text"></p>
+                <div class="pc-log" id="pc-log"></div>
+            </div>
+        </div>
+
+        <div class="ad-panel">
+            <div class="ad-panel-head"><h2>সাম্প্রতিক প্রকাশিত খবর</h2></div>
+            <div class="ad-table-wrap">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>খবর</th>
+                            <th>কার্ড</th>
+                            <th>কাজ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @forelse($recent as $item)
+                        <tr>
+                            <td>
+                                <div class="ad-news-title">{{ \Illuminate\Support\Str::limit($item->title, 90) }}</div>
+                                <div class="ad-news-sub">{{ $item->category->name ?? '—' }} &middot; {{ $item->display_date->format('d M Y') }}</div>
+                            </td>
+                            <td data-label="কার্ড">
+                                @if($item->card_url)
+                                    <img src="{{ $item->card_url }}" alt="" class="pc-thumb" loading="lazy">
+                                @else
+                                    <span class="ad-badge st-draft">নেই</span>
+                                @endif
+                            </td>
+                            <td>
+                                <div class="ad-actions">
+                                    <a href="{{ route('news.card', $item) }}" class="ad-act act-edit">কার্ড পেজ</a>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="3" class="ad-empty">এখনো কোনো প্রকাশিত খবর নেই।</td></tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    
+    <script src="{{ asset('js/admin-photocard.js') }}"></script>
+    <script src="{{ asset('js/admin-photocard-more.js') }}"></script>
+    <script>
+        (function () {
+            const queueUrl = @json($queueUrl);
+            const form = document.getElementById('pc-defaults');
+            const btn = document.getElementById('pc-run');
+            const bar = document.getElementById('pc-bar');
+            const text = document.getElementById('pc-progress-text');
+            const log = document.getElementById('pc-log');
+            const token = document.querySelector('meta[name="csrf-token"]').content;
+
+            function options(item) {
+                return {
+                    template: form.elements.card_template.value,
+                    size: form.elements.card_size.value,
+                    logo: form.elements.card_logo.checked,
+                    category: form.elements.card_category.checked,
+                    date: form.elements.card_date.checked,
+                    accent: item.color || form.elements.card_accent.value,
+                    color2: '#123b68',
+                    twoTone: false,
+                    badge: '',
+                    cta: '',
+                    kicker: item.byline || '',
+                    excerpt: true,
+                    caption: true,
+                    social: true
+                };
+            }
+
+            function note(message) {
+                log.textContent += message + '\n';
+                log.scrollTop = log.scrollHeight;
+            }
+
+            btn.addEventListener('click', async function () {
+                btn.disabled = true;
+                log.textContent = '';
+                bar.style.width = '0';
+                text.textContent = 'তালিকা আনা হচ্ছে…';
+
+                let data;
+
+                try {
+                    const res = await fetch(queueUrl, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
+
+                    if (!res.ok) { throw new Error('HTTP ' + res.status); }
+
+                    data = await res.json();
+                } catch (e) {
+                    text.textContent = 'তালিকা আনা যায়নি: ' + e.message;
+                    btn.disabled = false;
+                    return;
+                }
+
+                if (!data.items.length) {
+                    text.textContent = 'সব প্রকাশিত খবরের কার্ড আগেই তৈরি আছে।';
+                    btn.disabled = false;
+                    return;
+                }
+
+                const footer = form.elements.card_footer.value.trim() || data.footer;
+                const canvas = document.createElement('canvas');
+                let done = 0;
+                let failed = 0;
+
+                for (let i = 0; i < data.items.length; i++) {
+                    const item = data.items[i];
+
+                    text.textContent = (i + 1) + ' / ' + data.items.length + ' তৈরি হচ্ছে…';
+
+                    try {
+                        await PhotoCard.render(canvas, {
+                            title: item.title,
+                            category: item.category,
+                            date: item.date,
+                            image: item.image,
+                            logo: data.logo,
+                            emblem: data.emblem,
+                            siteName: data.siteName,
+                            tagline: data.tagline,
+                            footer: footer,
+                            excerpt: item.excerpt,
+                            caption: item.caption,
+                            byline: item.byline,
+                            social: data.social
+                        }, options(item));
+
+                        const blob = await PhotoCard.toBlob(canvas, 'image/jpeg', 0.92);
+                        const fd = new FormData();
+
+                        fd.append('card', blob, 'card.jpg');
+
+                        const res = await fetch(item.storeUrl, {
+                            method: 'POST',
+                            body: fd,
+                            credentials: 'same-origin',
+                            headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+
+                        if (!res.ok) { throw new Error('HTTP ' + res.status); }
+
+                        done++;
+                    } catch (e) {
+                        failed++;
+                        note('ব্যর্থ: #' + item.id + ' ' + item.title.slice(0, 40) + ' (' + e.message + ')');
+                    }
+
+                    bar.style.width = Math.round(((i + 1) / data.items.length) * 100) + '%';
+                }
+
+                text.textContent = 'শেষ: ' + done + 'টি তৈরি হয়েছে' + (failed ? ', ' + failed + 'টি ব্যর্থ' : '') + '। তালিকা হালনাগাদ করতে পেজ রিফ্রেশ করুন।';
+                btn.disabled = false;
+            });
+        })();
+    </script>
+</x-app-layout>
+
+--- \resources\views\frontend\partials\article-full.blade.php
+@php
+    /*
+     * Expects: $news, $design
+     * Optional: $titleTag ('h1' for the main article, 'h2' for auto-loaded ones),
+     *           $withAds (auto-loaded articles skip ads: scripts in injected HTML do not run)
+     */
+    $titleTag = $titleTag ?? 'h1';
+    $withAds = $withAds ?? true;
+    $show = $design['toggles'];
+    $articleBody = \App\Support\ArticleBody::render($news->description);
+@endphp
+
+<div
+    class="sa-autoload-item @if($titleTag !== 'h1') is-loaded @endif"
+    data-url="{{ route('frontend.news.show', $news->slug) }}"
+    data-title="{{ ($news->seo_title ?: $news->title) . ' | ' . \App\Support\Settings::get('site_name') }}"
+>
+    <article class="sa-article">
+        @if($news->shoulder)
+            <div class="sa-article-shoulder">
+                {{ $news->shoulder }}
+            </div>
+        @endif
+
+        <{{ $titleTag }} class="sa-article-title">
+            {{ $news->title }}
+        </{{ $titleTag }}>
+
+        @if($news->sub_title)
+            <p class="sa-article-sub">
+                {{ $news->sub_title }}
+            </p>
+        @endif
+
+        @if($show['summary'] && $news->summary)
+            <p class="sa-article-summary">
+                {{ $news->summary }}
+            </p>
+        @endif
+
+        <div class="sa-article-meta">
+            <div class="sa-byline">
+                <span class="sa-author-mark" aria-hidden="true">সা</span>
+
+                <span>
+                    <strong>
+                        {{ $news->reporter ?: 'স্বাধীন আলো' }}
+                    </strong>
+
+                    <time datetime="{{ $news->display_date->toIso8601String() }}">
+                        প্রকাশ: {{ $news->display_date->format('d M Y, h:i A') }}
+                    </time>
+                </span>
+            </div>
+
+            @if($show['share'])
+                @php $articleUrl = route('frontend.news.show', $news->slug); @endphp
+
+                <div class="sa-share" aria-label="সংবাদ শেয়ার করুন">
+                    <a
+                        href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode($articleUrl) }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Facebook
+                    </a>
+
+                    <a
+                        href="https://wa.me/?text={{ urlencode($news->title . ' ' . $articleUrl) }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        WhatsApp
+                    </a>
+
+                    @if($show['photocard'] && $news->card_url)
+                        <a href="{{ $news->card_url }}" download>
+                            ফটোকার্ড
+                        </a>
+                    @endif
+                </div>
+            @endif
+        </div>
+
+        @if($news->image)
+            <figure class="sa-figure">
+                <img
+                    src="{{ asset('uploads/news/' . $news->image) }}"
+                    alt="{{ $news->image_caption ?: $news->title }}"
+                    @if($titleTag === 'h1') fetchpriority="high" @else loading="lazy" @endif
+                >
+
+                @if($news->image_caption || $news->image_credit)
+                    <figcaption>
+                        {{ $news->image_caption }}
+
+                        @if($news->image_credit)
+                            <span>(ছবি: {{ $news->image_credit }})</span>
+                        @endif
+                    </figcaption>
+                @endif
+            </figure>
+        @elseif($show['no_image_card'])
+            {{-- No photo: logo, category, location text and the highlighted division map. --}}
+            <figure class="sa-figure">
+                @include('frontend.partials.no-image', ['news' => $news, 'variant' => 'hero'])
+            </figure>
+        @endif
+
+        @if($withAds)
+            @include('frontend.partials.ad', ['slot' => 'article_top'])
+        @endif
+
+        <div class="sa-article-body">
+            {!! $articleBody !!}
+        </div>
+
+        @if($withAds)
+            @include('frontend.partials.ad', ['slot' => 'article_bottom'])
+        @endif
+    </article>
+
+    @if($show['location'] && $news->location)
+        <div class="sa-article-location">
+            <strong>স্থান:</strong>
+
+            @foreach($news->location->path() as $place)
+                <a href="{{ $place->url() }}">{{ $place->name_bn }}</a>@if(!$loop->last)<span>, </span>@endif
+            @endforeach
+        </div>
+    @endif
+
+    @if($show['tags'] && $news->tags->isNotEmpty())
+        <div class="sa-article-tags">
+            <strong>ট্যাগ:</strong>
+
+            @foreach($news->tags as $tag)
+                <a
+                    href="{{ route('frontend.tag.show', $tag->slug) }}"
+                    class="sa-tag"
+                >
+                    {{ $tag->name }}
+                </a>
+            @endforeach
+        </div>
+    @endif
+</div>
+
+--- \resources\views\layouts\navigation.blade.php
+<aside class="ad-sidebar" x-bind:class="{ 'is-open': menu }">
+
+    <div class="ad-brand">
+        <span class="ad-logo">
+            
+    <img src="{{ \App\Support\Settings::logoUrl() }}" alt="{{ \App\Support\Settings::get('site_name') }}">   
+        </span>
+        <h2 class="ad-brand-name">{{ \App\Support\Settings::get('site_name') }}</h2>
+        <div class="ad-brand-sub">CMS v2</div>
+    </div>
+
+    <nav class="ad-nav">
+
+        <a href="{{ route('dashboard') }}"
+           class="ad-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}">
+            <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+            ড্যাসবোর্ড
+        </a>
+
+        <div class="ad-nav-label">কনটেন্ট</div>
+
+        <a href="{{ route('news.index') }}"
+           class="ad-link {{ request()->routeIs('news.*') ? 'is-active' : '' }}">
+            <svg class="ad-ico" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+            সংবাদ
+        </a>
+
+        @can('manage-categories')
+            <a href="{{ route('categories.index') }}"
+               class="ad-link {{ request()->routeIs('categories.*') ? 'is-active' : '' }}">
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+                ক্যাটাগরি
+            </a>
+        @endcan
+
+        @can('manage-tags')
+            <a href="{{ route('tags.index') }}"
+               class="ad-link {{ request()->routeIs('tags.*') ? 'is-active' : '' }}">
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="8.5" r="1.2"/></svg>
+                ট্যাগ
+            </a>
+        @endcan
+
+        @can('manage-categories')
+            <a href="{{ route('home-layout.edit') }}"
+               class="ad-link {{ request()->routeIs('home-layout.*') ? 'is-active' : '' }}">
+                <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                হোমপেজ সাজান
+            </a>
+        @endcan
+
+        @can('manage-categories')
+            <a href="{{ route('article-design.edit') }}"
+               class="ad-link {{ request()->routeIs('article-design.*') ? 'is-active' : '' }}">
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
+                সংবাদ পেজ ডিজাইন
+            </a>
+        @endcan
+
+        @can('manage-categories')
+            <a href="{{ route('visual-builder.index') }}"
+               class="ad-link {{ request()->routeIs('visual-builder.*') ? 'is-active' : '' }}">
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
+                ডেটা ভিজ্যুয়াল বিল্ডার
+            </a>
+        @endcan
+
+
+        @can('manage-categories')
+            <a href="{{ route('menu.edit') }}"
+               class="ad-link {{ request()->routeIs('menu.*') ? 'is-active' : '' }}">
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+                মেনু সাজান
+            </a>
+        @endcan
+
+        @can('manage-categories')
+            <a href="{{ route('sidebar.edit') }}"
+               class="ad-link {{ request()->routeIs('sidebar.*') ? 'is-active' : '' }}">
+                <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+                সাইডবার সাজান
+            </a>
+        @endcan  
+
+        @can('manage-categories')
+            <a href="{{ route('admin.polls.index') }}"
+               class="ad-link {{ request()->routeIs('admin.polls.*') ? 'is-active' : '' }}">
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6M3 20h18"/></svg>
+                অনলাইন ভোট
+            </a>
+        @endcan
+
+        @can('manage-categories')
+            <a href="{{ route('photocards.index') }}"
+               class="ad-link {{ request()->routeIs('photocards.*') ? 'is-active' : '' }}">
+                <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15l3-4 3 3 2-2 3 3"/></svg>
+                ফটোকার্ড
+            </a>
+        @endcan
+
+        
+        @can('manage-categories')
+            <a href="{{ route('ads.index') }}"
+               class="ad-link {{ request()->routeIs('ads.*') ? 'is-active' : '' }}">
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M3 11v2a1 1 0 001 1h2l5 4V6L6 10H4a1 1 0 00-1 1z"/><path d="M15 9a4 4 0 010 6M18 6a8 8 0 010 12"/></svg>
+                বিজ্ঞাপন
+            </a>
+        @endcan
+
+            <a href="{{ route('media.index') }}"
+           class="ad-link {{ request()->routeIs('media.*') ? 'is-active' : '' }}">
+            <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></svg>
+            ফটো গ্যালারি
+        </a>
+
+        @can('manage-categories')
+            <a href="{{ route('videos.index') }}"
+               class="ad-link {{ request()->routeIs('videos.*') ? 'is-active' : '' }}">
+                <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3V9z"/></svg>
+                ভিডিও গ্যালারি
+            </a>
+        @endcan
+
+        @can('manage-users')
+            <div class="ad-nav-label">সিস্টেম</div>
+
+            <a href="{{ route('users.index') }}"
+               class="ad-link {{ request()->routeIs('users.*') ? 'is-active' : '' }}">
+                <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.7a3.5 3.5 0 010 6.6M18 14.3c2.2.8 3.5 2.7 3.5 5.7"/></svg>
+                ইউজার
+            </a>
+
+            <a href="{{ route('activity.index') }}"
+               class="ad-link {{ request()->routeIs('activity.*') ? 'is-active' : '' }}">
+                <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                কার্যকলাপ লগ
+            </a>
+            <a href="{{ route('site-settings.edit') }}"
+               class="ad-link {{ request()->routeIs('site-settings.*') ? 'is-active' : '' }}">
+                <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3h0a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5h0a1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8v0a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+                সাইট সেটিং
+            </a> 
+        @endcan
+
+        <div class="ad-nav-label">অ্যাকাউন্ট</div>
+
+        <a href="{{ route('profile.edit') }}"
+           class="ad-link {{ request()->routeIs('profile.*') ? 'is-active' : '' }}">
+            <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+            আমার প্রোফাইল
+        </a>
+
+        <a href="{{ route('home') }}" target="_blank" rel="noopener" class="ad-link">
+            <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>
+            সাইট দেখুন
+        </a>
+
+        <form method="POST" action="{{ route('logout') }}" class="mt-3">
+            @csrf
+            <button type="submit" class="ad-link is-danger">
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M9 4H5a2 2 0 00-2 2v12a2 2 0 002 2h4M16 8l4 4-4 4M20 12H9"/></svg>
+                লগআউট
+            </button>
+        </form>
+
+    </nav>
+
+</aside>
+
+=== photocard scripts in public\js (top of each, except the main one)
+--- \public\js\admin-photocard-more.js
+(function (global) {
+    'use strict';
+
+    const PC = global.PhotoCard;
+
+    if (!PC || !PC.h) { return; }
+
+    const K = PC.h;
+    const FONT = PC.FONT;
+    const T = PC.templates;
+
+    const SOCIAL = {
+        facebook: { color: '#1877f2', glyph: 'f' },
+        instagram: { color: '#d62976', glyph: 'i' },
+        youtube: { color: '#ff0000', glyph: '' },
+        x: { color: '#111827', glyph: 'X' }
+    };
+
+    function mixWhite(hex, amount) {
+        const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+
+        if (!m) { return [241, 245, 249]; }
+
+        const n = parseInt(m[1], 16);
+        const mix = function (v) { return Math.round(v + (255 - v) * amount); };
+
+        return [mix((n >> 16) & 255), mix((n >> 8) & 255), mix(n & 255)];
+    }
+
+    function rgb(a) { return 'rgb(' + a[0] + ',' + a[1] + ',' + a[2] + ')'; }
+    function rgba(a, alpha) { return 'rgba(' + a[0] + ',' + a[1] + ',' + a[2] + ',' + alpha + ')'; }
+
+    function drawContain(ctx, img, x, y, w, h) {
+        const s = Math.min(w / img.width, h / img.height);
+        const dw = img.width * s;
+        const dh = img.height * s;
+
+        ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+    }
+
+    function catDate(c) {
+        return [c.o.category ? c.d.category : '', c.o.date ? c.d.date : ''].filter(Boolean).join(' | ');
+    }
+
+    // লোগো দেওয়া থাকলে লোগো, নইলে সাইটের নাম লেখা
+    function drawBrand(ctx, c, x, y, h, align) {
+        if (c.o.logo && c.logo) {
+            let bh = h;
+            let bw = c.logo.width * (bh / c.logo.height);
+            const maxW = c.W * 0.4;
+
+            if (bw > maxW) {
+                bh = bh * (maxW / bw);
+                bw = maxW;
+            }
+
+            ctx.drawImage(c.logo, align === 'right' ? x - bw : x, y + (h - bh) / 2, bw, bh);
+
+            return bw;
+        }
+
+        const name = c.d.siteName || '';
+
+        ctx.font = '700 ' + Math.round(h * 0.6) + 'px ' + FONT;
+        ctx.fillStyle = c.accent;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = align === 'right' ? 'right' : 'left';
+        ctx.fillText(name, x, y + h / 2 + 1);
+
+        const w = ctx.measureText(name).width;
+
+        ctx.textAlign = 'left';
+
+        return w;
+    }
+
+    // শিরোনামে "|" থাকলে সেখান থেকে রং বদলায়; নইলে "দুই রংয়ে" টিক থাকলে অর্ধেক লাইন করে।
+    function layoutHeadline(ctx, c, colors, maxW, maxH, maxSize, minSize, maxLines, forceTwoTone) {
+        const raw = String(c.d.title || '');
+        const manual = raw.indexOf('|') !== -1;
+        const parts = manual
+            ? raw.split('|').map(function (s) { return s.trim(); }).filter(Boolean)
+            : [raw.trim()];
+        const fit = K.fitHeadline(ctx, parts.join(' '), maxW, maxH, maxSize, minSize, maxLines);
+        let lines;
+
+        if (manual && parts.length > 1) {
+            ctx.font = '700 ' + fit.size + 'px ' + FONT;
+
+            lines = K.wrapLines(ctx, parts[0], maxW)
+... (774 more lines)
+
+(admin-photocard.js already sent: 25233 bytes)
+=== where news images are handled
+\app\Console\Commands\ImportMedia.php:14: protected $description = 'uploads/news ফোল্ডারের বিদ্যমান ছবি গ্যালারিতে যোগ করে (বারবার চালানো নিরাপদ)';
+\app\Http\Controllers\Admin\AdController.php:148: $file->move(public_path(Ad::DIR), $name);
+\app\Http\Controllers\Admin\NewsCardController.php:69: $file->move(public_path(self::DIR), $name);
+\app\Http\Controllers\Admin\NewsCardController.php:134: 'image' => $n->image ? '/uploads/news/'.$n->image : null,
+\app\Http\Controllers\Admin\NewsCardController.php:182: 'image' => $news->image ? '/uploads/news/'.$news->image : null,
+\app\Http\Controllers\Admin\NewsController.php:28: private const IMAGE_DIR = 'uploads/news';
+\app\Http\Controllers\Admin\SiteSettingController.php:129: $file->move(public_path(Settings::DIR), $name);
+\app\Models\Media.php:13: public const DIR = 'uploads/news';
+\app\Models\Media.php:52: $file->move(public_path(self::DIR), $name);
+\app\Support\Avatars.php:24: $file->move(public_path(self::DIR), $name);
+
+=== the code that handles them (full text)
+--- \app\Console\Commands\ImportMedia.php
+<?php
+
+namespace App\Console\Commands;
+
+use App\Models\Media;
+use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\File;
+
+class ImportMedia extends Command
+{
+    protected $signature = 'media:import';
+
+    protected $description = 'uploads/news ফোল্ডারের বিদ্যমান ছবি গ্যালারিতে যোগ করে (বারবার চালানো নিরাপদ)';
+
+    public function handle(): int
+    {
+        $dir = public_path(Media::DIR);
+
+        if (! File::isDirectory($dir)) {
+            $this->warn('ছবির ফোল্ডার পাওয়া যায়নি: '.$dir);
+
+            return self::SUCCESS;
+        }
+
+        $known = Media::pluck('filename')->flip();
+        $added = 0;
+
+        foreach (File::files($dir) as $file) {
+            $name = $file->getFilename();
+
+            if ($known->has($name) || ! in_array(strtolower($file->getExtension()), ['jpg', 'jpeg', 'png', 'webp'], true)) {
+                continue;
+            }
+
+            $time = Carbon::createFromTimestamp($file->getMTime());
+
+            (new Media)->forceFill([
+                'filename' => $name,
+                'original_name' => $name,
+                'mime' => File::mimeType($file->getPathname()) ?: null,
+                'size' => $file->getSize(),
+                'created_at' => $time,
+                'updated_at' => $time,
+            ])->save();
+
+            $added++;
+        }
+
+        $this->info("{$added}টি ছবি গ্যালারিতে যোগ হয়েছে।");
+
+        return self::SUCCESS;
+    }
+}
+
+--- \app\Http\Controllers\Admin\AdController.php
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Ad;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
+
+class AdController extends Controller
+{
+    public function index(): View
+    {
+        $ads = Ad::with('creator')->orderBy('slot')->latest('id')->paginate(20);
+
+        // কোন স্লটে এখন কয়টি বিজ্ঞাপন চলছে
+        $liveBySlot = Ad::where('status', true)->get()->filter->isLive()->groupBy('slot')->map->count();
+
+        return view('admin.ads.index', compact('ads', 'liveBySlot'));
+    }
+
+    public function create(): View
+    {
+        return view('admin.ads.create', [
+            'ad' => new Ad(['status' => true, 'type' => 'image', 'slot' => 'sidebar_top']),
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $data = $this->payload($request);
+
+        Ad::create($data + ['created_by' => $request->user()->id]);
+
+        return redirect()->route('ads.index')->with('success', 'বিজ্ঞাপন যোগ হয়েছে।');
+    }
+
+    public function edit(Request $request, Ad $ad): View
+    {
+        $this->authorizeAd($request, $ad);
+
+        return view('admin.ads.edit', compact('ad'));
+    }
+
+    public function update(Request $request, Ad $ad): RedirectResponse
+    {
+        $this->authorizeAd($request, $ad);
+
+        $oldImage = $ad->image;
+        $ad->update($this->payload($request, $ad));
+
+        if ($oldImage && $oldImage !== $ad->image) {
+            $this->deleteImage($oldImage);
+        }
+
+        return redirect()->route('ads.index')->with('success', 'বিজ্ঞাপন আপডেট হয়েছে।');
+    }
+
+    public function destroy(Request $request, Ad $ad): RedirectResponse
+    {
+        $this->authorizeAd($request, $ad);
+
+        $image = $ad->image;
+        $ad->delete();
+        $this->deleteImage($image);
+
+        return redirect()->route('ads.index')->with('success', 'বিজ্ঞাপন মোছা হয়েছে।');
+    }
+
+    /** কোডের বিজ্ঞাপনে যেকোনো স্ক্রিপ্ট বসানো যায়, তাই সেটি শুধু অ্যাডমিন বদলাতে পারবেন। */
+    private function authorizeAd(Request $request, Ad $ad): void
+    {
+        abort_unless($request->user()->isAdmin() || $ad->type === 'image', 403, 'এই বিজ্ঞাপন শুধু অ্যাডমিন বদলাতে পারবেন।');
+    }
+
+    private function payload(Request $request, ?Ad $ad = null): array
+    {
+        $isAdmin = $request->user()->isAdmin();
+
+        $request->validate([
+            'title' => ['required', 'string', 'max:150'],
+            'slot' => ['required', Rule::in(array_keys(Ad::SLOTS))],
+            'type' => ['required', Rule::in($isAdmin ? array_keys(Ad::TYPES) : ['image'])],
+            'link_url' => ['nullable', 'url:http,https', 'max:500'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:2048'],
+            'code' => ['nullable', 'string', 'max:20000'],
+            'starts_at' => ['nullable', 'date'],
+            'ends_at' => array_filter(['nullable', 'date', $request->filled('starts_at') ? 'after:starts_at' : null]),
+            'status' => ['nullable'],
+        ], [
+            'title.required' => 'বিজ্ঞাপনের একটি নাম দিন।',
+            'slot.required' => 'বিজ্ঞাপনের জায়গা বেছে নিন।',
+            'slot.in' => 'বিজ্ঞাপনের জায়গা সঠিক নয়।',
+            'type.in' => 'এই ধরনের বিজ্ঞাপন যোগ করার অনুমতি আপনার নেই।',
+            'link_url.url' => 'সঠিক লিংক দিন (http:// বা https:// দিয়ে শুরু)।',
+            'image.image' => 'শুধু ছবি আপলোড করা যাবে।',
+            'image.mimes' => 'শুধু jpg, png, webp বা gif ছবি চলবে।',
+            'image.max' => 'ছবি সর্বোচ্চ ২ MB হতে পারবে।',
+            'image.uploaded' => 'ছবি আপলোড ব্যর্থ হয়েছে (ফাইল খুব বড় হতে পারে)।',
+            'ends_at.after' => 'শেষের সময় শুরুর সময়ের পরে হতে হবে।',
+        ]);
+
+        $type = $request->input('type');
+        $file = $request->file('image');
+
+        if ($type === 'image' && ! $file && ! ($ad && $ad->type === 'image' && $ad->image)) {
+            throw ValidationException::withMessages(['image' => 'বিজ্ঞাপনের ছবি দিন।']);
+        }
+
+        if ($type === 'code' && trim((string) $request->input('code')) === '') {
+            throw ValidationException::withMessages(['code' => 'বিজ্ঞাপনের কোড দিন।']);
+        }
+
+        $image = null;
+
+        if ($type === 'image') {
+            $image = $file ? $this->storeImage($file) : $ad?->image;
+        }
+
+        return [
+            'title' => trim((string) $request->input('title')),
+            'slot' => $request->input('slot'),
+            'type' => $type,
+            'image' => $image,
+            'link_url' => $type === 'image' ? ($request->input('link_url') ?: null) : null,
+            'code' => $type === 'code' ? (string) $request->input('code') : null,
+            'starts_at' => $this->date($request->input('starts_at')),
+            'ends_at' => $this->date($request->input('ends_at')),
+            'status' => $request->boolean('status'),
+        ];
+    }
+
+    private function date(?string $value): ?Carbon
+    {
+        return $value ? Carbon::parse($value, config('app.timezone')) : null;
+    }
+
+    private function storeImage(UploadedFile $file): string
+    {
+        $name = Str::uuid().'.'.$file->extension();
+        $file->move(public_path(Ad::DIR), $name);
+
+        return $name;
+    }
+
+    private function deleteImage(?string $name): void
+    {
+        if ($name) {
+            File::delete(public_path(Ad::DIR.'/'.basename($name)));
+        }
+    }
+}
+
+--- \app\Http\Controllers\Admin\NewsCardController.php
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\News;
+use App\Support\Settings;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
+
+class NewsCardController extends Controller
+{
+    public const DIR = 'uploads/cards';
+        /** কার্ডের ডিজাইন: কী => লেবেল। নতুন ডিজাইন যোগ করলে এখানে ও admin-photocard.js এ যোগ করতে হয়। */
+        public const TEMPLATES = [
+        'top' => 'ওপরে শিরোনাম, নিচে ছবি (পোর্ট্রেটে ভালো)',
+        'quote' => 'উদ্ধৃতি কার্ড, ব্যক্তির ছবিসহ (পোর্ট্রেটে ভালো)',
+        'cream' => 'ক্রিম পটভূমিতে লেখা ও সারাংশ (পোর্ট্রেটে ভালো)',
+        'column' => 'কলাম কার্ড, লেখকের গোল ছবিসহ (পোর্ট্রেটে ভালো)',
+        'brand' => 'ব্র্যান্ড ফ্রেম, সোশ্যাল হ্যান্ডেল ও ফিতা (পোর্ট্রেটে ভালো)',
+        'overlay' => 'ছবির ওপর লেখা',
+        'split' => 'ওপরে ছবি, নিচে লেখা',
+        'bar' => 'সাদা ফলকে লেখা',
+        'center' => 'মাঝখানে লেখা (বক্তব্য)',
+        'frame' => 'সাদা ফ্রেমে ছবি',
+        'side' => 'পাশে রঙিন প্যানেল',
+        'breaking' => 'ব্রেকিং নিউজ',
+        'slant' => 'তেরছা রঙিন ব্যান্ড',
+        'text' => 'শুধু লেখা (ছবি ছাড়া)',
+    ];
+
+    /** একটি খবরের কার্ড তৈরির পেজ। */
+    public function show(News $news): View
+    {
+        Gate::authorize('view', $news);
+
+        $news->loadMissing('category');
+
+        return view('admin.news.card', [
+            'news' => $news,
+            'card' => $this->payload($news),
+            'defaults' => $this->currentDefaults(),
+            'templates' => self::TEMPLATES,
+        ]);
+    }
+
+    /** ব্রাউজারে আঁকা কার্ড (JPG) সংরক্ষণ। */
+    public function store(Request $request, News $news): JsonResponse|RedirectResponse
+    {
+        Gate::authorize('update', $news);
+
+        $request->validate([
+            'card' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:6144'],
+        ], [
+            'card.required' => 'কার্ডের ছবি পাওয়া যায়নি।',
+            'card.mimes' => 'কার্ড jpg বা png হতে হবে।',
+            'card.max' => 'কার্ডের ছবি সর্বোচ্চ ৬ MB হতে পারবে।',
+            'card.uploaded' => 'আপলোড ব্যর্থ হয়েছে (সার্ভারের আপলোড সীমা কম হতে পারে)।',
+        ]);
+
+        $file = $request->file('card');
+        $name = $news->id.'-'.Str::uuid().'.'.$file->extension();
+        $file->move(public_path(self::DIR), $name);
+
+        $old = $news->card_image;
+
+        // সরাসরি কোয়েরি: খবরের updated_at বা অন্য ইভেন্ট ছোঁয়া হয় না।
+        News::whereKey($news->id)->update(['card_image' => $name]);
+
+        $this->deleteFile($old);
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true, 'url' => '/'.self::DIR.'/'.$name]);
+        }
+
+        return back()->with('success', 'ফটোকার্ড সংরক্ষণ হয়েছে।');
+    }
+
+    public function destroy(Request $request, News $news): JsonResponse|RedirectResponse
+    {
+        Gate::authorize('update', $news);
+
+        $old = $news->card_image;
+
+        News::whereKey($news->id)->update(['card_image' => null]);
+
+        $this->deleteFile($old);
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
+        return back()->with('success', 'ফটোকার্ড মোছা হয়েছে।');
+    }
+
+    /** ফটোকার্ড কেন্দ্র (অ্যাডমিন ও এডিটর): ডিফল্ট ডিজাইন ও একসাথে তৈরি। */
+    public function center(): View
+    {
+        return view('admin.photocards', [
+            'total' => News::published()->count(),
+            'withCard' => News::published()->whereNotNull('card_image')->count(),
+            'recent' => News::published()->with('category')->latestPublished()->take(20)->get(),
+            'defaults' => $this->currentDefaults(),
+            'templates' => self::TEMPLATES,
+            'queueUrl' => route('photocards.queue', [], false),
+            'footerFallback' => $this->footerText(),
+        ]);
+    }
+
+    /** কার্ড নেই এমন প্রকাশিত খবরের তালিকা (JSON), কেন্দ্রের "সব তৈরি করুন" বোতামের জন্য। */
+    
+    public function queue(): JsonResponse
+    {
+        $items = News::published()
+            ->whereNull('card_image')
+            ->with('category')
+            ->latestPublished()
+            ->take(100)
+            ->get();
+
+        return response()->json([
+            'items' => $items->map(fn (News $n) => [
+                'id' => $n->id,
+                'title' => $n->title,
+                'category' => $n->category->name ?? '',
+                'color' => $n->category?->home_color,
+                'date' => $n->display_date->format('d M Y'),
+                'image' => $n->image ? '/uploads/news/'.$n->image : null,
+                'storeUrl' => route('news.card.store', $n, false),
+                'excerpt' => $this->plain($n->summary ?: $n->description, 280),
+                'caption' => $this->caption($n),
+                'byline' => (string) $n->reporter,
+            ])->values(),
+            'logo' => $this->path(Settings::logoUrl()),
+            'emblem' => $this->emblem(),
+            'siteName' => Settings::get('site_name'),
+            'tagline' => Settings::get('site_tagline'),
+            'footer' => $this->footerText(),
+            'social' => $this->social(),
+        ]);
+    }
+
+    public function saveDefaults(Request $request): RedirectResponse
+    {
+        $request->validate([
+            
+            'card_template' => ['required', Rule::in(array_keys(self::TEMPLATES))],
+            'card_size' => ['required', Rule::in(['landscape', 'square', 'portrait'])],
+            'card_accent' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'card_footer' => ['nullable', 'string', 'max:80'],
+        ], [
+            'card_accent.regex' => 'রংটি সঠিক নয়।',
+        ]);
+
+        Settings::set([
+            'card_template' => (string) $request->input('card_template'),
+            'card_size' => (string) $request->input('card_size'),
+            'card_accent' => (string) $request->input('card_accent'),
+            'card_footer' => trim((string) $request->input('card_footer', '')),
+            'card_logo' => $request->boolean('card_logo') ? '1' : '0',
+            'card_category' => $request->boolean('card_category') ? '1' : '0',
+            'card_date' => $request->boolean('card_date') ? '1' : '0',
+        ]);
+
+        return back()->with('success', 'ডিফল্ট ডিজাইন সংরক্ষণ হয়েছে।');
+    }
+
+    private function payload(News $news): array
+    {
+        return [
+            'id' => $news->id,
+            'title' => $news->title,
+            'category' => $news->category->name ?? '',
+            'color' => $news->category?->home_color,
+            'date' => $news->display_date->format('d M Y'),
+            'image' => $news->image ? '/uploads/news/'.$news->image : null,
+            'logo' => $this->path(Settings::logoUrl()),
+            'emblem' => $this->emblem(),
+            'siteName' => Settings::get('site_name'),
+            'tagline' => Settings::get('site_tagline'),
+            'footer' => $this->footerText(),
+            'excerpt' => $this->plain($news->summary ?: $news->description, 280),
+            'caption' => $this->caption($news),
+            'byline' => (string) $news->reporter,
+            'social' => $this->social(),
+            'card' => $news->card_image ? '/'.self::DIR.'/'.$news->card_image : null,
+            'storeUrl' => route('news.card.store', $news, false),
+            'deleteUrl' => route('news.card.destroy', $news, false),
+        ];
+    }
+
+    private function currentDefaults(): array
+    {
+        return [
+            'template' => Settings::get('card_template'),
+            'size' => Settings::get('card_size'),
+            'logo' => Settings::get('card_logo') === '1',
+            'category' => Settings::get('card_category') === '1',
+            'date' => Settings::get('card_date') === '1',
+            'accent' => Settings::get('card_accent'),
+            'footer' => Settings::get('card_footer'),
+        ];
+    }
+
+    /** কার্ডের নিচে ডানে যে লেখা বসবে: সেটিংয়ের লেখা, না থাকলে সাইটের ডোমেইন। */
+    private function footerText(): string
+    {
+        $custom = Settings::get('card_footer');
+
+        if ($custom !== '') {
+            return $custom;
+        }
+
+        return (string) (parse_url((string) config('app.url'), PHP_URL_HOST) ?? '');
+    }
+
+    /** পূর্ণ ঠিকানা থেকে শুধু পথ (একই উৎসের ছবি, ক্যানভাস নিরাপদ থাকে)। */
+    private function path(string $url): string
+    {
+        return parse_url($url, PHP_URL_PATH) ?: $url;
+    }
+
+    /** HTML থেকে সাধারণ লেখা: ট্যাগ বাদ, সংক্ষিপ্ত করা। */
+    private function plain(?string $html, int $limit): string
+    {
+        $text = html_entity_decode(strip_tags((string) $html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return Str::limit(trim((string) preg_replace('/\s+/u', ' ', $text)), $limit, '…');
+    }
+
+    private function caption(News $news): string
+    {
+        $caption = trim((string) $news->image_caption);
+        $credit = trim((string) $news->image_credit);
+
+        return trim($caption.($credit !== '' ? ' (ছবি: '.$credit.')' : ''));
+    }
+
+    /** গোল প্রতীকের জন্য ফেভিকন (সেট করা থাকলে)। */
+    private function emblem(): ?string
+    {
+        $url = Settings::faviconUrl();
+
+        return $url ? $this->path($url) : null;
+    }
+
+    /**
+     * সাইট সেটিংয়ের সোশ্যাল লিংক থেকে হ্যান্ডেলের নাম (যেমন facebook.com/abc হলে "abc")।
+     *
+     * @return list<array{type: string, text: string}>
+     */
+    private function social(): array
+    {
+        $items = [];
+
+        foreach (['facebook' => 'social_facebook', 'instagram' => 'social_instagram', 'youtube' => 'social_youtube', 'x' => 'social_x'] as $type => $key) {
+            $url = Settings::get($key);
+
+            if ($url === '') {
+                continue;
+            }
+
+            $path = trim((string) parse_url($url, PHP_URL_PATH), '/');
+            $handle = ltrim(Str::afterLast($path, '/'), '@');
+
+            $items[] = [
+                'type' => $type,
+                'text' => $handle !== '' ? $handle : (string) parse_url($url, PHP_URL_HOST),
+            ];
+        }
+
+        return $items;
+    }
+
+    private function deleteFile(?string $name): void
+    {
+        if ($name) {
+            File::delete(public_path(self::DIR.'/'.basename($name)));
+        }
+    }
+}
+
+--- \app\Http\Controllers\Admin\NewsController.php
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\NewsRequest;
+use App\Models\Activity;
+use App\Models\ArticleRevision;
+use App\Models\Category;
+use App\Models\Location;
+use App\Models\Media;
+use App\Models\News;
+use App\Services\NewsWorkflow;
+use App\Support\HtmlSanitizer;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
+use Throwable;
+
+class NewsController extends Controller
+{
+    private const IMAGE_DIR = 'uploads/news';
+
+    public function index(Request $request): View
+    {
+        Gate::authorize('viewAny', News::class);
+
+        $user = $request->user();
+        $status = $request->query('status');
+        $trashed = $status === 'trashed' && $user->isEditorOrAdmin();
+        $term = trim((string) $request->query('q', ''));
+
+        $query = News::with(['category', 'author'])
+            ->visibleTo($user);
+
+        if ($trashed) {
+            $query->onlyTrashed();
+        } elseif (in_array($status, News::STATUSES, true)) {
+            $query->where('status', $status);
+        }
+
+        if ($term !== '') {
+            $query->where(
+                'title',
+                'like',
+                '%'.addcslashes($term, '%_\\').'%'
+            );
+        }
+
+        $news = $query
+            ->orderByDesc('id')
+            ->paginate(15)
+            ->withQueryString();
+
+        $counts = News::visibleTo($user)
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $trashedCount = $user->isEditorOrAdmin()
+            ? News::onlyTrashed()->count()
+            : 0;
+
+        return view('admin.news.index', compact(
+            'news',
+            'counts',
+            'status',
+            'term',
+            'trashed',
+            'trashedCount'
+        ));
+    }
+
+    public function create(Request $request): View
+    {
+        Gate::authorize('create', News::class);
+
+        return view('admin.news.create', [
+            'locationTree' => $this->locationTree(),
+            'categories' => Category::orderBy('name')->get(),
+            'statuses' => NewsWorkflow::allowedTargets($request->user()),
+        ]);
+    }
+
+    public function store(NewsRequest $request): RedirectResponse
+    {
+        $user = $request->user();
+        $status = $request->validated('status');
+
+        $data = $this->payload($request);
+        $categoryIds = $request->validated('category_ids');
+
+        // Keep the first selected category in the legacy column.
+        $data['category_id'] = $categoryIds[0];
+
+        $data['slug'] = News::uniqueSlug($data['title']);
+        $data['author_id'] = $user->id;
+        $data['reporter'] = ($data['reporter'] ?? null) ?: $user->name;
+        $data['status'] = $status;
+        $data['published_at'] = NewsWorkflow::resolvePublishedAt(
+            $status,
+            null,
+            $request->publishAt()
+        );
+        $data['location_id'] = $request->location()?->id;
+
+        if (! $user->isEditorOrAdmin()) {
+            // Reporters cannot flag articles.
+            $data['breaking'] = false;
+            $data['featured'] = false;
+            $data['is_lead'] = false;
+        }
+
+        $newImage = $request->hasFile('image')
+            ? $this->storeImage($request->file('image'))
+            : null;
+
+        $data['image'] = $newImage ?: $this->galleryChoice($request);
+
+        try {
+            $news = DB::transaction(function () use (
+                $data,
+                $categoryIds
+            ) {
+                $news = News::create($data);
+
+                $news->categories()->sync($categoryIds);
+
+                return $news;
+            });
+        } catch (Throwable $e) {
+            $this->deleteImage($newImage);
+
+            throw $e;
+        }
+
+        if ($request->tagsSubmitted()) {
+            $news->syncTagNames($request->validated('tags', []));
+        }
+
+        ArticleRevision::capture($news, $user, 'প্রথম সংস্করণ');
+
+        Activity::record(
+            'article.created',
+            $news,
+            ['status' => $status],
+            $user
+        );
+
+        return redirect()
+            ->route('news.index')
+            ->with(
+                'success',
+                'সংবাদ সংরক্ষণ হয়েছে ('.News::STATUS_LABELS[$status].')।'
+            );
+    }
+
+    public function edit(Request $request, News $news): View
+    {
+        Gate::authorize('update', $news);
+
+        $news->load(['tags', 'location', 'categories']);
+
+        return view('admin.news.edit', [
+            'locationTree' => $this->locationTree(),
+            'news' => $news,
+            'categories' => Category::orderBy('name')->get(),
+            'statuses' => NewsWorkflow::allowedTargets(
+                $request->user(),
+                $news
+            ),
+        ]);
+    }
+
+    public function update(
+        NewsRequest $request,
+        News $news
+    ): RedirectResponse {
+        $user = $request->user();
+
+        // Keep the original image until the update succeeds.
+        $oldImage = $news->image;
+
+        // Do not regenerate the slug: existing links must keep working.
+        $data = $this->payload($request);
+        $categoryIds = $request->validated('category_ids');
+
+        // Maintain the legacy category_id column.
+        $data['category_id'] = $categoryIds[0];
+
+        if (! $user->isEditorOrAdmin()) {
+            // Preserve editorial flags set by an editor.
+            unset(
+                $data['breaking'],
+                $data['featured'],
+                $data['is_lead']
+            );
+        }
+
+        $newImage = $request->hasFile('image')
+            ? $this->storeImage($request->file('image'))
+            : null;
+
+        $picked = $newImage
+            ? null
+            : $this->galleryChoice($request);
+
+        if ($newImage || $picked) {
+            $data['image'] = $newImage ?: $picked;
+        }
+
+        // Keep the existing location unless the form submitted this field.
+        if ($request->locationSubmitted()) {
+            $data['location_id'] = $request->location()?->id;
+        }
+
+        $target = $request->validated('status');
+        $changesStatus = $target && $target !== $news->status;
+
+        try {
+            DB::transaction(function () use (
+                $news,
+                $data,
+                $categoryIds,
+                $request,
+                $user,
+                $target,
+                $changesStatus
+            ) {
+                $news->update($data);
+
+                $news->categories()->sync($categoryIds);
+
+                if ($request->tagsSubmitted()) {
+                    $news->syncTagNames(
+                        $request->validated('tags', [])
+                    );
+                }
+
+                if ($changesStatus) {
+                    NewsWorkflow::transition(
+                        $news,
+                        $user,
+                        $target,
+                        null,
+                        $request->publishAt()
+                    );
+                } else {
+                    ArticleRevision::capture($news, $user);
+                }
+            });
+        } catch (Throwable $e) {
+            // Only the newly uploaded image is cleaned up on failure.
+            $this->deleteImage($newImage);
+
+            throw $e;
+        }
+
+        // Remove the old image only after a successful replacement.
+        // Never delete it if another article still uses it.
+        if ($newImage && $oldImage && $oldImage !== $newImage) {
+            $this->deleteImageIfUnused($oldImage, $news);
+        }
+
+        Activity::record('article.updated', $news, [], $user);
+
+        return redirect()
+            ->route('news.index')
+            ->with('success', 'সংবাদ আপডেট হয়েছে।');
+    }
+
+    public function destroy(News $news): RedirectResponse
+    {
+        Gate::authorize('delete', $news);
+
+        // Soft delete: keep the article and its image for restoration.
+        $news->delete();
+
+        Activity::record('article.deleted', $news);
+
+        return redirect()
+            ->route('news.index')
+            ->with('success', 'সংবাদ ট্র্যাশে সরানো হয়েছে।');
+    }
+
+    public function restore(News $news): RedirectResponse
+    {
+        Gate::authorize('restore', $news);
+
+        $news->restore();
+
+        Activity::record('article.restored', $news);
+
+        return redirect()
+            ->route('news.index')
+            ->with('success', 'সংবাদ পুনরুদ্ধার হয়েছে।');
+    }
+
+    public function preview(News $news): View
+    {
+        Gate::authorize('view', $news);
+
+        $news->loadMissing([
+            'category',
+            'categories',
+            'tags',
+            'location.parent.parent',
+        ]);
+
+        return view('frontend.news', [
+            'news' => $news,
+            'relatedNews' => collect(),
+        ]);
+    }
+
+    /**
+     * Return divisions, districts and upazilas for dependent selects.
+     *
+     * @return array{
+     *     divisions: \Illuminate\Support\Collection,
+     *     districts: \Illuminate\Support\Collection,
+     *     upazilas: \Illuminate\Support\Collection
+     * }
+     */
+    private function locationTree(): array
+    {
+        $all = Location::query()
+            ->orderBy('name_en')
+            ->get(['id', 'parent_id', 'type', 'name_bn']);
+
+        return [
+            'divisions' => $all
+                ->where('type', Location::DIVISION)
+                ->values(),
+
+            'districts' => $all
+                ->where('type', Location::DISTRICT)
+                ->values(),
+
+            'upazilas' => $all
+                ->where('type', Location::UPAZILA)
+                ->values(),
+        ];
+    }
+
+    /**
+     * Validated and sanitized content attributes.
+     */
+    private function payload(NewsRequest $request): array
+    {
+        $data = Arr::except(
+            $request->validated(),
+            [
+                'image',
+                'status',
+                'published_at',
+                'tags',
+                'category_ids',
+                'division_id',
+                'district_id',
+                'upazila_id',
+            ]
+        );
+
+        $data['description'] = HtmlSanitizer::clean(
+            $data['description']
+        );
+
+        if (
+            trim(strip_tags($data['description'])) === ''
+            && ! str_contains($data['description'], '<img')
+        ) {
+            throw ValidationException::withMessages([
+                'description' => 'সংবাদের বিস্তারিত লিখুন।',
+            ]);
+        }
+
+        $data['seo_title'] = ($data['seo_title'] ?? null)
+            ?: $data['title'];
+
+        return $data;
+    }
+
+    /**
+     * Store an uploaded image and register it in the media gallery.
+     */
+    private function storeImage(UploadedFile $file): string
+    {
+        return Media::storeUpload(
+            $file,
+            auth()->user()
+        )->filename;
+    }
+
+    /**
+     * Remove an image uploaded during an operation that failed.
+     *
+     * This helper is used for newly uploaded files that have not
+     * been successfully attached to an article.
+     */
+    private function deleteImage(?string $name): void
+    {
+        if (! $name) {
+            return;
+        }
+
+        $name = basename($name);
+
+        $path = public_path(self::IMAGE_DIR.'/'.$name);
+
+        if (File::exists($path)) {
+            File::delete($path);
+        }
+
+        Media::where('filename', $name)->delete();
+    }
+
+    /**
+     * Delete a replaced image only when no other article references it.
+     */
+    private function deleteImageIfUnused(
+        string $name,
+        News $updatedNews
+    ): void {
+        $name = basename($name);
+
+        $stillUsed = News::withTrashed()
+            ->where('id', '!=', $updatedNews->id)
+            ->where(function ($query) use ($name) {
+                $query->where('image', $name)
+                    ->orWhere('card_image', $name);
+            })
+            ->exists();
+
+        if ($stillUsed) {
+            return;
+        }
+
+        $path = public_path(self::IMAGE_DIR.'/'.$name);
+
+        if (File::exists($path)) {
+            File::delete($path);
+        }
+
+        Media::where('filename', $name)->delete();
+    }
+
+    /**
+     * Accept only image names that exist in the media gallery.
+     */
+    private function galleryChoice(Request $request): ?string
+    {
+        $name = trim(
+            (string) $request->input('gallery_image', '')
+        );
+
+        return $name !== ''
+            ? Media::where('filename', $name)->value('filename')
+            : null;
+    }
+}
+
+--- \app\Http\Controllers\Admin\SiteSettingController.php
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Support\Settings;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
+
+class SiteSettingController extends Controller
+{
+    public function edit(): View
+    {
+        return view('admin.site-settings', ['s' => Settings::all()]);
+    }
+
+    public function update(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'site_name' => ['required', 'string', 'max:80'],
+            'site_tagline' => ['nullable', 'string', 'max:120'],
+            'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:1024'],
+            'favicon' => ['nullable', 'file', 'mimes:png,ico,webp', 'max:512'],
+            'show_date' => ['nullable'],
+
+            'footer_about' => ['nullable', 'string', 'max:600'],
+            'footer_email' => ['nullable', 'email', 'max:120'],
+            'footer_phone' => ['nullable', 'string', 'max:40'],
+            'footer_address' => ['nullable', 'string', 'max:200'],
+            'footer_categories' => ['required', 'integer', 'min:0', 'max:20'],
+            'footer_links' => ['nullable', 'string', 'max:2000'],
+            'social_facebook' => ['nullable', 'url:http,https', 'max:300'],
+            'social_youtube' => ['nullable', 'url:http,https', 'max:300'],
+            'social_x' => ['nullable', 'url:http,https', 'max:300'],
+            'social_instagram' => ['nullable', 'url:http,https', 'max:300'],
+            'footer_copyright' => ['nullable', 'string', 'max:150'],
+            'footer_credit' => ['nullable', 'string', 'max:100'],
+
+            'ticker_show' => ['nullable'],
+            'ticker_label' => ['required', 'string', 'max:40'],
+            'ticker_count' => ['required', 'integer', 'min:1', 'max:20'],
+            'ticker_speed' => ['required', Rule::in(['slow', 'normal', 'fast'])],
+            'ticker_max_hours' => ['required', 'integer', 'min:0', 'max:720'],
+        ], [
+            'site_name.required' => 'সাইটের নাম লিখুন।',
+            'logo.image' => 'লোগো একটি ছবি হতে হবে।',
+            'logo.mimes' => 'লোগো png, jpg বা webp হতে হবে।',
+            'logo.max' => 'লোগো সর্বোচ্চ ১ MB হতে পারবে।',
+            'logo.uploaded' => 'লোগো আপলোড ব্যর্থ হয়েছে (ফাইল খুব বড় হতে পারে)।',
+            'favicon.mimes' => 'ফেভিকন png, ico বা webp হতে হবে।',
+            'favicon.max' => 'ফেভিকন সর্বোচ্চ ৫১২ KB হতে পারবে।',
+            'footer_email.email' => 'সঠিক ইমেইল ঠিকানা দিন।',
+            'footer_categories.min' => 'ক্যাটাগরির সংখ্যা ০ বা তার বেশি হতে হবে।',
+            'footer_categories.max' => 'ফুটারে সর্বোচ্চ ২০টি ক্যাটাগরি দেখানো যাবে।',
+            'social_facebook.url' => 'ফেসবুকের সঠিক লিংক দিন (https:// দিয়ে শুরু)।',
+            'social_youtube.url' => 'ইউটিউবের সঠিক লিংক দিন (https:// দিয়ে শুরু)।',
+            'social_x.url' => 'এক্সের সঠিক লিংক দিন (https:// দিয়ে শুরু)।',
+            'social_instagram.url' => 'ইনস্টাগ্রামের সঠিক লিংক দিন (https:// দিয়ে শুরু)।',
+            'ticker_label.required' => 'টিকারের লেবেল লিখুন।',
+            'ticker_count.min' => 'টিকারে অন্তত ১টি খবর রাখুন।',
+            'ticker_count.max' => 'টিকারে সর্বোচ্চ ২০টি খবর রাখা যাবে।',
+        ]);
+
+        $current = Settings::all();
+        $values = [];
+
+        foreach ([
+            'site_name', 'site_tagline', 'footer_about', 'footer_email', 'footer_phone', 'footer_address',
+            'social_facebook', 'social_youtube', 'social_x', 'social_instagram',
+            'footer_copyright', 'footer_credit', 'ticker_label',
+        ] as $key) {
+            $values[$key] = trim((string) $request->input($key, ''));
+        }
+
+        foreach (['footer_categories', 'ticker_count', 'ticker_max_hours'] as $key) {
+            $values[$key] = (string) (int) $request->input($key);
+        }
+
+        $values['ticker_speed'] = (string) $request->input('ticker_speed');
+        $values['show_date'] = $request->boolean('show_date') ? '1' : '0';
+        $values['ticker_show'] = $request->boolean('ticker_show') ? '1' : '0';
+        $values['footer_links'] = $this->cleanLinks((string) $request->input('footer_links', ''));
+
+        $values['logo'] = $this->image($request, 'logo', 'remove_logo', $current['logo']);
+        $values['favicon'] = $this->image($request, 'favicon', 'remove_favicon', $current['favicon']);
+
+        Settings::set($values);
+
+        return back()->with('success', 'সাইটের সেটিং সংরক্ষণ হয়েছে।');
+    }
+
+    /** প্রতি লাইনে "লেবেল | লিংক"; ভুল লাইন থাকলে সেই লাইনের নম্বর বলে দেয়। */
+    private function cleanLinks(string $raw): string
+    {
+        $out = [];
+
+        foreach (preg_split('/\r\n|\r|\n/', $raw) as $index => $line) {
+            $line = trim($line);
+
+            if ($line === '') {
+                continue;
+            }
+
+            $parts = array_map('trim', explode('|', $line, 2));
+
+            if (count($parts) !== 2 || $parts[0] === '' || ! preg_match('~^(https?://|/(?!/))\S+$~u', $parts[1])) {
+                throw ValidationException::withMessages([
+                    'footer_links' => 'ফুটারের লিংকের '.($index + 1).' নম্বর লাইন ঠিক নয়। এভাবে লিখুন: লেবেল | https://example.com অথবা লেবেল | /about',
+                ]);
+            }
+
+            $out[] = $parts[0].'|'.$parts[1];
+        }
+
+        return implode("\n", array_slice($out, 0, 12));
+    }
+
+    /** নতুন ছবি দিলে সেটি রাখে ও পুরোনোটি মোছে; "মুছুন" টিক দিলে ফাইল মুছে ডিফল্টে ফেরে। */
+    private function image(Request $request, string $field, string $removeField, string $old): string
+    {
+        if ($request->hasFile($field)) {
+            $file = $request->file($field);
+            $name = $field.'-'.Str::uuid().'.'.$file->extension();
+            $file->move(public_path(Settings::DIR), $name);
+
+            $this->deleteFile($old);
+
+            return $name;
+        }
+
+        if ($request->boolean($removeField)) {
+            $this->deleteFile($old);
+
+            return '';
+        }
+
+        return $old;
+    }
+
+    private function deleteFile(string $name): void
+    {
+        if ($name !== '') {
+            File::delete(public_path(Settings::DIR.'/'.basename($name)));
+        }
+    }
+}
+
+--- \app\Models\Media.php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
+
+class Media extends Model
+{
+    /** সংবাদের ছবির ফোল্ডার: গ্যালারির ছবিও এখানেই থাকে, তাই পাবলিক সাইটের কোনো ভিউ বদলাতে হয় না। */
+    public const DIR = 'uploads/news';
+
+    protected $table = 'media';
+
+    protected $fillable = ['filename', 'original_name', 'mime', 'size', 'uploaded_by'];
+
+    protected function casts(): array
+    {
+        return ['size' => 'integer'];
+    }
+
+    public function uploader(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    public function getUrlAttribute(): string
+    {
+        return asset(self::DIR.'/'.$this->filename);
+    }
+
+    public function getSizeLabelAttribute(): string
+    {
+        return $this->size >= 1048576
+            ? number_format($this->size / 1048576, 1).' MB'
+            : number_format($this->size / 1024).' KB';
+    }
+
+    /**
+     * ফাইল সংরক্ষণ করে গ্যালারিতে যোগ করে। নাম এলোমেলো (UUID), ক্লায়েন্টের ফাইলনাম কখনো ব্যবহার হয় না।
+     */
+    public static function storeUpload(UploadedFile $file, ?User $user = null): self
+    {
+        // move() এর পরে ফাইলের তথ্য পাওয়া যায় না, তাই আগেই নিয়ে রাখছি।
+        $name = Str::uuid().'.'.$file->extension();
+        $original = Str::limit($file->getClientOriginalName(), 190, '');
+        $mime = $file->getMimeType();
+        $size = (int) $file->getSize();
+
+        $file->move(public_path(self::DIR), $name);
+
+        return static::create([
+            'filename' => $name,
+            'original_name' => $original,
+            'mime' => $mime,
+            'size' => $size,
+            'uploaded_by' => $user?->id,
+        ]);
+    }
+}
+
+--- \app\Support\Avatars.php
+<?php
+
+namespace App\Support;
+
+use App\Models\News;
+use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
+
+final class Avatars
+{
+    public const DIR = 'uploads/avatars';
+
+    public static function url(?User $user): ?string
+    {
+        return ($user && $user->avatar) ? asset(self::DIR.'/'.$user->avatar) : null;
+    }
+
+    /** নতুন ছবি রেখে আগেরটি মোছে। */
+    public static function save(User $user, UploadedFile $file): void
+    {
+        $name = $user->id.'-'.Str::uuid().'.'.$file->extension();
+        $file->move(public_path(self::DIR), $name);
+
+        $old = $user->avatar;
+
+        // forceFill: ইউজার মডেলের fillable তালিকা না ছুঁয়ে কলামটি সংরক্ষণ
+        $user->forceFill(['avatar' => $name])->save();
+
+        self::delete($old);
+    }
+
+    public static function remove(User $user): void
+    {
+        $old = $user->avatar;
+
+        $user->forceFill(['avatar' => null])->save();
+
+        self::delete($old);
+    }
+
+    /**
+     * খবরের পেজের জন্য লেখকের নাম, ছবি ও পরিচিতি।
+     * বাইলাইনের নাম লেখক-ইউজারের নামের সাথে না মিললে (অতিথি লেখক) ছবি ও পরিচিতি দেওয়া হয় না।
+     *
+     * @return array{name: string, photo: ?string, bio: string}
+     */
+    public static function byline(News $news): array
+    {
+        $author = $news->author;
+        $name = trim((string) $news->reporter) ?: trim((string) ($author->name ?? ''));
+        $same = $author && mb_strtolower($name) === mb_strtolower(trim((string) $author->name));
+
+        return [
+            'name' => $name,
+            'photo' => $same ? self::url($author) : null,
+            'bio' => $same ? trim((string) ($author->bio ?? '')) : '',
+        ];
+    }
+
+    private static function delete(?string $name): void
+    {
+        if ($name) {
+            File::delete(public_path(self::DIR.'/'.basename($name)));
+        }
+    }
+}
+
+=== how the news form uploads the image (field names)
+\resources\views\admin\news\card.blade.php:150: <input type="file" id="pc-avatar" accept="image/png,image/jpeg,image/webp" class="ad-file">
+
+\resources\views\admin\news\create.blade.php:13: <form action="{{ route('news.store') }}" method="POST" enctype="multipart/form-data" class="ad-form">
+
+\resources\views\admin\news\edit.blade.php:22: <form action="{{ route('news.update', $news) }}" method="POST" enctype="multipart/form-data" class="ad-form">
+
+
+
+\resources\views\admin\news\_form.blade.php:399: type="file"
+\resources\views\admin\news\_form.blade.php:400: name="image"
+
+
+
+
+

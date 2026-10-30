@@ -108,12 +108,12 @@ $nationalNews = $nationalCategory
                 <div style="width:120px;flex-shrink:0;">
 
                     @if($item->image)
-
-                    <img src="{{ asset('uploads/news/'.$item->image) }}"
+<img src="{{ asset('uploads/news/'.$item->image) }}"
                          class="img-fluid rounded national-thumb"
                          alt="{{ $item->title }}">
-
-                    @endif
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'img-fluid rounded national-thumb'])
+@endif
 
                 </div>
 

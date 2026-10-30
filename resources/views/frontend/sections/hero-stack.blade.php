@@ -8,8 +8,10 @@
 
     <a href="{{ route('frontend.news.show', $leadNews->slug) }}" class="sa-hero-lead">
         @if($img($leadNews))
-            <img src="{{ $img($leadNews) }}" alt="{{ $leadNews->title }}">
-        @endif
+<img src="{{ $img($leadNews) }}" alt="{{ $leadNews->title }}">
+@else
+@include('frontend.partials.no-image', ['news' => $leadNews, 'sizeClass' => ''])
+@endif
 
         <div class="sa-hero-overlay">
             <span class="sa-chip">{{ $leadNews->category->name ?? 'প্রধান সংবাদ' }}</span>
@@ -29,8 +31,10 @@
                     <a href="{{ route('frontend.news.show', $news->slug) }}" class="sa-g4">
                         <span class="sa-g4-img">
                             @if($img($news))
-                                <img src="{{ $img($news) }}" alt="{{ $news->title }}" loading="lazy">
-                            @endif
+<img src="{{ $img($news) }}" alt="{{ $news->title }}" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $news, 'sizeClass' => ''])
+@endif
                         </span>
                         <h3 class="sa-g4-title">{{ \Illuminate\Support\Str::limit($news->title, 75) }}</h3>
                         <span class="sa-vmeta">{{ $news->display_date->format('d M Y') }}</span>

@@ -30,11 +30,13 @@
             @if($first)
 
                 @if($first->image)
-                    <img src="{{ asset('uploads/news/'.$first->image) }}"
+<img src="{{ asset('uploads/news/'.$first->image) }}"
                          class="img-fluid rounded mb-3"
                          style="height:280px;width:100%;object-fit:cover;"
                          alt="{{ $first->title }}">
-                @endif
+@else
+@include('frontend.partials.no-image', ['news' => $first, 'sizeClass' => 'img-fluid rounded mb-3'])
+@endif
 
                 <h4>
 

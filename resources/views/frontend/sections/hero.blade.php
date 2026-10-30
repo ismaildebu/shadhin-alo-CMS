@@ -10,8 +10,10 @@
         <div class="{{ $side->isEmpty() ? 'col-12' : 'col-lg-8' }}">
             <a href="{{ route('frontend.news.show', $leadNews->slug) }}" class="sa-hero-lead">
                 @if($img($leadNews))
-                    <img src="{{ $img($leadNews) }}" alt="{{ $leadNews->title }}">
-                @endif
+<img src="{{ $img($leadNews) }}" alt="{{ $leadNews->title }}">
+@else
+@include('frontend.partials.no-image', ['news' => $leadNews, 'sizeClass' => ''])
+@endif
 
                 <div class="sa-hero-overlay">
                     <span class="sa-chip">{{ $leadNews->category->name ?? 'প্রধান সংবাদ' }}</span>

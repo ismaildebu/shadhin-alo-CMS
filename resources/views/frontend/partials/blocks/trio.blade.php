@@ -14,8 +14,10 @@
         @foreach($tiles as $item)
             <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-ttile">
                 @if($img($item))
-                    <img src="{{ $img($item) }}" alt="{{ $item->title }}" loading="lazy">
-                @endif
+<img src="{{ $img($item) }}" alt="{{ $item->title }}" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => ''])
+@endif
                 <span class="sa-ttile-body">
                     <span class="sa-ttile-title">{{ \Illuminate\Support\Str::limit($item->title, 80) }}</span>
                     <span class="sa-ttile-meta">{{ $item->display_date->format('d M Y') }}</span>

@@ -14,8 +14,10 @@
 
     <a href="{{ route('frontend.news.show', $first->slug) }}" class="sa-nb-ih-lead">
         @if($firstImg)
-            <img src="{{ $firstImg }}" alt="{{ $first->title }}" class="sa-nb-ih-img" loading="lazy">
-        @endif
+<img src="{{ $firstImg }}" alt="{{ $first->title }}" class="sa-nb-ih-img" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $first, 'sizeClass' => 'sa-nb-ih-img'])
+@endif
         <span class="sa-nb-ih-title">@if($first->shoulder)<span class="sa-nb-sh">{{ $first->shoulder }}</span>@endif{{ $first->title }}</span>
     </a>
 

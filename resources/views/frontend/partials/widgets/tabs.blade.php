@@ -44,8 +44,10 @@
                         @if($loop->first)
                             <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-tw-feat">
                                 @if($item->image)
-                                    <img src="{{ asset('uploads/news/'.$item->image) }}" alt="{{ $item->title }}" loading="lazy">
-                                @endif
+<img src="{{ asset('uploads/news/'.$item->image) }}" alt="{{ $item->title }}" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => ''])
+@endif
                                 <span class="sa-tw-feat-title">{{ \Illuminate\Support\Str::limit($item->title, 90) }}</span>
                             </a>
                         @else

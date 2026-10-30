@@ -2,15 +2,30 @@
 
 namespace App\Models;
 
+use App\Services\ImageOptimizer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 class Media extends Model
 {
     /** সংবাদের ছবির ফোল্ডার: গ্যালারির ছবিও এখানেই থাকে, তাই পাবলিক সাইটের কোনো ভিউ বদলাতে হয় না। */
     public const DIR = 'uploads/news';
+
+    /** ছবির ধরন অনুযায়ী গ্রহণযোগ্য এক্সটেনশন (প্রথমটি ডিফল্ট)। */
+    private const EXTENSIONS = [
+        IMAGETYPE_JPEG => ['jpg', 'jpeg'],
+        IMAGETYPE_PNG => ['png'],
+        IMAGETYPE_WEBP => ['webp'],
+    ];
+
+    private const MIMES = [
+        IMAGETYPE_JPEG => 'image/jpeg',
+        IMAGETYPE_PNG => 'image/png',
+        IMAGETYPE_WEBP => 'image/webp',
+    ];
 
     protected $table = 'media';
 
@@ -39,24 +54,65 @@ class Media extends Model
     }
 
     /**
-     * ফাইল সংরক্ষণ করে গ্যালারিতে যোগ করে। নাম এলোমেলো (UUID), ক্লায়েন্টের ফাইলনাম কখনো ব্যবহার হয় না।
+     * ছবি অপটিমাইজ (১২০০×৮০০, ১ MB-এর নিচে) করে গ্যালারিতে যোগ করে।
+     * আপলোডের ফাইলনামই থাকে। শুধু একই নামের ফাইল আগে থেকে থাকলে নামের শেষে -1, -2 বসে,
+     * যাতে অন্য সংবাদের ছবি মুছে না যায়।
      */
     public static function storeUpload(UploadedFile $file, ?User $user = null): self
     {
-        // move() এর পরে ফাইলের তথ্য পাওয়া যায় না, তাই আগেই নিয়ে রাখছি।
-        $name = Str::uuid().'.'.$file->extension();
-        $original = Str::limit($file->getClientOriginalName(), 190, '');
-        $mime = $file->getMimeType();
-        $size = (int) $file->getSize();
+        $clientName = $file->getClientOriginalName();
+        $result = ImageOptimizer::optimize($file);
+        $name = self::uniqueFilename($clientName, $result['type']);
 
-        $file->move(public_path(self::DIR), $name);
+        File::ensureDirectoryExists(public_path(self::DIR));
+        file_put_contents(public_path(self::DIR).'/'.$name, $result['data']);
 
         return static::create([
             'filename' => $name,
-            'original_name' => $original,
-            'mime' => $mime,
-            'size' => $size,
+            'original_name' => Str::limit($clientName, 190, ''),
+            'mime' => self::MIMES[$result['type']] ?? 'image/jpeg',
+            'size' => strlen($result['data']),
             'uploaded_by' => $user?->id,
         ]);
+    }
+
+    /**
+     * ক্লায়েন্টের ফাইলনাম যতটা সম্ভব হুবহু রাখে; শুধু পাথ ও ইউআরএল ভাঙার মতো অক্ষর বাদ দেয়।
+     * ফাইলের ভেতরের ছবির ধরনের সাথে এক্সটেনশন না মিললে সঠিক এক্সটেনশন বসে।
+     */
+    private static function uniqueFilename(string $clientName, int $type): string
+    {
+        $name = basename(str_replace('\\', '/', $clientName));
+        $name = preg_replace('/[\x00-\x1F\x7F]/u', '', $name) ?? '';
+        $name = preg_replace('/[\/\\\\:*?"<>|#%]/u', '', $name) ?? '';
+        $name = rtrim(ltrim($name, '. '), '. ');
+
+        $base = pathinfo($name, PATHINFO_FILENAME);
+        $ext = pathinfo($name, PATHINFO_EXTENSION);
+
+        $allowed = self::EXTENSIONS[$type] ?? ['jpg'];
+
+        if (! in_array(strtolower($ext), $allowed, true)) {
+            $ext = $allowed[0];
+        }
+
+        $base = trim(mb_substr($base, 0, 120));
+
+        if ($base === '') {
+            $base = 'image';
+        }
+
+        $candidate = $base.'.'.$ext;
+        $i = 1;
+
+        while (
+            File::exists(public_path(self::DIR.'/'.$candidate))
+            || static::where('filename', $candidate)->exists()
+        ) {
+            $candidate = $base.'-'.$i.'.'.$ext;
+            $i++;
+        }
+
+        return $candidate;
     }
 }

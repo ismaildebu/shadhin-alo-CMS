@@ -15,8 +15,10 @@
         <div class="col-md-5">
             <a href="{{ route('frontend.news.show', $lead->slug) }}" class="sa-card">
                 @if($img($lead))
-                    <img src="{{ $img($lead) }}" alt="{{ $lead->title }}" class="sa-card-img" loading="lazy">
-                @endif
+<img src="{{ $img($lead) }}" alt="{{ $lead->title }}" class="sa-card-img" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $lead, 'sizeClass' => 'sa-card-img'])
+@endif
                 <div class="sa-card-body">
                     <h3 class="sa-card-title">{{ $lead->title }}</h3>
                     <p class="sa-card-text">

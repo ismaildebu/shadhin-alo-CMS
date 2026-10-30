@@ -1475,3 +1475,25 @@ body.ad-auth-body{
         gap: 8px;
     }
 }
+
+
+/* Avatars */
+.ad-avatar{ overflow:hidden; }
+.ad-avatar img{ display:block; width:100%; height:100%; object-fit:cover; }
+
+.pf-avatar{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:110px;
+    height:110px;
+    flex-shrink:0;
+    overflow:hidden;
+    border-radius:50%;
+    background:var(--ad-primary);
+    color:#ffffff;
+    font-size:2.6rem;
+    font-weight:700;
+}
+
+.pf-avatar img{ display:block; width:100%; height:100%; object-fit:cover; }

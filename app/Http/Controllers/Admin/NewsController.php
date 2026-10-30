@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use RuntimeException;
 use Throwable;
 
 class NewsController extends Controller
@@ -289,6 +290,64 @@ class NewsController extends Controller
             ->with('success', 'সংবাদ ট্র্যাশে সরানো হয়েছে।');
     }
 
+    /**
+     * Move several articles to the trash at once (soft delete, restorable).
+     *
+     * The NewsPolicy "delete" rule is checked for every article, so a reporter
+     * can only trash their own drafts; anything else is skipped and reported.
+     */
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        Gate::authorize('viewAny', News::class);
+
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:100'],
+            'ids.*' => ['integer'],
+        ], [
+            'ids.required' => 'মুছে ফেলার জন্য অন্তত একটি সংবাদ বাছুন।',
+            'ids.min' => 'মুছে ফেলার জন্য অন্তত একটি সংবাদ বাছুন।',
+            'ids.max' => 'একবারে সর্বোচ্চ ১০০টি সংবাদ মোছা যাবে।',
+            'ids.*.integer' => 'সংবাদের তথ্য সঠিক নয়।',
+        ]);
+
+        $ids = array_unique($data['ids']);
+
+        // Only articles this user may see; the rest count as skipped.
+        $items = News::visibleTo($request->user())
+            ->whereIn('id', $ids)
+            ->get();
+
+        $deleted = 0;
+
+        foreach ($items as $news) {
+            if (! Gate::allows('delete', $news)) {
+                continue;
+            }
+
+            $news->delete();
+
+            Activity::record('article.deleted', $news);
+
+            $deleted++;
+        }
+
+        $skipped = count($ids) - $deleted;
+
+        if ($deleted === 0) {
+            return back()->withErrors([
+                'ids' => 'কোনো সংবাদ মোছা যায়নি। এই সংবাদগুলো মোছার অনুমতি আপনার নেই।',
+            ]);
+        }
+
+        $message = "{$deleted}টি সংবাদ ট্র্যাশে সরানো হয়েছে।";
+
+        if ($skipped > 0) {
+            $message .= " {$skipped}টি সংবাদ অনুমতির অভাবে বাদ গেছে।";
+        }
+
+        return back()->with('success', $message);
+    }
+
     public function restore(News $news): RedirectResponse
     {
         Gate::authorize('restore', $news);
@@ -389,13 +448,22 @@ class NewsController extends Controller
 
     /**
      * Store an uploaded image and register it in the media gallery.
+     *
+     * The image is optimized (fixed size, under 1 MB) by Media::storeUpload().
+     * Image processing failures become a validation error on the "image" field.
      */
     private function storeImage(UploadedFile $file): string
     {
-        return Media::storeUpload(
-            $file,
-            auth()->user()
-        )->filename;
+        try {
+            return Media::storeUpload(
+                $file,
+                auth()->user()
+            )->filename;
+        } catch (RuntimeException $e) {
+            throw ValidationException::withMessages([
+                'image' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

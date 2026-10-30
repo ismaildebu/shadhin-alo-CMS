@@ -37,5 +37,6 @@ class DatabaseSeeder extends Seeder
             LocationSeeder::class,
             NewsSeeder::class,
         ]);
+        $this->call(SuperAdminSeeder::class);
     }
 }
