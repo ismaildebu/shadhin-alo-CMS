@@ -18,8 +18,10 @@
 
         <a href="{{ route('frontend.news.show', $lead->slug) }}" class="sa-nb-lb-main sa-nb-lead">
             @if($leadImg)
-                <img src="{{ $leadImg }}" alt="{{ $lead->title }}" class="sa-nb-lead-img" loading="lazy">
-            @endif
+<img src="{{ $leadImg }}" alt="{{ $lead->title }}" class="sa-nb-lead-img" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $lead, 'sizeClass' => 'sa-nb-lead-img'])
+@endif
             <span class="sa-nb-lead-title">@if($lead->shoulder)<span class="sa-nb-sh">{{ $lead->shoulder }}</span>@endif{{ $lead->title }}</span>
             @if($leadText !== '')
                 <span class="sa-nb-lead-text">{{ $leadText }}</span>
@@ -33,7 +35,7 @@
                         @if($img($item))
                             <img src="{{ $img($item) }}" alt="{{ $item->title }}" class="sa-nb-lb-img" loading="lazy">
                         @else
-                            <span class="sa-nb-lb-img sa-nb-ph" aria-hidden="true"></span>
+                            @include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'sa-nb-lb-img'])
                         @endif
                         <span class="sa-nb-lb-title">@if($item->shoulder)<span class="sa-nb-sh">{{ $item->shoulder }}</span>@endif{{ \Illuminate\Support\Str::limit($item->title, 90) }}</span>
                     </a>

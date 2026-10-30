@@ -13,6 +13,9 @@
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:site_name" content="{{ \App\Support\Settings::get('site_name') }}">
 
+
+
+
     @if($shareImage)
         <meta property="og:image" content="{{ $shareImage }}">
         <meta name="twitter:card" content="summary_large_image">
@@ -38,6 +41,11 @@
 @endsection
 
 @section('content')
+
+@php
+    $by = \App\Support\Avatars::byline($news);
+@endphp
+
     @php
         // Dashboard-controlled design (see App\Support\ArticleDesign).
         $show = $design['toggles'];
@@ -192,6 +200,7 @@
                                         </div>
                                     </section>
                                 @endif
+                                        @include('frontend.partials.author-box', ['by' => $by])
                                 @break
                         @endswitch
                     @endforeach

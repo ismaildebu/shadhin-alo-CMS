@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\Permissions;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +13,8 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory;
+    use Notifiable;
 
     public const ROLE_USER = 'user';
 
@@ -23,7 +24,19 @@ class User extends Authenticatable
 
     public const ROLE_ADMIN = 'admin';
 
+    public const ROLE_SUPER_ADMIN = 'super-admin';
+
+    /**
+     * Available CMS roles and their display labels.
+     *
+     * Note: the protected super administrator is identified by the
+     * `is_super_admin` flag, not by this list. ROLE_SUPER_ADMIN is kept
+     * only for display purposes and can never be assigned from a form.
+     *
+     * @var array<string, string>
+     */
     public const ROLES = [
+        self::ROLE_SUPER_ADMIN => 'সুপার অ্যাডমিন',
         self::ROLE_ADMIN => 'অ্যাডমিন',
         self::ROLE_EDITOR => 'সম্পাদক',
         self::ROLE_REPORTER => 'রিপোর্টার',
@@ -31,7 +44,22 @@ class User extends Authenticatable
     ];
 
     /**
+     * The only attributes that may change on the super administrator.
+     * Everything else is locked (see booted() and the database triggers).
+     *
+     * @var list<string>
+     */
+    private const SUPER_ADMIN_MUTABLE = [
+        'password',
+        'remember_token',
+        'updated_at',
+    ];
+
+    /**
      * The attributes that are mass assignable.
+     *
+     * Privileged attributes (role, is_active, is_super_admin) must never
+     * be mass assignable.
      *
      * @var list<string>
      */
@@ -43,16 +71,18 @@ class User extends Authenticatable
         'bio',
     ];
 
-    // NOTE: `role`, `is_active` and `district_id` are intentionally NOT mass assignable.
-
-    /** In-memory defaults mirror the database defaults. */
+    /**
+     * Default attribute values.
+     *
+     * @var array<string, mixed>
+     */
     protected $attributes = [
         'role' => self::ROLE_USER,
         'is_active' => true,
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * Attributes hidden during serialization.
      *
      * @var list<string>
      */
@@ -62,7 +92,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * Attribute casting.
      *
      * @return array<string, string>
      */
@@ -72,44 +102,143 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'is_super_admin' => 'boolean',
         ];
     }
 
-    /** May enter the admin panel at all (admin, editor, reporter) and is not deactivated. */
+    /**
+     * Report the super administrator's role as "super-admin".
+     *
+     * The stored `role` column stays "admin" (the database triggers lock it),
+     * so the flag decides what the application sees. Queries such as
+     * where('role', 'admin') still read the stored value.
+     */
+    public function getRoleAttribute(?string $value): ?string
+    {
+        return ! empty($this->attributes['is_super_admin'])
+            ? self::ROLE_SUPER_ADMIN
+            : $value;
+    }
+
+    /**
+     * Determine whether this account is the protected super administrator.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->exists
+            && (bool) $this->is_super_admin;
+    }
+
+    /**
+     * Determine whether the user holds a permission from the role matrix
+     * (see App\Support\Permissions). The super administrator holds all.
+     */
+    public function hasPermission(string $permission): bool
+    {
+        return (bool) $this->is_active
+            && (
+                $this->isSuperAdmin()
+                || Permissions::roleAllows($this->role, $permission)
+            );
+    }
+
+    /**
+     * Determine whether the user may access the CMS panel.
+     */
     public function canManageCms(): bool
     {
-        return $this->is_active
-            && in_array($this->role, [self::ROLE_ADMIN, self::ROLE_EDITOR, self::ROLE_REPORTER], true);
+        return $this->hasPermission('cms_access');
     }
 
+    /**
+     * Determine whether the user has editor-level news rights
+     * (the "news_review" permission; admin and editor by default).
+     */
     public function isEditorOrAdmin(): bool
     {
-        return $this->is_active && in_array($this->role, [self::ROLE_ADMIN, self::ROLE_EDITOR], true);
+        return $this->hasPermission('news_review');
     }
 
+    /**
+     * Determine whether the user is an active administrator.
+     */
     public function isAdmin(): bool
     {
-        return $this->is_active && $this->role === self::ROLE_ADMIN;
+        return $this->is_active
+            && (
+                $this->isSuperAdmin()
+                || $this->role === self::ROLE_ADMIN
+            );
     }
 
+    /**
+     * Determine whether the user is an active reporter.
+     */
     public function isReporter(): bool
     {
-        return $this->is_active && $this->role === self::ROLE_REPORTER;
+        return $this->is_active
+            && $this->role === self::ROLE_REPORTER;
     }
 
+    /**
+     * Get news articles authored by this user.
+     */
     public function news(): HasMany
     {
         return $this->hasMany(News::class, 'author_id');
     }
 
+    /**
+     * Get the assigned district.
+     */
     public function district(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'district_id');
     }
 
-    /** A reporter tied to one district may only report for that district and its upazilas. */
+    /**
+     * Determine whether this user is a district-based correspondent.
+     */
     public function isDistrictCorrespondent(): bool
     {
-        return $this->isReporter() && $this->district_id !== null;
+        return $this->isReporter()
+            && $this->district_id !== null;
+    }
+
+    /**
+     * Protect the super administrator at the model level.
+     *
+     * This is the first layer. The second layer is the pair of database
+     * triggers (protect_super_admin_delete / protect_super_admin_update),
+     * which also stop mass deletes and raw queries that bypass model events.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user): void {
+            if ($user->isSuperAdmin()) {
+                throw new \RuntimeException(
+                    'The super administrator account cannot be deleted.'
+                );
+            }
+        });
+
+        static::updating(function (User $user): void {
+            // Judge by the stored value, so the flag cannot be flipped
+            // off and changed in the same save.
+            if (! (bool) $user->getOriginal('is_super_admin')) {
+                return;
+            }
+
+            $illegal = array_diff(
+                array_keys($user->getDirty()),
+                self::SUPER_ADMIN_MUTABLE
+            );
+
+            if ($illegal !== []) {
+                throw new \RuntimeException(
+                    'Only the super administrator password can be changed.'
+                );
+            }
+        });
     }
 }

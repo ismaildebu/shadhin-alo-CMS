@@ -21,8 +21,10 @@
             <div class="{{ $wide ? 'col-lg-6' : 'col-md-7' }}">
                 <a href="{{ route('frontend.news.show', $lead->slug) }}" class="sa-dlead">
                     @if($img($lead))
-                        <img src="{{ $img($lead) }}" alt="{{ $lead->title }}" loading="lazy">
-                    @endif
+<img src="{{ $img($lead) }}" alt="{{ $lead->title }}" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $lead, 'sizeClass' => ''])
+@endif
                     <span class="sa-dlead-body">
                         <span class="sa-dlead-title">{{ \Illuminate\Support\Str::limit($lead->title, 110) }}</span>
                         <span class="sa-dlead-meta">{{ $lead->display_date->format('d M Y') }}</span>
@@ -37,8 +39,10 @@
                             <div class="col-6">
                                 <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-dcard">
                                     @if($img($item))
-                                        <img src="{{ $img($item) }}" alt="{{ $item->title }}" loading="lazy">
-                                    @endif
+<img src="{{ $img($item) }}" alt="{{ $item->title }}" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => ''])
+@endif
                                     <span class="sa-dcard-title">{{ \Illuminate\Support\Str::limit($item->title, 70) }}</span>
                                     <span class="sa-dcard-meta">{{ $item->display_date->format('d M Y') }}</span>
                                 </a>
@@ -50,8 +54,10 @@
                         @foreach($rest as $item)
                             <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-ditem">
                                 @if($img($item))
-                                    <img src="{{ $img($item) }}" alt="{{ $item->title }}" class="sa-ditem-img" loading="lazy">
-                                @endif
+<img src="{{ $img($item) }}" alt="{{ $item->title }}" class="sa-ditem-img" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'sa-ditem-img'])
+@endif
                                 <span>
                                     <span class="sa-ditem-title">{{ \Illuminate\Support\Str::limit($item->title, 70) }}</span>
                                     <span class="sa-ditem-meta">{{ $item->display_date->format('d M Y') }}</span>

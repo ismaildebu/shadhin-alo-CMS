@@ -15,8 +15,10 @@
                 <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-box">
                     <span class="sa-box-img">
                         @if($img($item))
-                            <img src="{{ $img($item) }}" alt="{{ $item->title }}" loading="lazy">
-                        @endif
+<img src="{{ $img($item) }}" alt="{{ $item->title }}" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => ''])
+@endif
                     </span>
                     <span class="sa-box-body">
                         <span class="sa-box-title">{{ \Illuminate\Support\Str::limit($item->title, 80) }}</span>

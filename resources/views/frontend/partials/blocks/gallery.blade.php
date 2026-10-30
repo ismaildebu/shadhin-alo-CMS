@@ -12,8 +12,10 @@
         @foreach($tiles as $item)
             <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-gal-item">
                 @if($img($item))
-                    <img src="{{ $img($item) }}" alt="{{ $item->title }}" loading="lazy">
-                @endif
+<img src="{{ $img($item) }}" alt="{{ $item->title }}" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => ''])
+@endif
                 <span class="sa-gal-cap">{{ \Illuminate\Support\Str::limit($item->title, 55) }}</span>
             </a>
         @endforeach

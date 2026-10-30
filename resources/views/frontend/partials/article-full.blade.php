@@ -8,6 +8,11 @@
     $withAds = $withAds ?? true;
     $show = $design['toggles'];
     $articleBody = \App\Support\ArticleBody::render($news->description);
+
+    // লেখকের নাম, ছবি ও পরিচিতি (অটো-লোড হওয়া খবরেও কাজ করে, তাই এখানেই হিসাব)
+    $by = \App\Support\Avatars::byline($news);
+    $bylineName = $by['name'] !== '' ? $by['name'] : 'স্বাধীন আলো';
+    $bylineMark = $by['name'] !== '' ? \Illuminate\Support\Str::substr($by['name'], 0, 1) : 'সা';
 @endphp
 
 <div
@@ -40,11 +45,20 @@
 
         <div class="sa-article-meta">
             <div class="sa-byline">
-                <span class="sa-author-mark" aria-hidden="true">সা</span>
+                @if($by['photo'])
+                    <img
+                        src="{{ $by['photo'] }}"
+                        alt="{{ $by['name'] }}"
+                        class="sa-author-mark"
+                        loading="lazy"
+                    >
+                @else
+                    <span class="sa-author-mark" aria-hidden="true">{{ $bylineMark }}</span>
+                @endif
 
                 <span>
                     <strong>
-                        {{ $news->reporter ?: 'স্বাধীন আলো' }}
+                        {{ $bylineName }}
                     </strong>
 
                     <time datetime="{{ $news->display_date->toIso8601String() }}">
@@ -55,7 +69,6 @@
 
             @if($show['share'])
                 @php $articleUrl = route('frontend.news.show', $news->slug); @endphp
-
                 <div class="sa-share" aria-label="সংবাদ শেয়ার করুন">
                     <a
                         href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode($articleUrl) }}"
@@ -143,5 +156,10 @@
                 </a>
             @endforeach
         </div>
+    @endif
+
+    {{-- লেখক বক্স: ছবি, নাম ও পরিচিতি। ড্যাশবোর্ডের ডিজাইনে author_box সুইচ না থাকলে সবসময় দেখায়। --}}
+    @if($show['author_box'] ?? true)
+        @include('frontend.partials.author-box', ['by' => $by])
     @endif
 </div>

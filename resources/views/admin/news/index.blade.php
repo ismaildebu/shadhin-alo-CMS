@@ -1,5 +1,6 @@
 @php
     $user = auth()->user();
+    $cols = $trashed ? 3 : 4;
 @endphp
 <x-app-layout>
     <x-slot name="header">
@@ -50,10 +51,27 @@
         </form>
 
         <div class="ad-panel">
+            @if(! $trashed && $news->isNotEmpty())
+                {{-- একসাথে অনেক সংবাদ ট্র্যাশে পাঠানোর ফর্ম। প্রতিটি সারির checkbox form="bulk-form" দিয়ে এর সাথে যুক্ত। --}}
+                <form id="bulk-form" action="{{ route('news.bulk-destroy') }}" method="POST"
+                      style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 0 14px;">
+                    @csrf
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                        <input type="checkbox" id="select-all">
+                        <span>এই পাতার সব বাছুন</span>
+                    </label>
+                    <span id="selected-count" class="ad-hint" style="margin:0;">০টি বাছা হয়েছে</span>
+                    <button type="submit" id="bulk-delete" class="ad-btn-dark" disabled>বাছাইগুলো মুছুন</button>
+                </form>
+            @endif
+
             <div class="ad-table-wrap">
                 <table class="ad-table">
                     <thead>
                         <tr>
+                            @unless($trashed)
+                                <th style="width:36px;"></th>
+                            @endunless
                             <th>সংবাদ</th>
                             <th>অবস্থা</th>
                             <th>কাজ</th>
@@ -66,6 +84,15 @@
                             $targets = $trashed ? [] : \App\Services\NewsWorkflow::allowedTargets($user, $item);
                         @endphp
                         <tr>
+                            @unless($trashed)
+                                <td>
+                                    @can('delete', $item)
+                                        <input type="checkbox" name="ids[]" value="{{ $item->id }}" form="bulk-form"
+                                               class="news-check" data-published="{{ $item->status === 'published' ? 1 : 0 }}">
+                                    @endcan
+                                </td>
+                            @endunless
+
                             <td>
                                 <div class="ad-news-cell">
                                     @if($item->image)
@@ -155,7 +182,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="3" class="ad-empty">কোনো সংবাদ পাওয়া যায়নি।</td></tr>
+                        <tr><td colspan="{{ $cols }}" class="ad-empty">কোনো সংবাদ পাওয়া যায়নি।</td></tr>
                     @endforelse
                     </tbody>
                 </table>
@@ -167,4 +194,60 @@
         </div>
 
     </div>
+
+    @unless($trashed)
+        <script>
+            (function () {
+                var form = document.getElementById('bulk-form');
+                if (!form) { return; }
+
+                var all = document.getElementById('select-all');
+                var countEl = document.getElementById('selected-count');
+                var button = document.getElementById('bulk-delete');
+
+                function boxes() {
+                    return Array.prototype.slice.call(document.querySelectorAll('input.news-check'));
+                }
+
+                function refresh() {
+                    var selected = boxes().filter(function (b) { return b.checked; });
+                    countEl.textContent = selected.length + 'টি বাছা হয়েছে';
+                    button.disabled = selected.length === 0;
+                    all.checked = selected.length > 0 && selected.length === boxes().length;
+                    all.indeterminate = selected.length > 0 && selected.length < boxes().length;
+                }
+
+                all.addEventListener('change', function () {
+                    boxes().forEach(function (b) { b.checked = all.checked; });
+                    refresh();
+                });
+
+                boxes().forEach(function (b) { b.addEventListener('change', refresh); });
+
+                form.addEventListener('submit', function (e) {
+                    var selected = boxes().filter(function (b) { return b.checked; });
+
+                    if (selected.length === 0) {
+                        e.preventDefault();
+                        return;
+                    }
+
+                    var published = selected.filter(function (b) { return Number(b.dataset.published) === 1; }).length;
+                    var message = selected.length + 'টি সংবাদ ট্র্যাশে সরানো হবে।';
+
+                    if (published > 0) {
+                        message += '\n\nএর মধ্যে ' + published + 'টি প্রকাশিত সংবাদ। ট্র্যাশে গেলে সেগুলো ওয়েবসাইট থেকে সরে যাবে।';
+                    }
+
+                    message += '\n\nপরে ট্র্যাশ থেকে পুনরুদ্ধার করা যাবে। চালিয়ে যাবেন?';
+
+                    if (!confirm(message)) {
+                        e.preventDefault();
+                    }
+                });
+
+                refresh();
+            })();
+        </script>
+    @endunless
 </x-app-layout>

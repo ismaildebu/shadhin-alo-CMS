@@ -39,13 +39,13 @@
             <div class="card border-0 shadow-sm h-100">
 
                 @if($lead->image)
-
-                <img src="{{ asset('uploads/news/'.$lead->image) }}"
+<img src="{{ asset('uploads/news/'.$lead->image) }}"
                      class="card-img-top"
                      style="height:420px;object-fit:cover;"
                      alt="{{ $lead->title }}">
-
-                @endif
+@else
+@include('frontend.partials.no-image', ['news' => $lead, 'sizeClass' => 'card-img-top'])
+@endif
 
                 <div class="card-body">
 
@@ -82,13 +82,13 @@
             <div class="d-flex mb-3 border-bottom pb-3">
 
                 @if($item->image)
-
-                <img src="{{ asset('uploads/news/'.$item->image) }}"
+<img src="{{ asset('uploads/news/'.$item->image) }}"
                      style="width:110px;height:80px;object-fit:cover;"
                      class="rounded me-3"
                      alt="{{ $item->title }}">
-
-                @endif
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'rounded me-3'])
+@endif
 
                 <div>
 
@@ -123,13 +123,13 @@
             <div class="card border-0 shadow-sm h-100">
 
                 @if($item->image)
-
-                <img src="{{ asset('uploads/news/'.$item->image) }}"
+<img src="{{ asset('uploads/news/'.$item->image) }}"
                      class="card-img-top"
                      style="height:180px;object-fit:cover;"
                      alt="{{ $item->title }}">
-
-                @endif
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'card-img-top'])
+@endif
 
                 <div class="card-body">
 

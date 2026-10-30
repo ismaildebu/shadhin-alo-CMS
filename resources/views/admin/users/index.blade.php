@@ -40,7 +40,14 @@
                         <tr>
                             <td>
                                 <div class="ad-user-cell">
-                                    <span class="ad-avatar">{{ \Illuminate\Support\Str::substr($u->name, 0, 1) }}</span>
+                                    
+                                    <span class="ad-avatar">
+                                        @if($rowAvatar = \App\Support\Avatars::url($u))
+                                            <img src="{{ $rowAvatar }}" alt="">
+                                        @else
+                                            {{ \Illuminate\Support\Str::substr($u->name, 0, 1) }}
+                                        @endif
+                                    </span>
                                     <div>
                                         <div class="ad-tag-name">{{ $u->name }}</div>
                                         <div class="ad-news-sub">{{ $u->email }}</div>

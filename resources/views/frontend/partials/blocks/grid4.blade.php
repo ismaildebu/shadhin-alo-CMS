@@ -16,8 +16,10 @@
                 <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-g4">
                     <span class="sa-g4-img">
                         @if($img($item))
-                            <img src="{{ $img($item) }}" alt="{{ $item->title }}" loading="lazy">
-                        @endif
+<img src="{{ $img($item) }}" alt="{{ $item->title }}" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => ''])
+@endif
                     </span>
                     <h3 class="sa-g4-title">{{ \Illuminate\Support\Str::limit($item->title, 75) }}</h3>
                     <span class="sa-vmeta">{{ $item->display_date->format('d M Y') }}</span>

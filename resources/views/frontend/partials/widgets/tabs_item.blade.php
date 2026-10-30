@@ -1,7 +1,9 @@
 <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-tw-item">
     @if($item->image)
-        <img src="{{ asset('uploads/news/'.$item->image) }}" alt="{{ $item->title }}" class="sa-tw-thumb" loading="lazy">
-    @endif
+<img src="{{ asset('uploads/news/'.$item->image) }}" alt="{{ $item->title }}" class="sa-tw-thumb" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'sa-tw-thumb'])
+@endif
     <span>
         <span class="sa-tw-title">{{ \Illuminate\Support\Str::limit($item->title, 80) }}</span>
         @if($withDate ?? false)

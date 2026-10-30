@@ -1,0 +1,301 @@
+﻿
+===== app\Models\Location.php =====
+
+<?php
+
+namespace App\Models;
+
+use App\Support\FrontendCache;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
+
+class Location extends Model
+{
+    public const DIVISION = 'division';
+
+    public const DISTRICT = 'district';
+
+    public const UPAZILA = 'upazila';
+
+    public const TYPES = [self::DIVISION, self::DISTRICT, self::UPAZILA];
+
+    /** The child level of each type. */
+    public const CHILD_TYPE = [
+        self::DIVISION => self::DISTRICT,
+        self::DISTRICT => self::UPAZILA,
+    ];
+
+    protected $fillable = ['parent_id', 'type', 'name_bn', 'name_en', 'slug'];
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => FrontendCache::flush());
+        static::deleted(fn () => FrontendCache::flush());
+    }
+
+    public function scopeDivisions(Builder $query): Builder
+    {
+        return $query->where('type', self::DIVISION);
+    }
+
+    public function scopeDistricts(Builder $query): Builder
+    {
+        return $query->where('type', self::DISTRICT);
+    }
+
+    public function scopeUpazilas(Builder $query): Builder
+    {
+        return $query->where('type', self::UPAZILA);
+    }
+
+    public function scopeOrdered(Builder $query): Builder
+    {
+        return $query->orderBy('name_en');
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id')->orderBy('name_en');
+    }
+
+    public function news(): HasMany
+    {
+        return $this->hasMany(News::class);
+    }
+
+    public function isDivision(): bool
+    {
+        return $this->type === self::DIVISION;
+    }
+
+    public function isDistrict(): bool
+    {
+        return $this->type === self::DISTRICT;
+    }
+
+    public function isUpazila(): bool
+    {
+        return $this->type === self::UPAZILA;
+    }
+
+    /**
+     * This place plus everything below it: a division includes its districts and their upazilas,
+     * a district includes its upazilas. Articles of any of them belong to this place's page.
+     *
+     * @return list<int>
+     */
+    public function descendantIds(): array
+    {
+        $ids = [$this->id];
+        $level = [$this->id];
+
+        // at most two levels below a division
+        for ($depth = 0; $depth < 2 && $level; $depth++) {
+            $level = self::whereIn('parent_id', $level)->pluck('id')->all();
+            $ids = array_merge($ids, $level);
+        }
+
+        return $ids;
+    }
+
+    /**
+     * The place and its ancestors, outermost first: [division, district, upazila].
+     *
+     * @return Collection<int, Location>
+     */
+    public function path(): Collection
+    {
+        $path = collect([$this]);
+        $node = $this;
+
+        while ($node->parent_id !== null && $path->count() < 3) {
+            $node = $node->parent ?? self::find($node->parent_id);
+
+            if (! $node) {
+                break;
+            }
+
+            $path->prepend($node);
+        }
+
+        return $path->values();
+    }
+
+    /** Public URL path segments: [division-slug, district-slug, upazila-slug]. */
+    public function urlParameters(): array
+    {
+        return $this->path()->pluck('slug')->all();
+    }
+
+    public function url(): string
+    {
+        return route('frontend.location.show', $this->urlParameters());
+    }
+
+    /** "Savar, Dhaka, Dhaka Division" in Bengali, most specific first. */
+    public function fullNameBn(): string
+    {
+        return $this->path()->reverse()->pluck('name_bn')->implode(', ');
+    }
+}
+
+
+===== app\Support\LocationImporter.php =====
+
+<?php
+
+namespace App\Support;
+
+use App\Models\Location;
+use Illuminate\Support\Str;
+use InvalidArgumentException;
+
+/**
+ * Loads the division / district / upazila tree from a JSON file.
+ * Safe to run again: places are matched by (parent, slug), names are updated, nothing is deleted.
+ */
+final class LocationImporter
+{
+    public const DEFAULT_FILE = 'database/data/bd-locations.json';
+
+    /** @return array{created: int, updated: int} */
+    public static function import(?string $file = null): array
+    {
+        $path = $file ?? base_path(self::DEFAULT_FILE);
+
+        if (! is_file($path)) {
+            throw new InvalidArgumentException("Location data file not found: {$path}");
+        }
+
+        $tree = json_decode((string) file_get_contents($path), true);
+
+        if (! is_array($tree)) {
+            throw new InvalidArgumentException("Location data file is not valid JSON: {$path}");
+        }
+
+        $stats = ['created' => 0, 'updated' => 0];
+
+        foreach ($tree as $division) {
+            $divisionRow = self::upsert(null, Location::DIVISION, $division, $stats);
+
+            foreach ($division['districts'] ?? [] as $district) {
+                $districtRow = self::upsert($divisionRow->id, Location::DISTRICT, $district, $stats);
+
+                foreach ($district['upazilas'] ?? [] as $upazila) {
+                    self::upsert($districtRow->id, Location::UPAZILA, $upazila, $stats);
+                }
+            }
+        }
+
+        FrontendCache::flush();
+
+        return $stats;
+    }
+
+    public static function slugFor(string $nameEn): string
+    {
+        // "Cox's Bazar" -> "coxs-bazar" (apostrophes dropped, not turned into separators)
+        return Str::slug(str_replace("'", '', $nameEn)) ?: 'place';
+    }
+
+    private static function upsert(?int $parentId, string $type, array $row, array &$stats): Location
+    {
+        $slug = self::slugFor($row['name_en']);
+
+        $location = Location::firstOrNew(['parent_id' => $parentId, 'slug' => $slug]);
+        $isNew = ! $location->exists;
+
+        $location->fill([
+            'type' => $type,
+            'name_bn' => $row['name_bn'],
+            'name_en' => $row['name_en'],
+        ])->save();
+
+        $stats[$isNew ? 'created' : 'updated']++;
+
+        return $location;
+    }
+}
+
+
+===== database\migrations\2026_10_14_000001_create_locations_table.php =====
+
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('locations', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('parent_id')->nullable()->constrained('locations')->restrictOnDelete();
+            $table->string('type', 10); // division | district | upazila
+            $table->string('name_bn');
+            $table->string('name_en');
+            // English slug, unique among siblings only: the same upazila name exists in several districts.
+            $table->string('slug', 100);
+            $table->timestamps();
+
+            $table->unique(['parent_id', 'slug']);
+            $table->index(['type', 'parent_id']);
+        });
+
+        Schema::table('news', function (Blueprint $table) {
+            // The most specific place the article is about: a division, a district or an upazila.
+            $table->foreignId('location_id')->nullable()->after('category_id')
+                ->constrained('locations')->nullOnDelete();
+        });
+
+        Schema::table('users', function (Blueprint $table) {
+            // A district correspondent: may only report for this district (and its upazilas).
+            $table->foreignId('district_id')->nullable()->after('role')
+                ->constrained('locations')->nullOnDelete();
+        });
+        // The geography itself is loaded with: php artisan locations:import
+    }
+
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropForeign(['district_id']);
+        });
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('district_id');
+        });
+
+        Schema::table('news', function (Blueprint $table) {
+            $table->dropForeign(['location_id']);
+        });
+        Schema::table('news', function (Blueprint $table) {
+            $table->dropColumn('location_id');
+        });
+
+        // Every row can be the RESTRICTed parent of other rows, so a populated table cannot be dropped
+        // as it is (the drop deletes rows one by one and trips the foreign key). Cut the tree apart first.
+        if (Schema::hasTable('locations')) {
+            DB::table('locations')->update(['parent_id' => null]);
+        }
+
+        Schema::dropIfExists('locations');
+    }
+};
+
+
+===== sample rows =====
+
+
+
+[[{"id":1,"parent_id":null,"type":"division","name_bn":"αª¼αª░αª┐αª╢αª╛αª▓","name_en":"Barishal","slug":"barishal","created_at":"2026-10-11T18:56:54.000000Z","updated_at":"2026-10-11T18:56:54.000000Z"},{"id":2,"parent_id":1,"type":"district","name_bn":"αª¼αª░αªùαºüαª¿αª╛","name_en":"Barguna","slug":"barguna","created_at":"2026-10-11T18:56:54.000000Z","updated_at":"2026-10-11T18:56:54.000000Z"},{"id":3,"parent_id":2,"type":"upazila","name_bn":"αªåαª«αªñαª▓αºÇ","name_en":"Amtali","slug":"amtali","created_at":"2026-10-11T18:56:54.000000Z","updated_at":"2026-10-11T18:56:54.000000Z"}],[{"id":566,"parent_id":553,"type":"upazila","name_bn":"αª£αªòαª┐αªùαª₧αºìαª£","name_en":"Zakiganj","slug":"zakiganj","created_at":"2026-10-11T18:58:37.000000Z","updated_at":"2026-10-11T18:58:37.000000Z"},{"id":565,"parent_id":553,"type":"upazila","name_bn":"αª╕αª┐αª▓αºçαªƒ αª╕αªªαª░","name_en":"Sylhet Sadar","slug":"sylhet-sadar","created_at":"2026-10-11T18:58:37.000000Z","updated_at":"2026-10-11T18:58:37.000000Z"},{"id":564,"parent_id":553,"type":"upazila","name_bn":"αªôαª╕αª«αª╛αª¿αºÇ αª¿αªùαª░","name_en":"Osmaninagar","slug":"osmaninagar","created_at":"2026-10-11T18:58:37.000000Z","updated_at":"2026-10-11T18:58:37.000000Z"}]]

@@ -9,13 +9,15 @@
                     class="sa-list-item"
                 >
                     @if($item->image)
-                        <img
+<img
                             src="{{ asset('uploads/news/' . $item->image) }}"
                             alt="{{ $item->title }}"
                             class="sa-list-thumb"
                             loading="lazy"
                         >
-                    @endif
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'sa-list-thumb'])
+@endif
 
                     <span class="sa-list-copy">
                         <span class="sa-list-title">

@@ -20,9 +20,11 @@
                 <div class="col-sm-6">
                     <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-card">
                         @if($item->image)
-                            <img src="{{ asset('uploads/news/'.$item->image) }}"
+<img src="{{ asset('uploads/news/'.$item->image) }}"
                                  alt="{{ $item->title }}" class="sa-feat-img" loading="lazy">
-                        @endif
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'sa-feat-img'])
+@endif
                         <div class="sa-card-body">
                             @if($item->category)
                                 <div class="sa-row-cat">{{ $item->category->name }}</div>
@@ -55,9 +57,11 @@
             @foreach($latestNews as $item)
                 <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-row-card">
                     @if($item->image)
-                        <img src="{{ asset('uploads/news/'.$item->image) }}"
+<img src="{{ asset('uploads/news/'.$item->image) }}"
                              alt="{{ $item->title }}" class="sa-row-img" loading="lazy">
-                    @endif
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'sa-row-img'])
+@endif
                     <div class="sa-row-body">
                         @if($item->category)
                             <div class="sa-row-cat">{{ $item->category->name }}</div>

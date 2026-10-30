@@ -1,0 +1,141 @@
+﻿C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Console\Commands\CreateAdmin.php:43: $user->role = User::ROLE_ADMIN;
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\AdController.php:80: abort_unless($request->user()->isAdmin() || $ad->type === 'image', 403, 'এই বিজ্ঞাপন শুধু অ্যাডমিন বদলাতে পারবেন।');
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\AdController.php:85: $isAdmin = $request->user()->isAdmin();
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\AdController.php:90: 'type' => ['required', Rule::in($isAdmin ? array_keys(Ad::TYPES) : ['image'])],
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\DashboardController.php:18: $canReview = $user->isEditorOrAdmin();
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\DashboardController.php:88: 'usersCount' => $user->isAdmin() ? User::count() : null,
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\MediaController.php:112: abort_unless($request->user()->isEditorOrAdmin(), 403);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\NewsCardController.php:41: Gate::authorize('view', $news);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\NewsCardController.php:56: Gate::authorize('update', $news);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\NewsCardController.php:87: Gate::authorize('update', $news);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\NewsController.php:32: Gate::authorize('viewAny', News::class);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\NewsController.php:36: $trashed = $status === 'trashed' && $user->isEditorOrAdmin();
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\NewsController.php:66: $trashedCount = $user->isEditorOrAdmin()
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\NewsController.php:82: Gate::authorize('create', News::class);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\NewsController.php:113: if (! $user->isEditorOrAdmin()) {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\NewsController.php:166: Gate::authorize('update', $news);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\NewsController.php:197: if (! $user->isEditorOrAdmin()) {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\NewsController.php:280: Gate::authorize('delete', $news);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\NewsController.php:294: Gate::authorize('restore', $news);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\NewsController.php:307: Gate::authorize('view', $news);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\NewsRevisionController.php:22: Gate::authorize('update', $news);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\NewsRevisionController.php:32: Gate::authorize('update', $news);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\UserController.php:61: $user->role = $data['role'];
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\UserController.php:69: 'role' => $user->role,
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\UserController.php:103: if ($user->isSuperAdmin()) {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\UserController.php:113: $data['role'] !== $user->role
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\UserController.php:137: 'role' => $user->role,
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\UserController.php:158: $user->role = $data['role'];
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\UserController.php:167: 'role' => $user->role,
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\UserController.php:186: if ($user->isSuperAdmin()) {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\UserController.php:231: $target->isSuperAdmin() && ! $target->is($request->user()),
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\UserController.php:297: if ($data['role'] !== User::ROLE_REPORTER) {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\UserController.php:322: if ($data['role'] !== User::ROLE_REPORTER) {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\UserController.php:339: if ($data['role'] !== User::ROLE_REPORTER) {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\UserController.php:380: $isActiveAdminNow = $user->role === User::ROLE_ADMIN
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\UserController.php:383: $staysActiveAdmin = $newRole === User::ROLE_ADMIN
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Controllers\Admin\UserController.php:391: ->where('role', User::ROLE_ADMIN)
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\Admin\UpdateArticleDesignRequest.php:11: public function authorize(): bool
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\Admin\UpdateArticleDesignRequest.php:14: return $this->user()?->can('manage-cms') ?? false;
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\Auth\LoginRequest.php:18: public function authorize(): bool
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\CategoryRequest.php:11: public function authorize(): bool
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\CategoryRequest.php:13: return $this->user()?->can('manage-categories') ?? false;
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\NewsRequest.php:18: public function authorize(): bool
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\NewsRequest.php:28: ? $user->can('update', $news)
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\NewsRequest.php:29: : $user->can('create', News::class);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\NewsTransitionRequest.php:12: public function authorize(): bool
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\NewsTransitionRequest.php:15: return $this->user()?->canManageCms() ?? false;
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\TagRequest.php:11: public function authorize(): bool
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\TagRequest.php:13: return $this->user()?->can('manage-tags') ?? false;
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\UserRequest.php:13: public function authorize(): bool
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\UserRequest.php:15: return $this->user()?->can('manage-users') ?? false;
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\UserRequest.php:32: if ($user instanceof User && $user->isSuperAdmin()) {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Http\Requests\UserRequest.php:71: [User::ROLE_SUPER_ADMIN]
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\News.php:122: return $user->isEditorOrAdmin() ? $query : $query->where('author_id', $user->id);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:18: public const ROLE_USER = 'user';
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:20: public const ROLE_REPORTER = 'reporter';
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:22: public const ROLE_EDITOR = 'editor';
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:24: public const ROLE_ADMIN = 'admin';
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:26: public const ROLE_SUPER_ADMIN = 'super-admin';
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:32: * `is_super_admin` flag, not by this list. ROLE_SUPER_ADMIN is kept
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:38: self::ROLE_SUPER_ADMIN => 'সুপার অ্যাডমিন',
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:39: self::ROLE_ADMIN => 'অ্যাডমিন',
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:40: self::ROLE_EDITOR => 'সম্পাদক',
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:41: self::ROLE_REPORTER => 'রিপোর্টার',
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:42: self::ROLE_USER => 'সাধারণ ইউজার (প্যানেলে প্রবেশ নেই)',
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:79: 'role' => self::ROLE_USER,
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:118: ? self::ROLE_SUPER_ADMIN
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:125: public function isSuperAdmin(): bool
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:134: public function canManageCms(): bool
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:140: return $this->isSuperAdmin()
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:142: $this->role,
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:144: self::ROLE_ADMIN,
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:145: self::ROLE_EDITOR,
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:146: self::ROLE_REPORTER,
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:155: public function isEditorOrAdmin(): bool
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:159: $this->isSuperAdmin()
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:161: $this->role,
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:163: self::ROLE_ADMIN,
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:164: self::ROLE_EDITOR,
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:174: public function isAdmin(): bool
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:178: $this->isSuperAdmin()
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:179: || $this->role === self::ROLE_ADMIN
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:189: && $this->role === self::ROLE_REPORTER;
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Models\User.php:227: if ($user->isSuperAdmin()) {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Policies\NewsPolicy.php:16: return $user->canManageCms();
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Policies\NewsPolicy.php:21: return $user->isEditorOrAdmin() || $this->ownsEditable($user, $news, includePublished: true);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Policies\NewsPolicy.php:26: return $user->canManageCms();
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Policies\NewsPolicy.php:31: return $user->isEditorOrAdmin() || $this->ownsEditable($user, $news);
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Policies\NewsPolicy.php:36: return $user->isEditorOrAdmin()
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Policies\NewsPolicy.php:42: return $user->isEditorOrAdmin();
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Providers\AppServiceProvider.php:25: Gate::define('manage-cms', fn (User $user) => $user->canManageCms());
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Providers\AppServiceProvider.php:26: Gate::define('manage-categories', fn (User $user) => $user->isEditorOrAdmin());
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Providers\AppServiceProvider.php:27: Gate::define('manage-tags', fn (User $user) => $user->isEditorOrAdmin());
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Providers\AppServiceProvider.php:28: Gate::define('manage-users', fn (User $user) => $user->isAdmin());
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Services\NewsWorkflow.php:30: if (! $user->canManageCms()) {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Services\NewsWorkflow.php:35: return $user->isEditorOrAdmin()
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\app\Services\NewsWorkflow.php:40: if ($user->isEditorOrAdmin()) {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\routes\advertisements.php:7: Route::middleware(['web', 'auth', 'can:manage-cms'])->prefix('admin/advertisements')->name('advertisements.')->group(function () {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\routes\web.php:66: Route::middleware(['auth', 'can:manage-cms'])->group(function () {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\routes\web.php:100: Route::middleware('can:manage-tags')->group(function () {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\routes\web.php:106: Route::middleware('can:manage-categories')->group(function () {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\routes\web.php:112: Route::middleware('can:manage-categories')->group(function () {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\routes\web.php:123: Route::middleware('can:manage-categories')->group(function () {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\routes\web.php:150: Route::middleware('can:manage-users')->group(function () {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\routes\web.php:185: \Illuminate\Support\Facades\Route::middleware(['auth', 'can:manage-cms', 'can:manage-categories'])->prefix('admin')->name('admin.')->group(function () {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\ads\index.blade.php:2: $isAdmin = auth()->user()->isAdmin();
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\ads\index.blade.php:74: $canEdit = $isAdmin || $ad->type === 'image';
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\ads\_form.blade.php:3: $isAdmin = auth()->user()->isAdmin();
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\ads\_form.blade.php:40: @if($isAdmin)
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\ads\_form.blade.php:66: @if($isAdmin)
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\media\index.blade.php:2: $isEditor = auth()->user()->isEditorOrAdmin();
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\news\index.blade.php:20: <h1>{{ $user->isEditorOrAdmin() ? 'সব সংবাদ' : 'আমার সংবাদ' }}</h1>
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\news\index.blade.php:38: @if($user->isEditorOrAdmin())
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\news\index.blade.php:112: @can('update', $item)
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\news\index.blade.php:116: @can('view', $item)
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\news\index.blade.php:120: @can('view', $item)
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\news\index.blade.php:145: @can('delete', $item)
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\news\_form.blade.php:191: @unless($user->isEditorOrAdmin())
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\news\_form.blade.php:199: @if($user->isEditorOrAdmin())
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\users\index.blade.php:59: <span class="ad-badge st-draft role-{{ $u->role }}">
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\users\index.blade.php:60: {{ explode(' (', \App\Models\User::ROLES[$u->role] ?? $u->role)[0] }}
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\users\_form.blade.php:119: <input type="hidden" name="role" value="{{ $user->role }}">
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\dashboard.blade.php:3: $isEditor = $user->isEditorOrAdmin();
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\dashboard.blade.php:27: if ($user->can('manage-categories')) {
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\dashboard.blade.php:52: {{ \App\Models\User::ROLES[$user->role] ?? $user->role }}
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\dashboard.blade.php:222: @can('manage-categories')
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\dashboard.blade.php:228: @can('manage-tags')
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\admin\dashboard.blade.php:234: @can('manage-users')
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\layouts\app.blade.php:47: <div class="ad-user-role">{{ \App\Models\User::ROLES[Auth::user()->role] ?? Auth::user()->role }}</div>
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\layouts\navigation.blade.php:28: @can('manage-categories')
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\layouts\navigation.blade.php:36: @can('manage-tags')
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\layouts\navigation.blade.php:44: @can('manage-categories')
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\layouts\navigation.blade.php:52: @can('manage-categories')
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\layouts\navigation.blade.php:60: @can('manage-categories')
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\layouts\navigation.blade.php:69: @can('manage-categories')
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\layouts\navigation.blade.php:77: @can('manage-categories')
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\layouts\navigation.blade.php:85: @can('manage-categories')
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\layouts\navigation.blade.php:93: @can('manage-categories')
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\layouts\navigation.blade.php:102: @can('manage-categories')
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\layouts\navigation.blade.php:116: @can('manage-categories')
+C:\Projects\nexton-BD-Tech-Website\shadhinalo-cms\resources\views\layouts\navigation.blade.php:124: @can('manage-users')

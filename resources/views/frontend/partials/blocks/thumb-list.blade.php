@@ -15,7 +15,7 @@
                 @if($img($item))
                     <img src="{{ $img($item) }}" alt="{{ $item->title }}" class="sa-nb-tl-img" loading="lazy">
                 @else
-                    <span class="sa-nb-tl-img sa-nb-ph" aria-hidden="true"></span>
+                    @include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'sa-nb-tl-img'])
                 @endif
                 <span class="sa-nb-tl-body">
                     <span class="sa-nb-tl-title">@if($item->shoulder)<span class="sa-nb-sh">{{ $item->shoulder }}</span>@endif{{ $item->title }}</span>

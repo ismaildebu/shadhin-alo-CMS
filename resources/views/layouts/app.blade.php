@@ -35,7 +35,13 @@
             <a href="{{ route('home') }}" target="_blank" rel="noopener" class="ad-site-link">সাইট দেখুন</a>
 
             <div class="ad-user">
-                <span class="ad-avatar">{{ \Illuminate\Support\Str::substr(Auth::user()->name, 0, 1) }}</span>
+                <span class="ad-avatar">
+                    @if($topAvatar = \App\Support\Avatars::url(Auth::user()))
+                        <img src="{{ $topAvatar }}" alt="">
+                    @else
+                        {{ \Illuminate\Support\Str::substr(Auth::user()->name, 0, 1) }}
+                    @endif
+                </span>
                 <div class="ad-user-meta">
                     <div class="ad-user-name">{{ Auth::user()->name }}</div>
                     <div class="ad-user-role">{{ \App\Models\User::ROLES[Auth::user()->role] ?? Auth::user()->role }}</div>

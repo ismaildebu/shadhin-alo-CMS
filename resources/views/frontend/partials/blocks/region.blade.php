@@ -15,8 +15,10 @@
             <div class="col-md-4">
                 <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-card">
                     @if($img($item))
-                        <img src="{{ $img($item) }}" alt="{{ $item->title }}" class="sa-feat-img" loading="lazy">
-                    @endif
+<img src="{{ $img($item) }}" alt="{{ $item->title }}" class="sa-feat-img" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'sa-feat-img'])
+@endif
                     <div class="sa-card-body">
                         <h3 class="sa-feat-title" style="margin-top:0;">{{ \Illuminate\Support\Str::limit($item->title, 80) }}</h3>
                         <small class="text-muted">{{ $item->display_date->format('d M Y') }}</small>
@@ -31,8 +33,10 @@
             @foreach($rest as $item)
                 <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-list-item">
                     @if($img($item))
-                        <img src="{{ $img($item) }}" alt="{{ $item->title }}" class="sa-list-thumb" loading="lazy">
-                    @endif
+<img src="{{ $img($item) }}" alt="{{ $item->title }}" class="sa-list-thumb" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'sa-list-thumb'])
+@endif
                     <div>
                         <h4 class="sa-list-title">{{ \Illuminate\Support\Str::limit($item->title, 75) }}</h4>
                         <small class="text-muted">{{ $item->display_date->format('d M Y') }}</small>

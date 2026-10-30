@@ -16,8 +16,10 @@
 
         <a href="{{ route('frontend.news.show', $lead->slug) }}" class="sa-nb-lr-lead sa-nb-lead">
             @if($leadImg)
-                <img src="{{ $leadImg }}" alt="{{ $lead->title }}" class="sa-nb-lead-img" loading="lazy">
-            @endif
+<img src="{{ $leadImg }}" alt="{{ $lead->title }}" class="sa-nb-lead-img" loading="lazy">
+@else
+@include('frontend.partials.no-image', ['news' => $lead, 'sizeClass' => 'sa-nb-lead-img'])
+@endif
             <span class="sa-nb-lead-title">@if($lead->shoulder)<span class="sa-nb-sh">{{ $lead->shoulder }}</span>@endif{{ $lead->title }}</span>
             <small class="sa-nb-meta">{{ \App\Support\BanglaTime::ago($lead->display_date) }}</small>
         </a>
@@ -33,7 +35,7 @@
                         @if($img($item))
                             <img src="{{ $img($item) }}" alt="{{ $item->title }}" class="sa-nb-lr-img" loading="lazy">
                         @else
-                            <span class="sa-nb-lr-img sa-nb-ph" aria-hidden="true"></span>
+                            @include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'sa-nb-lr-img'])
                         @endif
                     </a>
                 @endforeach

@@ -1,6 +1,8 @@
 /* ==========================================================
    Shadhin Alo - placeholder for news without an image
    Logo + category + location text, with the division map on the side.
+   Load AFTER frontend.css (it overrides the sizing of the image classes it replaces).
+   Variants: hero (article page), card (lists and leads), thumb (small thumbnails).
    ========================================================== */
 
 .sa-noimg {
@@ -8,14 +10,15 @@
     display: flex;
     overflow: hidden;
     min-height: 14rem;
-    aspect-ratio: var(--sa-image-ratio, 16 / 9);   /* same box as real images */
+    aspect-ratio: var(--sa-image-ratio, 16 / 9);   /* same box as real images on the article page */
     padding: clamp(1rem, 3vw, 2rem);
     border-radius: 6px;
     background:
         radial-gradient(circle at 85% 20%, rgba(255, 255, 255, .10), transparent 45%),
         linear-gradient(135deg, #0f2a44 0%, #123b68 55%, #1b5a8c 100%);
     color: #fff;
-    font-family: var(--sa-font-ui, "Hind Siliguri", system-ui, sans-serif);
+    font-family: var(--sa-font-ui, "Noto Sans Bengali", "Hind Siliguri", system-ui, sans-serif);
+    line-height: 1.5;
 }
 
 .sa-noimg-copy {
@@ -37,7 +40,9 @@
     background: #fff;
     box-shadow: 0 2px 10px rgba(0, 0, 0, .25);
 }
-.sa-noimg-logo img { display: block; height: 2.4rem; width: auto; max-width: 11rem; object-fit: contain; }
+.sa-noimg-logo img { display: block; height: 2.4rem; width: auto; max-width: 11rem; object-fit: contain; border-radius: 0; }
+
+.sa-noimg-info { display: block; }
 
 .sa-noimg-cat {
     display: inline-block;
@@ -48,7 +53,7 @@
     font-size: .9rem;
     font-weight: 700;
 }
-.sa-noimg-place { margin: .5rem 0 0; font-size: 1.1rem; font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
+.sa-noimg-place { display: block; margin-top: .5rem; font-size: 1.1rem; font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
 
 .sa-noimg-map {
     position: absolute;
@@ -62,16 +67,41 @@
 .sa-noimg-dim { fill: rgba(255, 255, 255, .14); stroke: rgba(255, 255, 255, .35); stroke-width: 1; }
 .sa-noimg-hl { fill: var(--sa-amber, #d98e04); stroke: #fff; stroke-width: 1.6; }
 
-/* ---------- Compact variant for card lists ---------- */
-.sa-noimg-card { min-height: 0; aspect-ratio: 16 / 10; padding: .7rem; }
+/* ---------- card: lists, leads and block images ---------- */
+.sa-noimg-card { min-height: 0; aspect-ratio: 16 / 10; padding: .7rem; border-radius: 3px; }
 .sa-noimg-card .sa-noimg-logo { padding: .25rem .5rem; }
 .sa-noimg-card .sa-noimg-logo img { height: 1.5rem; max-width: 7rem; }
 .sa-noimg-card .sa-noimg-place { display: none; }
 .sa-noimg-card .sa-noimg-cat { font-size: .78rem; padding: .05rem .55rem; }
 .sa-noimg-card .sa-noimg-map { top: .5rem; bottom: .5rem; height: calc(100% - 1rem); right: .7rem; }
 
+/* ---------- thumb: small thumbnails show only the highlighted map ---------- */
+.sa-noimg-thumb { min-height: 0; aspect-ratio: auto; padding: .25rem; align-items: center; justify-content: center; border-radius: 4px; }
+.sa-noimg-thumb .sa-noimg-copy { display: none; }
+.sa-noimg-thumb .sa-noimg-map { position: static; height: 100%; max-height: 100%; width: auto; }
+
+/* ---------- slots that already define their own box ---------- */
+.sa-g4-img .sa-noimg,
+.sa-box-img .sa-noimg,
+.sa-wide-img .sa-noimg { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; }
+
+/* image slots that are absolutely positioned (overlay heroes, tiles, slides) */
+.sa-hero-lead > .sa-noimg,
+.sa-tile > .sa-noimg,
+.sa-ttile > .sa-noimg,
+.sa-gal-item > .sa-noimg,
+.sa-dlead > .sa-noimg,
+.sa-tw-feat > .sa-noimg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    border-radius: 0;
+}
+
 @media (max-width: 575.98px) {
-    .sa-noimg { min-height: 12rem; }
-    .sa-noimg-place { font-size: 1rem; }
-    .sa-noimg-logo img { height: 2rem; max-width: 8rem; }
+    .sa-noimg-hero { min-height: 12rem; }
+    .sa-noimg-hero .sa-noimg-place { font-size: 1rem; }
+    .sa-noimg-hero .sa-noimg-logo img { height: 2rem; max-width: 8rem; }
 }

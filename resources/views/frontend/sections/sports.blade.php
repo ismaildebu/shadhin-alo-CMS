@@ -39,13 +39,13 @@
             <div class="card border-0 shadow-sm mb-3">
 
                 @if($lead->image)
-
-                <img src="{{ asset('uploads/news/'.$lead->image) }}"
+<img src="{{ asset('uploads/news/'.$lead->image) }}"
                      class="card-img-top"
                      style="height:420px;object-fit:cover;"
                      alt="{{ $lead->title }}">
-
-                @endif
+@else
+@include('frontend.partials.no-image', ['news' => $lead, 'sizeClass' => 'card-img-top'])
+@endif
 
                 <div class="card-body">
 

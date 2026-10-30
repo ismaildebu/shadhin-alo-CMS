@@ -34,13 +34,13 @@
             <div class="card border-0 shadow-sm h-100">
 
                 @if($item->image)
-
-                <img src="{{ asset('uploads/news/'.$item->image) }}"
+<img src="{{ asset('uploads/news/'.$item->image) }}"
                      class="card-img-top"
                      style="height:220px;object-fit:cover;"
                      alt="{{ $item->title }}">
-
-                @endif
+@else
+@include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'card-img-top'])
+@endif
 
                 <div class="card-body">
 

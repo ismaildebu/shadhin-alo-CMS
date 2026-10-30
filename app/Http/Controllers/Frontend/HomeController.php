@@ -5,38 +5,31 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use App\Models\News;
 use App\Models\Video;
-use App\Support\FrontendCache;
 use App\Support\ArticleDesign;
-use App\Support\Settings;
+use App\Support\FrontendCache;
 use App\Support\ViewCounter;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Throwable;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Throwable;
 
 class HomeController extends Controller
 {
     /**
      * Display the frontend homepage.
      */
-    
-        /**
-     * Display the frontend homepage.
-     */
     public function index(): View
     {
-        // Cache homepage blocks for a short period.
-        // The existing FrontendCache invalidation mechanism should clear stale data.
+        // হোমপেজের ব্লকগুলো অল্প সময়ের জন্য ক্যাশ থাকে; ক্যাটাগরি বা খবর বদলালে FrontendCache নিজে মুছে দেয়।
         $blocks = Cache::remember(
             FrontendCache::HOME,
             FrontendCache::TTL,
             fn () => $this->buildBlocks()
         );
-
-        
 
         $perPage = (int) (
             FrontendCache::shared()['homeSections']
@@ -49,16 +42,16 @@ class HomeController extends Controller
             ->latestPublished()
             ->paginate(max(5, min(30, $perPage)));
 
-        // Categories and breakingNews are supplied by the existing view composer.
+        // categories ও breakingNews আসে ভিউ কম্পোজার থেকে।
         return view('frontend.home', $blocks + compact('latestNews'));
     }
 
     /**
      * Display a published news article.
      */
-       public function show(Request $request, string $slug): View
+    public function show(Request $request, string $slug): View
     {
-        $news = News::with(['category', 'tags', 'location.parent.parent'])
+        $news = News::with(['category', 'tags', 'location.parent.parent', 'author:id,name,avatar,bio'])
             ->published()
             ->where('slug', $slug)
             ->firstOrFail();
@@ -72,7 +65,7 @@ class HomeController extends Controller
 
         $design = ArticleDesign::all();
 
-        // Related articles from the same category.
+        // একই ক্যাটাগরির সম্পর্কিত খবর
         $relatedNews = News::published()
             ->with('category')
             ->where('category_id', $news->category_id)
@@ -81,7 +74,7 @@ class HomeController extends Controller
             ->take($design['counts']['related'])
             ->get();
 
-        // Latest published articles for the article sidebar.
+        // সাইডবারের সর্বশেষ খবর
         $latestNews = News::published()
             ->with('category')
             ->where('id', '!=', $news->id)
@@ -89,15 +82,11 @@ class HomeController extends Controller
             ->take($design['counts']['latest'])
             ->get();
 
-        // Data for the main-sidebar widgets, loaded only when they are selected.
+        // প্রধান সাইডবারের উইজেটের তথ্য: শুধু যেগুলো বাছা আছে সেগুলোর
         $widgetData = [];
 
         if (in_array('tabs', $design['sidebar'], true)) {
-            $widgetData['popularNews'] = News::published()
-                ->with('category')
-                ->latestPublished()
-                ->take(10)
-                ->get();
+            $widgetData['popularNews'] = $this->popular(15);
         }
 
         if (in_array('videos', $design['sidebar'], true)) {
@@ -116,8 +105,8 @@ class HomeController extends Controller
         ) + $widgetData);
     }
 
-        /**
-    * Return the next (older) published article of the same category for infinite scroll.
+    /**
+     * একই ক্যাটাগরির পরের (পুরোনো) প্রকাশিত খবর, অসীম স্ক্রলের জন্য।
      */
     public function next(string $slug): JsonResponse|Response
     {
@@ -131,7 +120,7 @@ class HomeController extends Controller
             ->where('slug', $slug)
             ->firstOrFail(['id', 'category_id', 'published_at']);
 
-        $next = News::with(['category', 'tags', 'location.parent.parent'])
+        $next = News::with(['category', 'tags', 'location.parent.parent', 'author:id,name,avatar,bio'])
             ->published()
             ->where('category_id', $current->category_id)
             ->where('id', '!=', $current->id)
@@ -167,9 +156,8 @@ class HomeController extends Controller
         ]);
     }
 
-
     /**
-     * Build the data required by homepage sections.
+     * হোমপেজের সেকশনগুলোর তথ্য।
      */
     private function buildBlocks(): array
     {
@@ -202,14 +190,13 @@ class HomeController extends Controller
             ->take(6)
             ->get();
 
-        // This is a latest-news list, not a true popularity ranking.
-        // A real popular-news list requires a reliable view counter.
-                $popularNews = $this->popular(15);
+        // গত ৭ দিনে সবচেয়ে বেশি পড়া খবর (পাঠ-সংখ্যা থেকে)
+        $popularNews = $this->popular(15);
 
         $categoryNews = [];
 
         foreach ($categories as $category) {
-            // Include the category itself and its direct subcategories.
+            // ক্যাটাগরি নিজে ও তার সরাসরি উপ-ক্যাটাগরির খবর
             $categoryIds = $categories
                 ->where('parent_id', $category->id)
                 ->pluck('id')
@@ -240,36 +227,41 @@ class HomeController extends Controller
         );
     }
 
-        /** গত ৭ দিনে সবচেয়ে বেশি পড়া খবর; কম হলে সব সময়ের পাঠ ও সাম্প্রতিক খবর দিয়ে ভরা। */
-    private function popular(int $limit)
+    /**
+     * গত ৭ দিনে সবচেয়ে বেশি পড়া খবর; কম হলে সব সময়ের পাঠ ও সাম্প্রতিক খবর দিয়ে ভরা।
+     * হিসাবটি ২ মিনিট ক্যাশ থাকে, যাতে প্রতিটি পেজ খোলায় ডাটাবেস না খাটে।
+     */
+    private function popular(int $limit): Collection
     {
-        $ids = DB::table('news_view_stats')
-            ->where('day', '>=', now()->subDays(6)->toDateString())
-            ->selectRaw('news_id, sum(views) as total')
-            ->groupBy('news_id')
-            ->orderByDesc('total')
-            ->limit($limit)
-            ->pluck('news_id');
+        return Cache::remember('frontend.popular.'.$limit, 120, function () use ($limit) {
+            $ids = DB::table('news_view_stats')
+                ->where('day', '>=', now()->subDays(6)->toDateString())
+                ->selectRaw('news_id, sum(views) as total')
+                ->groupBy('news_id')
+                ->orderByDesc('total')
+                ->limit($limit)
+                ->pluck('news_id');
 
-        $news = News::published()
-            ->with('category')
-            ->whereIn('id', $ids)
-            ->get()
-            ->sortBy(fn (News $n) => $ids->search($n->id))
-            ->values();
-
-        if ($news->count() < $limit) {
-            $extra = News::published()
+            $news = News::published()
                 ->with('category')
-                ->whereNotIn('id', $news->pluck('id'))
-                ->orderByDesc('view_count')
-                ->latestPublished()
-                ->take($limit - $news->count())
-                ->get();
+                ->whereIn('id', $ids)
+                ->get()
+                ->sortBy(fn (News $n) => $ids->search($n->id))
+                ->values();
 
-            $news = $news->concat($extra);
-        }
+            if ($news->count() < $limit) {
+                $extra = News::published()
+                    ->with('category')
+                    ->whereNotIn('id', $news->pluck('id'))
+                    ->orderByDesc('view_count')
+                    ->latestPublished()
+                    ->take($limit - $news->count())
+                    ->get();
 
-        return $news;
+                $news = $news->concat($extra);
+            }
+
+            return $news;
+        });
     }
 }
