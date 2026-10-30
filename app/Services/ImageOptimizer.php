@@ -37,12 +37,32 @@ class ImageOptimizer
             throw new RuntimeException('ছবির রেজোলিউশন খুব বেশি। ছোট রেজোলিউশনের ছবি দিন।');
         }
 
-        $src = match ($type) {
-            IMAGETYPE_JPEG => @imagecreatefromjpeg($path),
-            IMAGETYPE_PNG => @imagecreatefrompng($path),
-            IMAGETYPE_WEBP => @imagecreatefromwebp($path),
-            default => false,
+        $decoder = match ($type) {
+            IMAGETYPE_JPEG => 'imagecreatefromjpeg',
+            IMAGETYPE_PNG => 'imagecreatefrompng',
+            IMAGETYPE_WEBP => 'imagecreatefromwebp',
+            default => null,
         };
+
+        if ($decoder === null) {
+            throw new RuntimeException('শুধু jpg, png বা webp ছবি চলবে।');
+        }
+
+        // Some PHP builds ship GD without JPEG/PNG/WebP support; fail with a clear message
+        // instead of a fatal "undefined function" error.
+        if (! extension_loaded('gd') || ! function_exists($decoder)) {
+            throw new RuntimeException(
+                $type === IMAGETYPE_WEBP
+                    ? 'এই সার্ভারের PHP-তে WebP ছবি প্রসেস করার সুবিধা চালু নেই। jpg বা png ছবি দিন।'
+                    : 'এই সার্ভারের PHP-তে ছবি প্রসেস করার সুবিধা (GD) চালু নেই।'
+            );
+        }
+
+        if ($type === IMAGETYPE_WEBP && ! function_exists('imagewebp')) {
+            throw new RuntimeException('এই সার্ভারের PHP-তে WebP ছবি প্রসেস করার সুবিধা চালু নেই। jpg বা png ছবি দিন।');
+        }
+
+        $src = @$decoder($path);
 
         if (! $src) {
             throw new RuntimeException('ছবিটি প্রসেস করা যায়নি।');
@@ -55,13 +75,20 @@ class ImageOptimizer
         $w = imagesx($src);
         $h = imagesy($src);
 
-        // Never upscale small images; only shrink large ones.
-        $scale = min(self::WIDTH / $w, self::HEIGHT / $h, 1);
+        // Scale to fit the canvas, enlarging small images too, so a small photo
+        // does not end up floating inside a wide white border.
+        $scale = min(self::WIDTH / $w, self::HEIGHT / $h);
         $newW = max(1, (int) round($w * $scale));
         $newH = max(1, (int) round($h * $scale));
 
         $canvas = imagecreatetruecolor(self::WIDTH, self::HEIGHT);
         imagefill($canvas, 0, 0, imagecolorallocate($canvas, 255, 255, 255));
+
+        // Whenever the photo does not cover the whole canvas, fill the empty area with
+        // a blurred copy of the same photo instead of plain white.
+        if ($newW < self::WIDTH - 1 || $newH < self::HEIGHT - 1) {
+            self::paintBlurredBackground($canvas, $src, $w, $h);
+        }
 
         imagecopyresampled(
             $canvas, $src,
@@ -78,6 +105,36 @@ class ImageOptimizer
         };
 
         return ['data' => $data, 'type' => $type];
+    }
+
+    /**
+     * Paint a blurred, slightly darkened, cover-scaled copy of the photo over the whole canvas.
+     * The copy is shrunk first, blurred while small (fast), then enlarged: that gives a smooth, strong blur.
+     */
+    private static function paintBlurredBackground(GdImage $canvas, GdImage $src, int $w, int $h): void
+    {
+        $smallW = 120;
+        $smallH = 80;
+
+        $small = imagecreatetruecolor($smallW, $smallH);
+        imagefill($small, 0, 0, imagecolorallocate($small, 255, 255, 255));
+
+        // Cover-scale the photo into the small image (centered crop).
+        $scale = max($smallW / $w, $smallH / $h);
+        $cropW = max(1, (int) round($smallW / $scale));
+        $cropH = max(1, (int) round($smallH / $scale));
+        $cropX = (int) max(0, floor(($w - $cropW) / 2));
+        $cropY = (int) max(0, floor(($h - $cropH) / 2));
+
+        imagecopyresampled($small, $src, 0, 0, $cropX, $cropY, $smallW, $smallH, $cropW, $cropH);
+
+        for ($i = 0; $i < 4; $i++) {
+            imagefilter($small, IMG_FILTER_GAUSSIAN_BLUR);
+        }
+
+        imagefilter($small, IMG_FILTER_BRIGHTNESS, -12);
+
+        imagecopyresampled($canvas, $small, 0, 0, 0, 0, self::WIDTH, self::HEIGHT, $smallW, $smallH);
     }
 
     private static function encodeJpeg(GdImage $canvas): string
