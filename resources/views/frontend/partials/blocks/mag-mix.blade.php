@@ -1,7 +1,7 @@
 {{-- mag_mix: centre lead, 2 cards on the left, 3 on the right, and a row of 3 side-by-side items below (9 items). --}}
 @if($items->count())
 @php
-    $img      = fn ($n) => $n->image ? asset('uploads/news/'.$n->image) : null;
+    $img      = fn ($n) => $n->image ? \App\Models\Media::thumbUrl($n->image, 800) : null;
     $blurb    = fn ($n) => \Illuminate\Support\Str::limit(strip_tags((string) ($n->summary ?: $n->description)), 170);
     $rows     = $items->take(max(1, (int) ($limit ?? 9)))->values();
     $lead     = $rows->first();

@@ -11,7 +11,7 @@
         @foreach($items->take($limit ?? ($wide ? 8 : 5)) as $item)
             <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-card sa-scroll-card">
                 @if($item->image)
-<img src="{{ asset('uploads/news/'.$item->image) }}"
+<img src="{{ \App\Models\Media::thumbUrl($item->image, 400) }}"
                          alt="{{ $item->title }}" class="sa-scroll-img" loading="lazy">
 @else
 @include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'sa-scroll-img'])

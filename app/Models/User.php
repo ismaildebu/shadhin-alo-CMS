@@ -26,6 +26,27 @@ class User extends Authenticatable
 
     public const ROLE_SUPER_ADMIN = 'super-admin';
 
+    // Newsroom roles. Slugs must stay within users.role (20 characters).
+    public const ROLE_DEPUTY_EDITOR = 'deputy-editor';
+
+    public const ROLE_NEWS_EDITOR = 'news-editor';
+
+    public const ROLE_JOINT_NEWS_EDITOR = 'joint-news-editor';
+
+    public const ROLE_SUB_EDITOR = 'sub-editor';
+
+    public const ROLE_CHIEF_REPORTER = 'chief-reporter';
+
+    public const ROLE_STAFF_REPORTER = 'staff-reporter';
+
+    public const ROLE_SPECIAL_REPORTER = 'special-reporter';
+
+    public const ROLE_MEDIA_EDITOR = 'media-editor';
+
+    public const ROLE_AD_MANAGER = 'ad-manager';
+
+    public const ROLE_DESIGNER = 'designer';
+
     /**
      * Available CMS roles and their display labels.
      *
@@ -38,9 +59,33 @@ class User extends Authenticatable
     public const ROLES = [
         self::ROLE_SUPER_ADMIN => 'সুপার অ্যাডমিন',
         self::ROLE_ADMIN => 'অ্যাডমিন',
+        self::ROLE_DEPUTY_EDITOR => 'ডেপুটি এডিটর',
+        self::ROLE_NEWS_EDITOR => 'বার্তা সম্পাদক',
+        self::ROLE_JOINT_NEWS_EDITOR => 'যুগ্ম বার্তা সম্পাদক',
         self::ROLE_EDITOR => 'সম্পাদক',
+        self::ROLE_SUB_EDITOR => 'সহ-সম্পাদক',
+        self::ROLE_CHIEF_REPORTER => 'চীফ রিপোর্টার',
+        self::ROLE_SPECIAL_REPORTER => 'বিশেষ প্রতিনিধি',
+        self::ROLE_STAFF_REPORTER => 'স্টাফ রিপোর্টার',
         self::ROLE_REPORTER => 'রিপোর্টার',
+        self::ROLE_MEDIA_EDITOR => 'ফটো ও ভিডিও এডিটর',
+        self::ROLE_AD_MANAGER => 'বিজ্ঞাপন ব্যবস্থাপক',
+        self::ROLE_DESIGNER => 'ডিজাইনার',
         self::ROLE_USER => 'সাধারণ ইউজার (প্যানেলে প্রবেশ নেই)',
+    ];
+
+    /**
+     * Roles that work as field reporters: they may be assigned a district
+     * or upazila (see UserController) and count as reporters for the
+     * district-correspondent rules.
+     *
+     * @var list<string>
+     */
+    public const REPORTER_ROLES = [
+        self::ROLE_REPORTER,
+        self::ROLE_STAFF_REPORTER,
+        self::ROLE_CHIEF_REPORTER,
+        self::ROLE_SPECIAL_REPORTER,
     ];
 
     /**
@@ -177,7 +222,15 @@ class User extends Authenticatable
     public function isReporter(): bool
     {
         return $this->is_active
-            && $this->role === self::ROLE_REPORTER;
+            && self::isReporterRole($this->role);
+    }
+
+    /**
+     * Whether a role value is one of the field-reporter roles.
+     */
+    public static function isReporterRole(?string $role): bool
+    {
+        return in_array($role, self::REPORTER_ROLES, true);
     }
 
     /**

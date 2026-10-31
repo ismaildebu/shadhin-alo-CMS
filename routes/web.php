@@ -55,15 +55,16 @@ Route::get('/video/{id}', [FrontendVideoController::class, 'show'])
 Route::get('/ads/{id}/go', AdClickController::class)
     ->whereNumber('id')
     ->middleware('throttle:120,1')
-    ->name('frontend.ad.click');   
+    ->name('frontend.ad.click');
 
 
 // /location/{division}[/{district}[/{upazila}]]
 Route::get('/location/{division}/{district?}/{upazila?}', [LocationController::class, 'show'])
     ->name('frontend.location.show');
 
-// Admin panel. Entry: authenticated, active, and admin / editor / reporter ("manage-cms").
-// Finer rules live in NewsPolicy, NewsWorkflow and the gates below.
+// Admin panel. Entry: authenticated, active, and holding the "cms_access"
+// permission ("manage-cms"). Finer rules live in NewsPolicy, NewsWorkflow and
+// the gates below; which roles hold each gate is edited under Roles & permissions.
 Route::middleware(['auth', 'can:manage-cms'])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -71,12 +72,12 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
 
     Route::prefix('admin')->group(function () {
 
-        // News: admin, editor and reporter (reporters are limited to their own by the policy)
+        // News: everyone with panel access (non-editors are limited to their own by the policy)
         Route::resource('news', NewsController::class)->except('show');
         Route::post('news/bulk-destroy', [NewsController::class, 'bulkDestroy'])->name('news.bulk-destroy');
         Route::post('news/{news}/restore', [NewsController::class, 'restore'])->name('news.restore')->withTrashed();
         Route::get('news/{news}/preview', [NewsController::class, 'preview'])->name('news.preview');
-        
+
         Route::get('news/{news}/card', [NewsCardController::class, 'show'])->name('news.card');
         Route::post('news/{news}/card', [NewsCardController::class, 'store'])->name('news.card.store');
         Route::delete('news/{news}/card', [NewsCardController::class, 'destroy'])->name('news.card.destroy');
@@ -91,28 +92,27 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
             ->middleware('throttle:60,1')
             ->name('tags.suggest');
 
-        // Photo gallery (media library): admin, editor and reporter; deleting is limited inside the controller
+        // Photo gallery (media library): everyone with panel access; deleting is limited inside the controller
         Route::get('media', [MediaController::class, 'index'])->name('media.index');
         Route::post('media', [MediaController::class, 'store'])->name('media.store');
         Route::get('media/list', [MediaController::class, 'list'])->middleware('throttle:60,1')->name('media.list');
         Route::delete('media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
         Route::post('media/bulk-destroy', [MediaController::class, 'bulkDestroy'])->name('media.bulk-destroy');
         Route::post('media/editor-upload', [MediaController::class, 'editorUpload'])->middleware('throttle:30,1')->name('media.editor-upload');
-        
-        // Tag management (rename, merge, delete): admin and editor
+
+        // Tag management (rename, merge, delete): permission "tags_manage"
         Route::middleware('can:manage-tags')->group(function () {
             Route::resource('tags', TagController::class)->only(['index', 'edit', 'update', 'destroy']);
             Route::post('tags/{tag}/merge', [TagController::class, 'merge'])->name('tags.merge');
         });
 
-        // Categories: admin and editor
+        // Categories: permission "categories_manage"
         Route::middleware('can:manage-categories')->group(function () {
             Route::resource('categories', CategoryController::class)->except('show');
         });
 
-
-        // Video gallery (YouTube links and channels): admin and editor
-        Route::middleware('can:manage-categories')->group(function () {
+        // Video gallery (YouTube links and channels): permission "videos_manage"
+        Route::middleware('can:manage-videos')->group(function () {
             Route::get('video-channels', [VideoChannelController::class, 'index'])->name('video-channels.index');
             Route::post('video-channels', [VideoChannelController::class, 'store'])->name('video-channels.store');
             Route::post('video-channels/sync', [VideoChannelController::class, 'syncAll'])->name('video-channels.sync-all');
@@ -122,32 +122,37 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
             Route::resource('videos', VideoController::class)->except('show');
         });
 
-        // Home page layout settings: admin and editor
-        Route::middleware('can:manage-categories')->group(function () {
+        // Advertisements: permission "ads_manage"
+        Route::middleware('can:manage-ads')->group(function () {
+            Route::resource('ads', AdController::class)->except('show');
+        });
+
+        // Home page, menu, sidebar, article design, visual builder: permission "layout_manage"
+        Route::middleware('can:manage-layout')->group(function () {
             Route::get('home-layout', [HomeLayoutController::class, 'edit'])->name('home-layout.edit');
             Route::put('home-layout', [HomeLayoutController::class, 'update'])->name('home-layout.update');
-            Route::resource('ads', AdController::class)->except('show');
 
-        Route::get('menu', [MenuController::class, 'edit'])->name('menu.edit');
+            Route::get('menu', [MenuController::class, 'edit'])->name('menu.edit');
             Route::put('menu', [MenuController::class, 'update'])->name('menu.update');
             Route::post('menu/links', [MenuController::class, 'storeLink'])->name('menu.links.store');
             Route::delete('menu/links/{item}', [MenuController::class, 'destroyLink'])->name('menu.links.destroy');
 
-        Route::get('sidebar', [SidebarController::class, 'edit'])->name('sidebar.edit');
+            Route::get('sidebar', [SidebarController::class, 'edit'])->name('sidebar.edit');
             Route::put('sidebar', [SidebarController::class, 'update'])->name('sidebar.update');
 
-        Route::get('article-design', [ArticleDesignController::class, 'edit'])->name('article-design.edit');
+            Route::get('article-design', [ArticleDesignController::class, 'edit'])->name('article-design.edit');
             Route::put('article-design', [ArticleDesignController::class, 'update'])->name('article-design.update');
 
-        Route::get('visual-builder', [VisualBuilderController::class, 'index'])->name('visual-builder.index');
+            Route::get('visual-builder', [VisualBuilderController::class, 'index'])->name('visual-builder.index');
             Route::post('visual-builder/preview', [VisualBuilderController::class, 'preview'])->name('visual-builder.preview');
+        });
 
-        Route::get('photocards', [NewsCardController::class, 'center'])->name('photocards.index');
+        // Photo card center: permission "photocards_manage"
+        Route::middleware('can:manage-photocards')->group(function () {
+            Route::get('photocards', [NewsCardController::class, 'center'])->name('photocards.index');
             Route::get('photocards/queue', [NewsCardController::class, 'queue'])->name('photocards.queue');
             Route::put('photocards/defaults', [NewsCardController::class, 'saveDefaults'])->name('photocards.defaults');
-
         });
-        
 
         // Roles & permissions matrix: super administrator only
         Route::middleware('can:manage-roles')->group(function () {
@@ -156,7 +161,7 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
             Route::post('roles/reset', [RolePermissionController::class, 'reset'])->name('roles.reset');
         });
 
-        // Users and audit log: admin only
+        // Users, audit log and site settings: permission "users_manage"
         Route::middleware('can:manage-users')->group(function () {
 
             Route::resource('users', UserController::class)->except('show');
@@ -192,6 +197,7 @@ require __DIR__.'/auth.php';
 \Illuminate\Support\Facades\Route::get('/polls/{poll}', [\App\Http\Controllers\Frontend\PollController::class, 'show'])->whereNumber('poll')->name('frontend.polls.show');
 \Illuminate\Support\Facades\Route::post('/polls/{poll}/vote', [\App\Http\Controllers\Frontend\PollController::class, 'vote'])->whereNumber('poll')->middleware('throttle:30,1')->name('frontend.polls.vote');
 
-\Illuminate\Support\Facades\Route::middleware(['auth', 'can:manage-cms', 'can:manage-categories'])->prefix('admin')->name('admin.')->group(function () {
+// Poll management: permission "polls_manage"
+\Illuminate\Support\Facades\Route::middleware(['auth', 'can:manage-cms', 'can:manage-polls'])->prefix('admin')->name('admin.')->group(function () {
     \Illuminate\Support\Facades\Route::resource('polls', \App\Http\Controllers\Admin\PollController::class)->except('show');
 });

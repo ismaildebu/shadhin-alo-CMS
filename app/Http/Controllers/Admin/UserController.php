@@ -294,7 +294,7 @@ class UserController extends Controller
      */
     private function districtFor(array $data): ?int
     {
-        if ($data['role'] !== User::ROLE_REPORTER) {
+        if (! User::isReporterRole($data['role'])) {
             return null;
         }
 
@@ -319,7 +319,7 @@ class UserController extends Controller
      */
     private function upazilaFor(array $data): ?int
     {
-        if ($data['role'] !== User::ROLE_REPORTER) {
+        if (! User::isReporterRole($data['role'])) {
             return null;
         }
 
@@ -336,7 +336,7 @@ class UserController extends Controller
      */
     private function validateReporterLocation(array $data): void
     {
-        if ($data['role'] !== User::ROLE_REPORTER) {
+        if (! User::isReporterRole($data['role'])) {
             return;
         }
 

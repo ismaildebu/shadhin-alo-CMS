@@ -2,7 +2,7 @@
 @php
     $lead = $items->first();
     $rest = $items->skip(1)->take(max(1, (int) ($limit ?? 5) - 1));
-    $img  = fn ($n) => $n->image ? asset('uploads/news/'.$n->image) : null;
+    $img  = fn ($n) => $n->image ? \App\Models\Media::thumbUrl($n->image, 800) : null;
 @endphp
 
 <section class="mb-5">

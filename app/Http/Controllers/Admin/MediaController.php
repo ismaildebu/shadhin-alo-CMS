@@ -189,7 +189,7 @@ class MediaController extends Controller
             ->where('image', $filename)
             ->update(['image' => null]);
 
-        File::delete(public_path(Media::DIR.'/'.basename($filename)));
+        Media::removeFiles($filename);
         $media->delete();
 
         return $cleared;

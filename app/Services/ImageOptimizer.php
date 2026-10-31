@@ -108,6 +108,65 @@ class ImageOptimizer
     }
 
     /**
+     * Build a smaller copy of an already stored image, scaled to $width and keeping its aspect ratio.
+     * Returns null when the image is not wider than $width (the original is used then) or cannot be read.
+     */
+    public static function makeThumbnail(string $path, int $width): ?string
+    {
+        $info = @getimagesize($path);
+
+        if (! $info || $info[0] <= $width) {
+            return null;
+        }
+
+        [$srcW, $srcH, $type] = $info;
+
+        $decoder = match ($type) {
+            IMAGETYPE_JPEG => 'imagecreatefromjpeg',
+            IMAGETYPE_PNG => 'imagecreatefrompng',
+            IMAGETYPE_WEBP => 'imagecreatefromwebp',
+            default => null,
+        };
+
+        if ($decoder === null || ! function_exists($decoder)) {
+            return null;
+        }
+
+        if ($type === IMAGETYPE_WEBP && ! function_exists('imagewebp')) {
+            return null;
+        }
+
+        $src = @$decoder($path);
+
+        if (! $src) {
+            return null;
+        }
+
+        $height = max(1, (int) round($srcH * $width / $srcW));
+        $thumb = imagecreatetruecolor($width, $height);
+
+        if ($type === IMAGETYPE_PNG) {
+            // Keep transparency of older PNG files.
+            imagealphablending($thumb, false);
+            imagesavealpha($thumb, true);
+            imagefill($thumb, 0, 0, imagecolorallocatealpha($thumb, 0, 0, 0, 127));
+        } else {
+            imagefill($thumb, 0, 0, imagecolorallocate($thumb, 255, 255, 255));
+        }
+
+        imagecopyresampled($thumb, $src, 0, 0, 0, 0, $width, $height, $srcW, $srcH);
+
+        return match ($type) {
+            IMAGETYPE_PNG => self::capture(fn () => imagepng($thumb, null, 9)),
+            IMAGETYPE_WEBP => self::capture(fn () => imagewebp($thumb, null, 80)),
+            default => self::capture(function () use ($thumb) {
+                imageinterlace($thumb, true);
+                imagejpeg($thumb, null, 80);
+            }),
+        };
+    }
+
+    /**
      * Paint a blurred, slightly darkened, cover-scaled copy of the photo over the whole canvas.
      * The copy is shrunk first, blurred while small (fast), then enlarged: that gives a smooth, strong blur.
      */

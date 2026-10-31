@@ -96,7 +96,7 @@
                             <td>
                                 <div class="ad-news-cell">
                                     @if($item->image)
-                                        <img src="{{ asset('uploads/news/'.$item->image) }}" alt="" class="ad-thumb" loading="lazy">
+                                        <img src="{{ \App\Models\Media::thumbUrl($item->image, 400) }}" alt="" class="ad-thumb" loading="lazy">
                                     @else
                                         <span class="ad-thumb ad-thumb-empty">
                                             <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></svg>

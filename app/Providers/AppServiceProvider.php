@@ -24,15 +24,16 @@ class AppServiceProvider extends ServiceProvider
         // Admin panel access, by capability. Which roles hold each one is
         // edited in the panel (Roles & permissions) and stored in the
         // role_permissions table; defaults are in App\Support\Permissions.
-        //  manage-cms        panel entry (default: admin, editor, reporter)
-        //  manage-categories categories, videos, layout, menu, sidebar, ads, polls... (default: admin, editor)
-        //  manage-tags       tags (default: admin, editor)
-        //  manage-users      users, activity log, site settings (default: admin)
-        //  manage-roles      the roles & permissions page (super administrator only)
         Gate::define('manage-cms', fn (User $user) => $user->canManageCms());
-        Gate::define('manage-categories', fn (User $user) => $user->hasPermission('site_manage'));
+        Gate::define('manage-categories', fn (User $user) => $user->hasPermission('categories_manage'));
         Gate::define('manage-tags', fn (User $user) => $user->hasPermission('tags_manage'));
+        Gate::define('manage-videos', fn (User $user) => $user->hasPermission('videos_manage'));
+        Gate::define('manage-photocards', fn (User $user) => $user->hasPermission('photocards_manage'));
+        Gate::define('manage-polls', fn (User $user) => $user->hasPermission('polls_manage'));
+        Gate::define('manage-ads', fn (User $user) => $user->hasPermission('ads_manage'));
+        Gate::define('manage-layout', fn (User $user) => $user->hasPermission('layout_manage'));
         Gate::define('manage-users', fn (User $user) => $user->hasPermission('users_manage'));
+        // The roles & permissions page: super administrator only.
         Gate::define('manage-roles', fn (User $user) => $user->isSuperAdmin());
 
         // Only the public views need categories/breaking news. Partials and

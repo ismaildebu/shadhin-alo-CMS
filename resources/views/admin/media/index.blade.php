@@ -68,7 +68,7 @@
                                 </label>
                             @endif
 
-                            <img src="{{ $item->url }}" alt="" class="ad-media-img" loading="lazy">
+                            <img src="{{ \App\Models\Media::thumbUrl($item->filename, 400) }}" alt="" class="ad-media-img" loading="lazy">
                             <div class="ad-media-info">
                                 <div class="ad-media-name" title="{{ $item->original_name }}">{{ $item->original_name ?: $item->filename }}</div>
                                 <div class="ad-media-meta">

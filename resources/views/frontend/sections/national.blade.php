@@ -42,7 +42,7 @@ $nationalNews = $nationalCategory
 
                 <div class="overflow-hidden">
 
-                    <img src="{{ asset('uploads/news/'.$lead->image) }}"
+                    <img src="{{ \App\Models\Media::thumbUrl($lead->image, 800) }}"
                          class="card-img-top national-image"
                          alt="{{ $lead->title }}">
 
@@ -108,7 +108,7 @@ $nationalNews = $nationalCategory
                 <div style="width:120px;flex-shrink:0;">
 
                     @if($item->image)
-<img src="{{ asset('uploads/news/'.$item->image) }}"
+<img src="{{ \App\Models\Media::thumbUrl($item->image, 400) }}"
                          class="img-fluid rounded national-thumb"
                          alt="{{ $item->title }}">
 @else

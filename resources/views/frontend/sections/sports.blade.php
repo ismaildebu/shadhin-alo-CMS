@@ -39,7 +39,7 @@
             <div class="card border-0 shadow-sm mb-3">
 
                 @if($lead->image)
-<img src="{{ asset('uploads/news/'.$lead->image) }}"
+<img src="{{ \App\Models\Media::thumbUrl($lead->image, 800) }}"
                      class="card-img-top"
                      style="height:420px;object-fit:cover;"
                      alt="{{ $lead->title }}">

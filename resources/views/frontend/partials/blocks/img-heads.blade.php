@@ -1,7 +1,7 @@
 {{-- img_heads: first story with a big image, the rest as headline-only rows. Several of these sit side by side (see home-columns). --}}
 @if($items->count())
 @php
-    $img   = fn ($n) => $n->image ? asset('uploads/news/'.$n->image) : null;
+    $img   = fn ($n) => $n->image ? \App\Models\Media::thumbUrl($n->image, 800) : null;
     $rows  = $items->take(max(1, (int) ($limit ?? 4)))->values();
     $first = $rows->first();
     $rest  = $rows->slice(1)->values();

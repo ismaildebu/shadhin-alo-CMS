@@ -4,7 +4,7 @@
             <div class="card h-100 border-0 shadow-sm">
                 @if($item->image)
                     <a href="{{ route('frontend.news.show', $item->slug) }}">
-                        <img src="{{ asset('uploads/news/'.$item->image) }}"
+                        <img src="{{ \App\Models\Media::thumbUrl($item->image, 400) }}"
                              class="card-img-top" alt="{{ $item->title }}"
                              style="height:180px;object-fit:cover;">
                     </a>

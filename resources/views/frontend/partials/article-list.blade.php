@@ -10,7 +10,7 @@
                 >
                     @if($item->image)
 <img
-                            src="{{ asset('uploads/news/' . $item->image) }}"
+                            src="{{ \App\Models\Media::thumbUrl($item->image, 400) }}"
                             alt="{{ $item->title }}"
                             class="sa-list-thumb"
                             loading="lazy"

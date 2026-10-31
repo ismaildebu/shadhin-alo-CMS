@@ -39,7 +39,7 @@
             <div class="card border-0 shadow-sm h-100">
 
                 @if($lead->image)
-<img src="{{ asset('uploads/news/'.$lead->image) }}"
+<img src="{{ \App\Models\Media::thumbUrl($lead->image, 800) }}"
                      class="card-img-top"
                      style="height:280px;object-fit:cover;"
                      alt="{{ $lead->title }}">
@@ -82,7 +82,7 @@
             <div class="d-flex border-bottom pb-3 mb-3">
 
                 @if($item->image)
-<img src="{{ asset('uploads/news/'.$item->image) }}"
+<img src="{{ \App\Models\Media::thumbUrl($item->image, 400) }}"
                      style="width:90px;height:70px;object-fit:cover;"
                      class="rounded me-3"
                      alt="{{ $item->title }}">

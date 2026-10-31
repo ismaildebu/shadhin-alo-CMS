@@ -1,7 +1,7 @@
 {{-- lead_boxes: big boxed lead (image, headline, excerpt) on the left, boxed image cards stacked on the right. --}}
 @if($items->count())
 @php
-    $img      = fn ($n) => $n->image ? asset('uploads/news/'.$n->image) : null;
+    $img      = fn ($n) => $n->image ? \App\Models\Media::thumbUrl($n->image, 800) : null;
     $blurb    = fn ($n) => \Illuminate\Support\Str::limit(strip_tags((string) ($n->summary ?: $n->description)), 190);
     $rows     = $items->take(max(1, (int) ($limit ?? 3)))->values();
     $lead     = $rows->first();

@@ -6,8 +6,11 @@ use App\Models\News;
 use App\Models\User;
 
 /**
- * Admin / editor: everything.
- * Reporter: only their own articles, and only while they are a draft or waiting for review.
+ * Editor level (permission "news_review"): everything.
+ * "news_edit_all" (e.g. sub-editor): view and edit every article, but not
+ *   publish or trash (publishing is decided by isEditorOrAdmin() elsewhere).
+ * Everyone else with panel access: only their own articles, and only while
+ *   they are a draft or waiting for review.
  */
 class NewsPolicy
 {
@@ -18,7 +21,9 @@ class NewsPolicy
 
     public function view(User $user, News $news): bool
     {
-        return $user->isEditorOrAdmin() || $this->ownsEditable($user, $news, includePublished: true);
+        return $user->isEditorOrAdmin()
+            || $user->hasPermission('news_edit_all')
+            || $this->ownsEditable($user, $news, includePublished: true);
     }
 
     public function create(User $user): bool
@@ -28,13 +33,19 @@ class NewsPolicy
 
     public function update(User $user, News $news): bool
     {
-        return $user->isEditorOrAdmin() || $this->ownsEditable($user, $news);
+        return $user->isEditorOrAdmin()
+            || $user->hasPermission('news_edit_all')
+            || $this->ownsEditable($user, $news);
     }
 
     public function delete(User $user, News $news): bool
     {
         return $user->isEditorOrAdmin()
-            || ($user->isReporter() && $news->author_id === $user->id && $news->status === News::STATUS_DRAFT);
+            || (
+                $user->canManageCms()
+                && $news->author_id === $user->id
+                && $news->status === News::STATUS_DRAFT
+            );
     }
 
     public function restore(User $user, News $news): bool
@@ -44,7 +55,7 @@ class NewsPolicy
 
     private function ownsEditable(User $user, News $news, bool $includePublished = false): bool
     {
-        if (! $user->isReporter() || $news->author_id !== $user->id) {
+        if (! $user->canManageCms() || $news->author_id !== $user->id) {
             return false;
         }
 

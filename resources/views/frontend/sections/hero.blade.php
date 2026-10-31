@@ -1,6 +1,6 @@
 @if($leadNews)
 @php
-    $img = fn ($n) => $n->image ? asset('uploads/news/'.$n->image) : null;
+    $img = fn ($n) => $n->image ? \App\Models\Media::thumbUrl($n->image, 800) : null;
     $side = $sideNews->take(max(0, min(4, (int) ($limit ?? 3))));
 @endphp
 
