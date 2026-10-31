@@ -480,11 +480,7 @@ class NewsController extends Controller
 
         $name = basename($name);
 
-        $path = public_path(self::IMAGE_DIR.'/'.$name);
-
-        if (File::exists($path)) {
-            File::delete($path);
-        }
+        Media::removeFiles($name);
 
         Media::where('filename', $name)->delete();
     }
@@ -510,11 +506,7 @@ class NewsController extends Controller
             return;
         }
 
-        $path = public_path(self::IMAGE_DIR.'/'.$name);
-
-        if (File::exists($path)) {
-            File::delete($path);
-        }
+        Media::removeFiles($name);
 
         Media::where('filename', $name)->delete();
     }

@@ -1,6 +1,6 @@
 @if($items->count())
 @php
-    $img = fn ($n) => $n->image ? asset('uploads/news/'.$n->image) : null;
+    $img = fn ($n) => $n->image ? \App\Models\Media::thumbUrl($n->image, 800) : null;
     $total = (int) ($limit ?? 9);
     $cards = $items->take(min(3, $total));
     $rest = $items->skip(3)->take(max(0, $total - 3));

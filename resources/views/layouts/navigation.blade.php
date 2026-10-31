@@ -41,7 +41,7 @@
             </a>
         @endcan
 
-        @can('manage-categories')
+        @can('manage-layout')
             <a href="{{ route('home-layout.edit') }}"
                class="ad-link {{ request()->routeIs('home-layout.*') ? 'is-active' : '' }}">
                 <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
@@ -49,7 +49,7 @@
             </a>
         @endcan
 
-        @can('manage-categories')
+        @can('manage-layout')
             <a href="{{ route('article-design.edit') }}"
                class="ad-link {{ request()->routeIs('article-design.*') ? 'is-active' : '' }}">
                 <svg class="ad-ico" viewBox="0 0 24 24"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
@@ -57,7 +57,7 @@
             </a>
         @endcan
 
-        @can('manage-categories')
+        @can('manage-layout')
             <a href="{{ route('visual-builder.index') }}"
                class="ad-link {{ request()->routeIs('visual-builder.*') ? 'is-active' : '' }}">
                 <svg class="ad-ico" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
@@ -66,7 +66,7 @@
         @endcan
 
 
-        @can('manage-categories')
+        @can('manage-layout')
             <a href="{{ route('menu.edit') }}"
                class="ad-link {{ request()->routeIs('menu.*') ? 'is-active' : '' }}">
                 <svg class="ad-ico" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
@@ -74,7 +74,7 @@
             </a>
         @endcan
 
-        @can('manage-categories')
+        @can('manage-layout')
             <a href="{{ route('sidebar.edit') }}"
                class="ad-link {{ request()->routeIs('sidebar.*') ? 'is-active' : '' }}">
                 <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
@@ -82,7 +82,7 @@
             </a>
         @endcan  
 
-        @can('manage-categories')
+        @can('manage-polls')
             <a href="{{ route('admin.polls.index') }}"
                class="ad-link {{ request()->routeIs('admin.polls.*') ? 'is-active' : '' }}">
                 <svg class="ad-ico" viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6M3 20h18"/></svg>
@@ -90,7 +90,7 @@
             </a>
         @endcan
 
-        @can('manage-categories')
+        @can('manage-photocards')
             <a href="{{ route('photocards.index') }}"
                class="ad-link {{ request()->routeIs('photocards.*') ? 'is-active' : '' }}">
                 <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15l3-4 3 3 2-2 3 3"/></svg>
@@ -99,7 +99,7 @@
         @endcan
 
         
-        @can('manage-categories')
+        @can('manage-ads')
             <a href="{{ route('ads.index') }}"
                class="ad-link {{ request()->routeIs('ads.*') ? 'is-active' : '' }}">
                 <svg class="ad-ico" viewBox="0 0 24 24"><path d="M3 11v2a1 1 0 001 1h2l5 4V6L6 10H4a1 1 0 00-1 1z"/><path d="M15 9a4 4 0 010 6M18 6a8 8 0 010 12"/></svg>
@@ -113,7 +113,7 @@
             ফটো গ্যালারি
         </a>
 
-        @can('manage-categories')
+        @can('manage-videos')
             <a href="{{ route('videos.index') }}"
                class="ad-link {{ request()->routeIs('videos.*') ? 'is-active' : '' }}">
                 <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3V9z"/></svg>
@@ -129,6 +129,14 @@
                 <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.7a3.5 3.5 0 010 6.6M18 14.3c2.2.8 3.5 2.7 3.5 5.7"/></svg>
                 ইউজার
             </a>
+
+            @can('manage-roles')
+                <a href="{{ route('roles.edit') }}"
+                   class="ad-link {{ request()->routeIs('roles.*') ? 'is-active' : '' }}">
+                    <svg class="ad-ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.4-3.4 8.2-8 9-4.6-.8-8-4.6-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>
+                    রোল ও অনুমতি
+                </a>
+            @endcan
 
             <a href="{{ route('activity.index') }}"
                class="ad-link {{ request()->routeIs('activity.*') ? 'is-active' : '' }}">

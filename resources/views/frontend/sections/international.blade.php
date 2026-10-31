@@ -34,7 +34,7 @@
             <div class="card border-0 shadow-sm h-100">
 
                 @if($item->image)
-<img src="{{ asset('uploads/news/'.$item->image) }}"
+<img src="{{ \App\Models\Media::thumbUrl($item->image, 400) }}"
                      class="card-img-top"
                      style="height:220px;object-fit:cover;"
                      alt="{{ $item->title }}">

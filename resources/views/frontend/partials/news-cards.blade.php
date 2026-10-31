@@ -3,7 +3,7 @@
         <div class="col-lg-4 col-md-6">
             <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-card">
                 @if($item->image)
-<img src="{{ asset('uploads/news/'.$item->image) }}"
+<img src="{{ \App\Models\Media::thumbUrl($item->image, 400) }}"
                          alt="{{ $item->title }}" class="sa-card-img" loading="lazy">
 @else
 @include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => 'sa-card-img'])

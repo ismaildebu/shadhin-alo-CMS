@@ -1,5 +1,5 @@
 {{-- Small card: image, title (with shoulder tag), date. Needs: $item --}}
-@php $cardImg = $item->image ? asset('uploads/news/'.$item->image) : null; @endphp
+@php $cardImg = $item->image ? \App\Models\Media::thumbUrl($item->image, 800) : null; @endphp
 <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-nb-card">
     @if($cardImg)
         <img src="{{ $cardImg }}" alt="{{ $item->title }}" class="sa-nb-card-img" loading="lazy">

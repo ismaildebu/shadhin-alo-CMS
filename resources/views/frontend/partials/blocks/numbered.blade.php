@@ -1,6 +1,6 @@
 @if($items->count())
 @php
-    $img = fn ($n) => $n->image ? asset('uploads/news/'.$n->image) : null;
+    $img = fn ($n) => $n->image ? \App\Models\Media::thumbUrl($n->image, 800) : null;
     $lead = $items->first();
     $rest = $items->skip(1)->take(max(1, (int) ($limit ?? 7) - 1));
     $bn = fn ($n) => strtr((string) $n, ['0' => '০', '1' => '১', '2' => '২', '3' => '৩', '4' => '৪', '5' => '৫', '6' => '৬', '7' => '৭', '8' => '৮', '9' => '৯']);

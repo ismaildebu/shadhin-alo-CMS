@@ -1,7 +1,7 @@
 {{-- lead_rlist: big lead (image, headline, time) on the left; on the right a list with the text first and a small image on the right. --}}
 @if($items->count())
 @php
-    $img      = fn ($n) => $n->image ? asset('uploads/news/'.$n->image) : null;
+    $img      = fn ($n) => $n->image ? \App\Models\Media::thumbUrl($n->image, 800) : null;
     $rows     = $items->take(max(1, (int) ($limit ?? 5)))->values();
     $lead     = $rows->first();
     $rest     = $rows->slice(1)->values();

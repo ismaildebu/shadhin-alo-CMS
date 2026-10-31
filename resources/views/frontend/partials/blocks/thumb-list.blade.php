@@ -1,7 +1,7 @@
 {{-- thumb_list: small thumbnail on the left, headline and date on the right. Several of these sit side by side (see home-columns). --}}
 @if($items->count())
 @php
-    $img  = fn ($n) => $n->image ? asset('uploads/news/'.$n->image) : null;
+    $img  = fn ($n) => $n->image ? \App\Models\Media::thumbUrl($n->image, 800) : null;
     $rows = $items->take(max(1, (int) ($limit ?? 4)));
 @endphp
 

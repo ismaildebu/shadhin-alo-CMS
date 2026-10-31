@@ -37,7 +37,7 @@
 
                     @if($item->image)
 
-                        <img src="{{ asset('uploads/news/'.$item->image) }}"
+                        <img src="{{ \App\Models\Media::thumbUrl($item->image, 400) }}"
                              class="rounded-circle border"
                              style="width:110px;height:110px;object-fit:cover;"
                              alt="{{ $item->title }}">

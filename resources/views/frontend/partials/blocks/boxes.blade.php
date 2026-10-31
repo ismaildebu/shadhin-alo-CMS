@@ -1,6 +1,6 @@
 @if($items->count())
 @php
-    $img = fn ($n) => $n->image ? asset('uploads/news/'.$n->image) : null;
+    $img = fn ($n) => $n->image ? \App\Models\Media::thumbUrl($n->image, 800) : null;
     $wide = $wide ?? false;
     $boxes = $items->take(max(2, (int) ($limit ?? 6)));
 @endphp

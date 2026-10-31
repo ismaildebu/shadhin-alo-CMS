@@ -27,6 +27,9 @@ class Media extends Model
         IMAGETYPE_WEBP => 'image/webp',
     ];
 
+    /** আপলোডের সময় বানানো ছোট সংস্করণের প্রস্থ (পিক্সেলে)। */
+    public const THUMB_WIDTHS = [400, 800];
+
     protected $table = 'media';
 
     protected $fillable = ['filename', 'original_name', 'mime', 'size', 'uploaded_by'];
@@ -67,6 +70,8 @@ class Media extends Model
         File::ensureDirectoryExists(public_path(self::DIR));
         file_put_contents(public_path(self::DIR).'/'.$name, $result['data']);
 
+        self::writeThumbnails($name);
+
         return static::create([
             'filename' => $name,
             'original_name' => Str::limit($clientName, 190, ''),
@@ -74,6 +79,61 @@ class Media extends Model
             'size' => strlen($result['data']),
             'uploaded_by' => $user?->id,
         ]);
+    }
+
+    /** ছোট সংস্করণের ফোল্ডার, যেমন uploads/news/thumbs/400 */
+    public static function thumbDir(int $width): string
+    {
+        return public_path(self::DIR.'/thumbs/'.$width);
+    }
+
+    /** ছবির ছোট সংস্করণ বানায়। ব্যর্থ হলেও আপলোড আটকায় না; তখন আসল ছবিই ব্যবহার হয়। */
+    public static function writeThumbnails(string $filename): void
+    {
+        $source = public_path(self::DIR.'/'.$filename);
+
+        foreach (self::THUMB_WIDTHS as $width) {
+            try {
+                $data = ImageOptimizer::makeThumbnail($source, $width);
+
+                if ($data === null) {
+                    continue;
+                }
+
+                File::ensureDirectoryExists(self::thumbDir($width));
+                file_put_contents(self::thumbDir($width).'/'.$filename, $data);
+            } catch (\Throwable) {
+                // The original image is used when a thumbnail cannot be built.
+            }
+        }
+    }
+
+    /** আসল ছবি ও তার সব ছোট সংস্করণ মোছে। */
+    public static function removeFiles(string $filename): void
+    {
+        $filename = basename($filename);
+
+        File::delete(public_path(self::DIR.'/'.$filename));
+
+        foreach (self::THUMB_WIDTHS as $width) {
+            File::delete(self::thumbDir($width).'/'.$filename);
+        }
+    }
+
+    /** তালিকা ও কার্ডের জন্য ছোট সংস্করণের ঠিকানা; না থাকলে আসল ছবির ঠিকানা। */
+    public static function thumbUrl(?string $filename, int $width = 400): string
+    {
+        if (! $filename) {
+            return '';
+        }
+
+        $filename = basename($filename);
+
+        if (is_file(self::thumbDir($width).'/'.$filename)) {
+            return asset(self::DIR.'/thumbs/'.$width.'/'.$filename);
+        }
+
+        return asset(self::DIR.'/'.$filename);
     }
 
     /**

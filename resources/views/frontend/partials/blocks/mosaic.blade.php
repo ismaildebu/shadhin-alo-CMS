@@ -7,7 +7,7 @@
        @foreach($items->take(min(5, max(2, (int) ($limit ?? 5)))) as $item)
             <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-tile">
                 @if($item->image)
-<img src="{{ asset('uploads/news/'.$item->image) }}" alt="{{ $item->title }}" loading="lazy">
+<img src="{{ \App\Models\Media::thumbUrl($item->image, 800) }}" alt="{{ $item->title }}" loading="lazy">
 @else
 @include('frontend.partials.no-image', ['news' => $item, 'sizeClass' => ''])
 @endif

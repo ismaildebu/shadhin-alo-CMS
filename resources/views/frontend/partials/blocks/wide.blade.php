@@ -1,6 +1,6 @@
 @if($items->count())
 @php
-    $img = fn ($n) => $n->image ? asset('uploads/news/'.$n->image) : null;
+    $img = fn ($n) => $n->image ? \App\Models\Media::thumbUrl($n->image, 800) : null;
     $lead = $items->first();
     $rest = $items->skip(1)->take(max(1, (int) ($limit ?? 7) - 1));
 @endphp
