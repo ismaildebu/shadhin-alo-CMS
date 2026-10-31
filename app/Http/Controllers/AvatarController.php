@@ -17,6 +17,10 @@ class AvatarController extends Controller
 
     public function destroyOwn(Request $request): RedirectResponse
     {
+        if ($blocked = $this->blockedFor($request->user())) {
+            return $blocked;
+        }
+
         Avatars::remove($request->user());
 
         return back()->with('success', 'প্রোফাইল ছবি মোছা হয়েছে।');
@@ -30,6 +34,10 @@ class AvatarController extends Controller
 
     public function destroyFor(User $user): RedirectResponse
     {
+        if ($blocked = $this->blockedFor($user)) {
+            return $blocked;
+        }
+
         Avatars::remove($user);
 
         return back()->with('success', 'ইউজারের ছবি মোছা হয়েছে।');
@@ -37,6 +45,11 @@ class AvatarController extends Controller
 
     private function store(Request $request, User $user, string $message): RedirectResponse
     {
+        // Check first, so no file is written for a change that cannot be saved.
+        if ($blocked = $this->blockedFor($user)) {
+            return $blocked;
+        }
+
         $request->validate([
             'avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ], [
@@ -50,5 +63,20 @@ class AvatarController extends Controller
         Avatars::save($user, $request->file('avatar'));
 
         return back()->with('success', $message);
+    }
+
+    /**
+     * The super administrator is permanent: only its password can change, so
+     * its photo cannot be set or removed either (by itself or by an admin).
+     */
+    private function blockedFor(User $user): ?RedirectResponse
+    {
+        if (! $user->isSuperAdmin()) {
+            return null;
+        }
+
+        return back()->withErrors([
+            'avatar' => 'সুপার অ্যাডমিনের ছবি বদলানো বা মোছা যায় না। শুধু পাসওয়ার্ড বদলানো যায়।',
+        ]);
     }
 }

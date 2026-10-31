@@ -40,7 +40,7 @@
                         <tr>
                             <td>
                                 <div class="ad-user-cell">
-                                    
+
                                     <span class="ad-avatar">
                                         @if($rowAvatar = \App\Support\Avatars::url($u))
                                             <img src="{{ $rowAvatar }}" alt="">
@@ -50,7 +50,12 @@
                                     </span>
                                     <div>
                                         <div class="ad-tag-name">{{ $u->name }}</div>
-                                        <div class="ad-news-sub">{{ $u->email }}</div>
+                                        <div class="ad-news-sub">
+                                            {{ $u->email }}
+                                            @if($u->isSuperAdmin())
+                                                · স্থায়ী অ্যাকাউন্ট
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             </td>
@@ -71,8 +76,15 @@
 
                             <td>
                                 <div class="ad-actions">
-                                    <a href="{{ route('users.edit', $u) }}" class="ad-act act-edit">সম্পাদনা</a>
-                                    @unless($u->is(auth()->user()))
+                                    {{-- The super administrator can only be opened by itself (to change its password). --}}
+                                    @if(! $u->isSuperAdmin() || $u->is(auth()->user()))
+                                        <a href="{{ route('users.edit', $u) }}" class="ad-act act-edit">সম্পাদনা</a>
+                                    @else
+                                        <span class="ad-news-sub">সুরক্ষিত অ্যাকাউন্ট</span>
+                                    @endif
+
+                                    {{-- No delete button for yourself, and never for the super administrator. --}}
+                                    @unless($u->is(auth()->user()) || $u->isSuperAdmin())
                                         <form action="{{ route('users.destroy', $u) }}" method="POST"
                                               onsubmit="return confirm('ইউজারটি মুছে ফেলতে চান?')">
                                             @csrf

@@ -1,18 +1,20 @@
 /* ==========================================================
    Shadhin Alo - placeholder for news without an image
-   Logo + category + location text, with the division map on the side.
-   Load AFTER frontend.css (it overrides the sizing of the image classes it replaces).
-   Variants: hero (article page), card (lists and leads), thumb (small thumbnails).
+   Saradesh news: logo, district/upazila map (red), division map (green) with names.
+   Other categories: logo and the category name.
+   Load AFTER frontend.css. The placeholder takes over the size classes of the <img> it
+   replaces, so it keeps the exact box of a real image. Variants: hero, card, thumb.
    ========================================================== */
 
 .sa-noimg {
+    --noimg-district: #d60000;   /* district / upazila (place of the event) */
+    --noimg-division: #16a34a;   /* division */
+
     position: relative;
     display: flex;
     overflow: hidden;
-    min-height: 14rem;
-    aspect-ratio: var(--sa-image-ratio, 16 / 9);   /* same box as real images on the article page */
-    padding: clamp(1rem, 3vw, 2rem);
-    border-radius: 6px;
+    padding: .7rem;
+    border-radius: 3px;
     background:
         radial-gradient(circle at 85% 20%, rgba(255, 255, 255, .10), transparent 45%),
         linear-gradient(135deg, #0f2a44 0%, #123b68 55%, #1b5a8c 100%);
@@ -21,64 +23,147 @@
     line-height: 1.5;
 }
 
+/* Only when the slot gives no size of its own */
+.sa-noimg-dflt { aspect-ratio: 16 / 10; }
+
+/* ---------- logo: top right corner ---------- */
+.sa-noimg-logo {
+    position: absolute;
+    top: .55rem;
+    right: .65rem;
+    z-index: 2;
+    display: inline-flex;
+    padding: .2rem .45rem;
+    border-radius: 6px;
+    background: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .25);
+}
+
+/* Strong selector on purpose: frontend.css styles "img" inside many image slots
+   (for example ".sa-hero-lead img" is absolutely positioned and full size). */
+.sa-noimg .sa-noimg-logo img {
+    position: static;
+    inset: auto;
+    display: block;
+    width: auto;
+    height: 1.3rem;
+    max-width: 6rem;
+    aspect-ratio: auto;
+    object-fit: contain;
+    border-radius: 0;
+    transform: none;
+}
+
+/* ---------- left column: district / upazila map, then category and place ---------- */
 .sa-noimg-copy {
     position: relative;
     z-index: 1;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    gap: 1rem;
-    max-width: 58%;
+    gap: .35rem;
+    width: 52%;
     min-width: 0;
 }
 
-.sa-noimg-logo {
-    align-self: flex-start;
-    display: inline-flex;
-    padding: .45rem .8rem;
-    border-radius: 6px;
-    background: #fff;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, .25);
-}
-.sa-noimg-logo img { display: block; height: 2.4rem; width: auto; max-width: 11rem; object-fit: contain; border-radius: 0; }
+.sa-noimg-district { display: flex; flex: 1 1 auto; flex-direction: column; align-items: flex-start; gap: .3rem; min-height: 2.5rem; }
+.sa-noimg-distmap { position: relative; flex: 1 1 auto; align-self: stretch; min-height: 0; }
+.sa-noimg-dist { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sa-noimg-dist .sa-noimg-dim { fill: rgba(255, 255, 255, .22); stroke: rgba(255, 255, 255, .55); stroke-width: .8; }
+.sa-noimg-dist .sa-noimg-hl { fill: var(--noimg-district); stroke: #fff; stroke-width: 1.2; }
 
-.sa-noimg-info { display: block; }
+.sa-noimg-dlabel,
+.sa-noimg-vlabel {
+    display: inline-block;
+    padding: .05rem .55rem;
+    border-radius: 999px;
+    color: #fff;
+    font-size: .78rem;
+    font-weight: 700;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.sa-noimg-dlabel { background: var(--noimg-district); }
+.sa-noimg-vlabel { position: absolute; right: .8rem; bottom: .55rem; z-index: 1; background: var(--noimg-division); }
+
+.sa-noimg-info { display: block; margin-top: auto; }
 
 .sa-noimg-cat {
     display: inline-block;
-    padding: .15rem .75rem;
+    padding: .05rem .55rem;
     border-radius: 999px;
     background: var(--sa-amber, #d98e04);
     color: #16202a;
-    font-size: .9rem;
+    font-size: .78rem;
     font-weight: 700;
 }
-.sa-noimg-place { display: block; margin-top: .5rem; font-size: 1.1rem; font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
+.sa-noimg-place { display: none; }
+.sa-noimg-credit { display: none; }
 
+/* ---------- right: division map (green) ---------- */
 .sa-noimg-map {
     position: absolute;
-    top: 1rem;
-    bottom: 1rem;
-    right: clamp(1rem, 4vw, 3rem);
-    height: calc(100% - 2rem);
+    top: 2.6rem;
+    bottom: 2rem;
+    right: .8rem;
+    height: calc(100% - 4.6rem);
     width: auto;
     aspect-ratio: 340 / 473;
 }
 .sa-noimg-dim { fill: rgba(255, 255, 255, .14); stroke: rgba(255, 255, 255, .35); stroke-width: 1; }
 .sa-noimg-hl { fill: var(--sa-amber, #d98e04); stroke: #fff; stroke-width: 1.6; }
+.sa-noimg-map .sa-noimg-hl { fill: var(--noimg-division); }
 
-/* ---------- card: lists, leads and block images ---------- */
-.sa-noimg-card { min-height: 0; aspect-ratio: 16 / 10; padding: .7rem; border-radius: 3px; }
-.sa-noimg-card .sa-noimg-logo { padding: .25rem .5rem; }
-.sa-noimg-card .sa-noimg-logo img { height: 1.5rem; max-width: 7rem; }
-.sa-noimg-card .sa-noimg-place { display: none; }
-.sa-noimg-card .sa-noimg-cat { font-size: .78rem; padding: .05rem .55rem; }
-.sa-noimg-card .sa-noimg-map { top: .5rem; bottom: .5rem; height: calc(100% - 1rem); right: .7rem; }
+/* ---------- other categories: logo and the category name ---------- */
+.sa-noimg-plain { align-items: flex-end; }
+.sa-noimg-plain::after {
+    content: "";
+    position: absolute;
+    right: -18%;
+    top: -30%;
+    width: 70%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, .14), transparent 65%);
+}
+.sa-noimg-big {
+    position: relative;
+    z-index: 1;
+    max-width: 78%;
+    font-size: clamp(1.15rem, 5vw, 1.8rem);
+    font-weight: 800;
+    line-height: 1.25;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+    overflow-wrap: anywhere;
+}
 
-/* ---------- thumb: small thumbnails show only the highlighted map ---------- */
-.sa-noimg-thumb { min-height: 0; aspect-ratio: auto; padding: .25rem; align-items: center; justify-content: center; border-radius: 4px; }
-.sa-noimg-thumb .sa-noimg-copy { display: none; }
+/* ---------- hero: the article page (same box as the real image) ---------- */
+.sa-noimg-hero {
+    min-height: 14rem;
+    aspect-ratio: var(--sa-image-ratio, 16 / 9);
+    padding: clamp(1rem, 3vw, 2rem);
+    border-radius: 6px;
+}
+.sa-noimg-hero .sa-noimg-logo { top: 1rem; right: 1.2rem; padding: .4rem .75rem; }
+.sa-noimg-hero .sa-noimg-logo img { height: 2.2rem; max-width: 10rem; }
+.sa-noimg-hero .sa-noimg-copy { width: 50%; gap: .6rem; }
+.sa-noimg-hero .sa-noimg-cat,
+.sa-noimg-hero .sa-noimg-dlabel,
+.sa-noimg-hero .sa-noimg-vlabel { padding: .1rem .8rem; font-size: .95rem; }
+.sa-noimg-hero .sa-noimg-place { display: block; margin-top: .4rem; font-size: 1.05rem; font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
+.sa-noimg-hero .sa-noimg-credit { display: block; margin-top: .4rem; font-size: .68rem; opacity: .7; }
+.sa-noimg-hero .sa-noimg-map { top: 4.6rem; bottom: 3rem; right: clamp(1rem, 4vw, 3rem); height: calc(100% - 7.6rem); }
+.sa-noimg-hero .sa-noimg-vlabel { right: clamp(1rem, 4vw, 3rem); bottom: 1rem; }
+.sa-noimg-hero.sa-noimg-plain .sa-noimg-big { max-width: 62%; font-size: clamp(1.8rem, 5vw, 3rem); }
+
+/* ---------- thumb: small thumbnails show only the division map (or the logo) ---------- */
+.sa-noimg-thumb { padding: .25rem; align-items: center; justify-content: center; border-radius: 4px; }
+.sa-noimg-thumb .sa-noimg-logo,
+.sa-noimg-thumb .sa-noimg-copy,
+.sa-noimg-thumb .sa-noimg-vlabel,
+.sa-noimg-thumb .sa-noimg-big { display: none; }
 .sa-noimg-thumb .sa-noimg-map { position: static; height: 100%; max-height: 100%; width: auto; }
+.sa-noimg-thumb.sa-noimg-plain .sa-noimg-logo { display: inline-flex; position: static; padding: .15rem .3rem; }
+.sa-noimg-thumb.sa-noimg-plain .sa-noimg-logo img { height: 1rem; max-width: 3.2rem; }
 
 /* ---------- slots that already define their own box ---------- */
 .sa-g4-img .sa-noimg,
@@ -102,6 +187,7 @@
 
 @media (max-width: 575.98px) {
     .sa-noimg-hero { min-height: 12rem; }
-    .sa-noimg-hero .sa-noimg-place { font-size: 1rem; }
-    .sa-noimg-hero .sa-noimg-logo img { height: 2rem; max-width: 8rem; }
+    .sa-noimg-hero .sa-noimg-place { font-size: .95rem; }
+    .sa-noimg-hero .sa-noimg-logo img { height: 1.8rem; max-width: 7rem; }
+    .sa-noimg-hero .sa-noimg-map { top: 4rem; bottom: 2.6rem; height: calc(100% - 6.6rem); }
 }

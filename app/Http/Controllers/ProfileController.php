@@ -26,6 +26,15 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
+        // The super administrator is permanent: only its password can change
+        // (done on the password form). Without this guard the model and the
+        // database trigger would reject the save with a 500 error.
+        if ($request->user()->isSuperAdmin()) {
+            return Redirect::route('profile.edit')->withErrors([
+                'name' => 'সুপার অ্যাডমিনের নাম, ইমেইল বা অন্য তথ্য বদলানো যায় না। শুধু পাসওয়ার্ড বদলানো যায়।',
+            ]);
+        }
+
         $request->user()->fill($request->validated());
 
         if ($request->user()->isDirty('email')) {
@@ -42,6 +51,14 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        // Refuse BEFORE logging out: the super administrator can never be
+        // deleted, and the person must stay signed in when we say no.
+        if ($request->user()->isSuperAdmin()) {
+            return Redirect::back()->withErrors([
+                'password' => 'সুপার অ্যাডমিন অ্যাকাউন্ট কখনো মুছে ফেলা যায় না।',
+            ], 'userDeletion');
+        }
+
         $request->validateWithBag('userDeletion', [
             'password' => ['required', 'current_password'],
         ]);

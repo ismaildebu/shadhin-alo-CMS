@@ -2,6 +2,10 @@
     $isEdit = $user->exists;
     $isSelf = $isEdit && $user->is(auth()->user());
 
+    // The protected super administrator: only the password can be changed
+    // (the controller, request and database triggers enforce the same rule).
+    $isSuper = $isEdit && $user->isSuperAdmin();
+
     $val = fn (string $field, $default = '') =>
         old($field, $isEdit ? ($user->{$field} ?? $default) : $default);
 
@@ -16,6 +20,31 @@
             $upazilas->firstWhere('id', (int) $selectedUpazila)?->parent_id ?? ''
         );
     }
+
+    // Roles that work in the field and may have a district / upazila.
+    $reporterRoles = \App\Models\User::REPORTER_ROLES;
+    $reporterRoleNames = implode(', ', array_map(
+        fn ($role) => \App\Models\User::ROLES[$role],
+        $reporterRoles
+    ));
+
+    // Role dropdown groups. The super administrator role is never offered:
+    // it cannot be assigned from a form. A role not listed here still shows,
+    // under "অন্যান্য".
+    $roleGroups = [
+        'সম্পাদকীয়' => ['admin', 'deputy-editor', 'news-editor', 'joint-news-editor', 'editor', 'sub-editor'],
+        'রিপোর্টিং' => ['chief-reporter', 'special-reporter', 'staff-reporter', 'reporter'],
+        'প্রোডাকশন' => ['media-editor', 'designer', 'ad-manager'],
+        'অন্যান্য' => ['user'],
+    ];
+
+    $placedRoles = array_merge(...array_values($roleGroups));
+    $otherRoles = array_diff(
+        array_keys(\App\Models\User::ROLES),
+        $placedRoles,
+        [\App\Models\User::ROLE_SUPER_ADMIN]
+    );
+    $roleGroups['অন্যান্য'] = array_merge($roleGroups['অন্যান্য'], array_values($otherRoles));
 @endphp
 
 @if($errors->any())
@@ -25,6 +54,17 @@
                 <li>{{ $error }}</li>
             @endforeach
         </ul>
+    </div>
+@endif
+
+@if($isSuper)
+    <div class="ad-panel ad-fgroup">
+        <div class="ad-panel-body">
+            <p class="ad-label">সুপার অ্যাডমিন অ্যাকাউন্ট</p>
+            <p class="ad-hint">
+                এই অ্যাকাউন্ট স্থায়ী। শুধু পাসওয়ার্ড বদলানো যায়; নাম, ইমেইল, রোল ও অন্য তথ্য পরিবর্তন বা অ্যাকাউন্ট মোছা যায় না।
+            </p>
+        </div>
     </div>
 @endif
 
@@ -41,6 +81,7 @@
             class="ad-field"
             maxlength="255"
             required
+            @disabled($isSuper)
         >
     </div>
 
@@ -56,6 +97,7 @@
             class="ad-field"
             maxlength="255"
             required
+            @disabled($isSuper)
         >
     </div>
 </div>
@@ -70,6 +112,7 @@
             value="{{ $val('phone') }}"
             class="ad-field"
             maxlength="20"
+            @disabled($isSuper)
         >
     </div>
 
@@ -103,19 +146,31 @@
             id="role"
             name="role"
             class="ad-field"
-            @if($isSelf) disabled @endif
+            @if($isSelf || $isSuper) disabled @endif
         >
-            @foreach(\App\Models\User::ROLES as $key => $label)
-                <option
-                    value="{{ $key }}"
-                    @selected($selectedRole === $key)
-                >
-                    {{ $label }}
+            @if($isSuper)
+                <option value="{{ \App\Models\User::ROLE_SUPER_ADMIN }}" selected>
+                    {{ \App\Models\User::ROLES[\App\Models\User::ROLE_SUPER_ADMIN] }}
                 </option>
-            @endforeach
+            @else
+                @foreach($roleGroups as $groupLabel => $groupRoles)
+                    <optgroup label="{{ $groupLabel }}">
+                        @foreach($groupRoles as $key)
+                            @if(isset(\App\Models\User::ROLES[$key]))
+                                <option
+                                    value="{{ $key }}"
+                                    @selected($selectedRole === $key)
+                                >
+                                    {{ \App\Models\User::ROLES[$key] }}
+                                </option>
+                            @endif
+                        @endforeach
+                    </optgroup>
+                @endforeach
+            @endif
         </select>
 
-        @if($isSelf)
+        @if($isSelf && ! $isSuper)
             <input type="hidden" name="role" value="{{ $user->role }}">
             <p class="ad-hint">
                 নিজের রোল পরিবর্তন করা যাবে না।
@@ -132,17 +187,19 @@
                 value="1"
                 @checked((bool) old('is_active', $isEdit ? $user->is_active : true))
                 @if($isSelf) onclick="return false" @endif
+                @disabled($isSuper)
             >
             সক্রিয় (নিষ্ক্রিয় ইউজার লগইন করতে পারে না)
         </label>
     </div>
 </div>
 
+@unless($isSuper)
 <div id="user-location-fields" class="ad-panel ad-fgroup">
     <div class="ad-panel-body">
         <p class="ad-label">রিপোর্টারের এলাকা</p>
         <p class="ad-hint">
-            শুধু Reporter-এর জন্য জেলা ও উপজেলা নির্ধারণ করুন।
+            শুধু এই রোলের জন্য জেলা ও উপজেলা নির্ধারণ করুন: {{ $reporterRoleNames }}।
             অন্য রোল নির্বাচন করলে এই তথ্য সংরক্ষণ করা হবে না।
         </p>
 
@@ -206,6 +263,7 @@
         </div>
     </div>
 </div>
+@endunless
 
 <div class="ad-fgroup">
     <label class="ad-label" for="bio">পরিচিতি (Bio)</label>
@@ -215,6 +273,7 @@
         rows="3"
         class="ad-field"
         maxlength="1000"
+        @disabled($isSuper)
     >{{ $val('bio') }}</textarea>
     @error('bio')
         <p class="ad-hint" role="alert">{{ $message }}</p>
@@ -241,6 +300,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!roleSelect || !districtSelect || !upazilaSelect || !locationFields) {
         return;
     }
+
+    // Roles that may have a district / upazila (User::REPORTER_ROLES).
+    const reporterRoles = @json($reporterRoles);
 
     const upazilaOptions = Array.from(upazilaSelect.options)
         .filter(option => option.value !== '')
@@ -294,7 +356,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function toggleLocationFields() {
-        const isReporter = roleSelect.value === 'reporter';
+        const isReporter = reporterRoles.includes(roleSelect.value);
 
         locationFields.hidden = !isReporter;
         districtSelect.disabled = !isReporter;

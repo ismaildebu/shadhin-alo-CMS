@@ -116,10 +116,12 @@ class News extends Model
         return $query->orderByDesc($this->qualifyColumn('published_at'))->orderByDesc($this->qualifyColumn('id'));
     }
 
-    /** Reporters only see their own articles; editors and admins see everything. */
+    /** Staff without review/edit-all permission only see their own articles. */
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        return $user->isEditorOrAdmin() ? $query : $query->where('author_id', $user->id);
+        return ($user->isEditorOrAdmin() || $user->hasPermission('news_edit_all'))
+            ? $query
+            : $query->where('author_id', $user->id);
     }
 
     public function category(): BelongsTo
