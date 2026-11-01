@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
@@ -147,6 +147,7 @@ body{
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ asset('css/frontend.css') }}">
 <link rel="stylesheet" href="{{ asset('css/news-fallback.css') }}">
+    @include('frontend.partials.focus-css')
 </head>
 <body>
 

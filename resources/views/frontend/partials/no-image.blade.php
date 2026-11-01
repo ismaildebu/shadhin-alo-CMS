@@ -1,9 +1,9 @@
 @php
     /*
      * Placeholder for a news item without an image.
-     *   Saradesh news: logo (top right), district / upazila map on the left, division map on the
-     *                  right, each with the name of the place; category and place path below.
-     *   Other news:    logo (top right) and the category name, no maps.
+     *   Saradesh news: category (top left), logo (top right), district / upazila map and division
+     *                  map side by side, then the place name large with its path.
+     *   Other news:    logo (top right) and the category name large, no maps.
      *
      * Expects: $news
      * Optional: $sizeClass  classes of the <img> it replaces (keeps the slot's size)
@@ -22,59 +22,84 @@
     $district = ($showMap && $place['geo']) ? \App\Support\BdGeo::render($place['geo']) : null;
 
     $category = (string) ($news->category->name ?? '');
-    $placeText = $showMap ? $place['text'] : '';
-    $label = trim($category . ($placeText !== '' ? ' · ' . $placeText : ''));
+    $incident = $showMap ? $place['incident'] : '';
+    $division = $showMap ? $place['division'] : '';
+
+    // the large name: the place of the event, else the division, else the category
+    $name = $incident !== '' ? $incident : ($division !== '' ? $division : $category);
+
+    $kicker = '';
+
+    if ($showMap) {
+        $kicker = match ($place['incident_type']) {
+            'upazila' => 'উপজেলা',
+            'district' => 'জেলা',
+            default => $division !== '' ? 'বিভাগ' : '',
+        };
+    }
+
+    // "Dhaka › Gopalganj": the path above the named place
+    $text = $showMap ? $place['text'] : '';
+    $path = str_contains($text, ' › ') ? \Illuminate\Support\Str::beforeLast($text, ' › ') : '';
+
+    $label = trim($category . ($text !== '' ? ' · ' . $text : ''));
 @endphp
 
 <span class="sa-noimg sa-noimg-{{ $variant }}@if(! $showMap) sa-noimg-plain @endif {{ $sizeClass }}@if($sizeClass === '' && $variant !== 'hero') sa-noimg-dflt @endif" role="img" aria-label="{{ $label !== '' ? $label : 'বাংলাদেশ' }}">
-    <span class="sa-noimg-logo">
-        <img src="{{ \App\Support\Settings::logoUrl() }}" alt="" loading="lazy">
+    <span class="sa-noimg-top">
+        @if($showMap && $category !== '')
+            <span class="sa-noimg-cat">{{ $category }}</span>
+        @else
+            <span></span>
+        @endif
+
+        <span class="sa-noimg-logo">
+            <img src="{{ \App\Support\Settings::logoUrl() }}" alt="" loading="lazy">
+        </span>
     </span>
 
     @if($showMap)
-        <span class="sa-noimg-copy">
+        <span class="sa-noimg-stage @if(! $district) sa-noimg-stage--solo @endif">
             @if($district)
                 {!! $district['defs'] !!}
-                <span class="sa-noimg-district">
-                    <span class="sa-noimg-distmap">{!! $district['svg'] !!}</span>
-
-                    @if($place['incident'] !== '')
-                        <span class="sa-noimg-dlabel">{{ $place['incident'] }}</span>
-                    @endif
-                </span>
+                <span class="sa-noimg-distmap">{!! $district['svg'] !!}</span>
             @endif
 
-            <span class="sa-noimg-info">
-                @if($category !== '')
-                    <span class="sa-noimg-cat">{{ $category }}</span>
-                @endif
+            <span class="sa-noimg-divmap">
+                <svg class="sa-noimg-map" viewBox="{{ \App\Support\BdMap::viewBox() }}" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+                    @foreach(array_keys(\App\Support\BdMap::SHAPES) as $key)
+                        @if($key !== $mapKey)
+                            <use href="#sa-bd-{{ $key }}" class="sa-noimg-dim"/>
+                        @endif
+                    @endforeach
 
-                @if($placeText !== '')
-                    <span class="sa-noimg-place">{{ $placeText }}</span>
-                @endif
-
-                @if($district && $variant === 'hero')
-                    <span class="sa-noimg-credit">সীমানা: {{ \App\Support\BdGeo::attribution() }}</span>
-                @endif
+                    @if($mapKey)
+                        <use href="#sa-bd-{{ $mapKey }}" class="sa-noimg-hl"/>
+                    @endif
+                </svg>
             </span>
         </span>
-
-        <svg class="sa-noimg-map" viewBox="{{ \App\Support\BdMap::viewBox() }}" aria-hidden="true" focusable="false">
-            @foreach(array_keys(\App\Support\BdMap::SHAPES) as $key)
-                @if($key !== $mapKey)
-                    <use href="#sa-bd-{{ $key }}" class="sa-noimg-dim"/>
-                @endif
-            @endforeach
-
-            @if($mapKey)
-                <use href="#sa-bd-{{ $mapKey }}" class="sa-noimg-hl"/>
-            @endif
-        </svg>
-
-        @if($mapKey && $place['division'] !== '')
-            <span class="sa-noimg-vlabel">{{ $place['division'] }}</span>
-        @endif
-    @else
-        <span class="sa-noimg-big">{{ $category }}</span>
     @endif
+
+    <span class="sa-noimg-foot">
+        <span class="sa-noimg-name">
+            @if($kicker !== '')
+                <span class="sa-noimg-kicker">{{ $kicker }}</span>
+            @endif
+
+            <span class="sa-noimg-title">{{ $name }}</span>
+
+            @if($path !== '')
+                <span class="sa-noimg-path">{{ $path }}</span>
+            @endif
+
+            @if($district && $variant === 'hero')
+                <span class="sa-noimg-credit">সীমানা: {{ \App\Support\BdGeo::attribution() }}</span>
+            @endif
+        </span>
+
+        @if($mapKey && $division !== '' && $kicker !== 'বিভাগ')
+            <span class="sa-noimg-vlabel">{{ $division }} বিভাগ</span>
+        @endif
+    </span>
 </span>

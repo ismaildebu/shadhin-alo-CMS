@@ -11,6 +11,7 @@ use App\Models\Location;
 use App\Models\Media;
 use App\Models\News;
 use App\Services\NewsWorkflow;
+use App\Support\ArticleDesign;
 use App\Support\HtmlSanitizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -364,17 +365,18 @@ class NewsController extends Controller
     public function preview(News $news): View
     {
         Gate::authorize('view', $news);
-
+ 
         $news->loadMissing([
             'category',
             'categories',
             'tags',
             'location.parent.parent',
         ]);
-
+ 
         return view('frontend.news', [
             'news' => $news,
             'relatedNews' => collect(),
+            'design' => ArticleDesign::all(),
         ]);
     }
 

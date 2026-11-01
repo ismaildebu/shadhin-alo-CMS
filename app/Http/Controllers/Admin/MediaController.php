@@ -126,6 +126,40 @@ class MediaController extends Controller
         ]);
     }
 
+    /** ছবির বিবরণ (alt) ও ফোকাস পয়েন্ট সংরক্ষণ। গ্যালারির সম্পাদনা-পর্দা থেকে JSON অনুরোধে আসে। */
+    public function updateDetails(Request $request, Media $media): JsonResponse
+    {
+        $data = $request->validate([
+            'alt' => ['nullable', 'string', 'max:255'],
+            'focus_x' => ['nullable', 'integer', 'between:0,100'],
+            'focus_y' => ['nullable', 'integer', 'between:0,100'],
+        ], [
+            'alt.max' => 'বিবরণ সর্বোচ্চ ২৫৫ অক্ষরের হতে পারবে।',
+            'focus_x.integer' => 'ফোকাস পয়েন্ট সঠিক নয়।',
+            'focus_x.between' => 'ফোকাস পয়েন্ট ছবির ভেতরে হতে হবে।',
+            'focus_y.integer' => 'ফোকাস পয়েন্ট সঠিক নয়।',
+            'focus_y.between' => 'ফোকাস পয়েন্ট ছবির ভেতরে হতে হবে।',
+        ]);
+
+        $alt = trim((string) ($data['alt'] ?? ''));
+        $hasFocus = isset($data['focus_x'], $data['focus_y']);
+
+        $media->update([
+            'alt' => $alt !== '' ? $alt : null,
+            'focus_x' => $hasFocus ? (int) $data['focus_x'] : null,
+            'focus_y' => $hasFocus ? (int) $data['focus_y'] : null,
+        ]);
+
+        Media::flushCaches();
+
+        return response()->json([
+            'ok' => true,
+            'alt' => $media->alt,
+            'focus_x' => $media->focus_x,
+            'focus_y' => $media->focus_y,
+        ]);
+    }
+
     /** একটি ছবি মোছে। ছবি সংবাদে ব্যবহৃত থাকলেও মোছা যায়। */
     public function destroy(Request $request, Media $media): RedirectResponse
     {
@@ -191,6 +225,7 @@ class MediaController extends Controller
 
         Media::removeFiles($filename);
         $media->delete();
+        Media::flushCaches();
 
         return $cleared;
     }

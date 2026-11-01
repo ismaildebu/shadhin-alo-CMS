@@ -6,6 +6,7 @@ use App\Services\ImageOptimizer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
@@ -30,13 +31,16 @@ class Media extends Model
     /** আপলোডের সময় বানানো ছোট সংস্করণের প্রস্থ (পিক্সেলে)। */
     public const THUMB_WIDTHS = [400, 800];
 
+    /** এই অনুরোধের জন্য মনে রাখা alt-এর তালিকা (altMap দেখুন)। */
+    private static ?array $altMemo = null;
+
     protected $table = 'media';
 
-    protected $fillable = ['filename', 'original_name', 'mime', 'size', 'uploaded_by'];
+    protected $fillable = ['filename', 'original_name', 'alt', 'focus_x', 'focus_y', 'mime', 'size', 'uploaded_by'];
 
     protected function casts(): array
     {
-        return ['size' => 'integer'];
+        return ['size' => 'integer', 'focus_x' => 'integer', 'focus_y' => 'integer'];
     }
 
     public function uploader(): BelongsTo
@@ -79,6 +83,71 @@ class Media extends Model
             'size' => strlen($result['data']),
             'uploaded_by' => $user?->id,
         ]);
+    }
+
+    /** ছবির বিবরণের (alt) তালিকা: ফাইলনাম => বিবরণ। migration চলার আগেও সাইট না ভেঙে খালি তালিকা দেয়। */
+    public static function altMap(): array
+    {
+        // Kept for the rest of the request: a page shows dozens of images, so avoid one cache read per image.
+        if (self::$altMemo !== null) {
+            return self::$altMemo;
+        }
+
+        try {
+            return self::$altMemo = Cache::remember('media.alt_map', 600, fn () => static::query()
+                ->whereNotNull('alt')
+                ->where('alt', '!=', '')
+                ->pluck('alt', 'filename')
+                ->all());
+        } catch (\Throwable) {
+            return self::$altMemo = [];
+        }
+    }
+
+    /** ছবির বিবরণ (alt); গ্যালারিতে না দেওয়া থাকলে $fallback (সাধারণত সংবাদের শিরোনাম)। */
+    public static function altFor(?string $filename, ?string $fallback = ''): string
+    {
+        if (! $filename) {
+            return (string) $fallback;
+        }
+
+        return self::altMap()[basename($filename)] ?? (string) $fallback;
+    }
+
+    /**
+     * ফোকাস পয়েন্ট দেওয়া ছবিগুলোর জন্য CSS। ছবি কেটে বসানোর সময় (object-fit: cover)
+     * এই অংশটাই দেখা যাবে। শুধু ফোকাস দেওয়া ছবির নিয়ম থাকে, তাই ছোট।
+     */
+    public static function focusCss(): string
+    {
+        try {
+            $rows = Cache::remember('media.focus_rows', 600, fn () => static::query()
+                ->whereNotNull('focus_x')
+                ->whereNotNull('focus_y')
+                ->get(['filename', 'focus_x', 'focus_y'])
+                ->map(fn ($m) => [$m->filename, (int) $m->focus_x, (int) $m->focus_y])
+                ->all());
+        } catch (\Throwable) {
+            return '';
+        }
+
+        $css = '';
+
+        foreach ($rows as [$file, $x, $y]) {
+            $safe = addcslashes(str_replace(['<', '>'], '', $file), '"\\');
+            $css .= 'img[src$="/'.$safe.'"]{object-position:'.$x.'% '.$y.'%}';
+        }
+
+        return $css;
+    }
+
+    /** alt ও ফোকাসের ক্যাশ মুছে ফেলে, যাতে বদল সাথে সাথে সাইটে দেখা যায়। */
+    public static function flushCaches(): void
+    {
+        self::$altMemo = null;
+
+        Cache::forget('media.alt_map');
+        Cache::forget('media.focus_rows');
     }
 
     /** ছোট সংস্করণের ফোল্ডার, যেমন uploads/news/thumbs/400 */

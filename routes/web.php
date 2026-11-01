@@ -28,6 +28,8 @@ use App\Http\Controllers\Frontend\TagController as FrontendTagController;
 use App\Http\Controllers\Frontend\VideoController as FrontendVideoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AvatarController;
+use App\Http\Controllers\AudioNewsController;
+use App\Http\Controllers\LanguageController;
 use Illuminate\Support\Facades\Route;
 
 // Frontend
@@ -36,6 +38,9 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/article/{slug}/next', [HomeController::class, 'next'])
     ->middleware('throttle:60,1')
     ->name('frontend.news.next');
+ Route::get('/article/{slug}/view', [HomeController::class, 'view'])
+    ->middleware('throttle:60,1')
+    ->name('frontend.news.view');   
 
 Route::get('/article/{slug}', [HomeController::class, 'show'])
     ->name('frontend.news.show');
@@ -97,9 +102,10 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
         Route::post('media', [MediaController::class, 'store'])->name('media.store');
         Route::get('media/list', [MediaController::class, 'list'])->middleware('throttle:60,1')->name('media.list');
         Route::delete('media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
+
         Route::post('media/bulk-destroy', [MediaController::class, 'bulkDestroy'])->name('media.bulk-destroy');
         Route::post('media/editor-upload', [MediaController::class, 'editorUpload'])->middleware('throttle:30,1')->name('media.editor-upload');
-
+        Route::patch('media/{media}', [MediaController::class, 'updateDetails'])->name('media.update');
         // Tag management (rename, merge, delete): permission "tags_manage"
         Route::middleware('can:manage-tags')->group(function () {
             Route::resource('tags', TagController::class)->only(['index', 'edit', 'update', 'destroy']);
@@ -200,4 +206,14 @@ require __DIR__.'/auth.php';
 // Poll management: permission "polls_manage"
 \Illuminate\Support\Facades\Route::middleware(['auth', 'can:manage-cms', 'can:manage-polls'])->prefix('admin')->name('admin.')->group(function () {
     \Illuminate\Support\Facades\Route::resource('polls', \App\Http\Controllers\Admin\PollController::class)->except('show');
+});
+
+
+
+Route::middleware(['web', \App\Http\Middleware\SetLocale::class])->group(function () {
+    // Language Switcher Route
+    Route::get('lang/{locale}', [LanguageController::class, 'switch'])->name('lang.switch');
+
+    // Audio News Generation Route
+    Route::post('news/{id}/generate-audio', [AudioNewsController::class, 'generateAudio'])->name('news.generate-audio');
 });

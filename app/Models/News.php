@@ -12,11 +12,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\App;
+
 class News extends Model
 {
     use GeneratesUniqueSlug;
     use SoftDeletes;
+    use HasFactory;
 
+    
     public const STATUS_DRAFT = 'draft';
 
     public const STATUS_PENDING = 'pending';
@@ -79,6 +85,19 @@ class News extends Model
         'is_lead',
         'status',
         'published_at',
+
+        'title',
+        'slug',
+        'content',
+        'lang',
+        'translations',
+        'audio_url',
+        'audio_duration',
+        'tts_status',
+    ];
+
+    protected $casts = [
+        'translations' => 'array',
     ];
 
     protected $attributes = [
@@ -189,4 +208,36 @@ public function categories(): BelongsToMany
         // sync() fires no model events, so flush the front-end cache by hand.
         FrontendCache::flush();
     }
+
+
+    
+
+    /**
+     * Access localized title safely
+     */
+    public function getLocalizedTitleAttribute(): ?string
+    {
+        $currentLocale = App::getLocale();
+        if ($this->lang === $currentLocale) {
+            return $this->title;
+        }
+
+        return $this->translations[$currentLocale]['title'] ?? $this->title ?? '';
+    }
+
+    /**
+     * Access localized content safely
+     */
+    public function getLocalizedContentAttribute(): ?string
+    {
+        $currentLocale = App::getLocale();
+        if ($this->lang === $currentLocale) {
+            return $this->content;
+        }
+
+        return $this->translations[$currentLocale]['content'] ?? $this->content ?? '';
+    }
 }
+
+
+

@@ -23,9 +23,9 @@ final class NewsFallback
     /** Category slugs (or their sub-categories) that show the division and district maps. */
     public const MAP_CATEGORY_SLUGS = ['saradesh'];
 
-    private const NONE = ['key' => null, 'text' => '', 'geo' => null, 'division' => '', 'incident' => ''];
+    private const NONE = ['key' => null, 'text' => '', 'geo' => null, 'division' => '', 'incident' => '', 'incident_type' => ''];
 
-    /** @var array<int, array{key: ?string, text: string, geo: ?array, division: string, incident: string}> */
+    /** @var array<int, array{key: ?string, text: string, geo: ?array, division: string, incident: string, incident_type: string}> */
     private static array $memo = [];
 
     /** @var array<int, string> */
@@ -66,8 +66,9 @@ final class NewsFallback
      * geo       district / upazila map location for App\Support\BdGeo (or null)
      * division  Bengali name of the division
      * incident  Bengali name of the upazila, else of the district (the place of the event)
+     * incident_type  'upazila', 'district' or '' (division only)
      *
-     * @return array{key: ?string, text: string, geo: ?array, division: string, incident: string}
+     * @return array{key: ?string, text: string, geo: ?array, division: string, incident: string, incident_type: string}
      */
     public static function place(News $news): array
     {
@@ -84,7 +85,7 @@ final class NewsFallback
         return self::$memo[$id] ??= self::resolve($news);
     }
 
-    /** @return array{key: ?string, text: string, geo: ?array, division: string, incident: string} */
+    /** @return array{key: ?string, text: string, geo: ?array, division: string, incident: string, incident_type: string} */
     private static function resolve(News $news): array
     {
         try {
@@ -110,6 +111,7 @@ final class NewsFallback
             'geo' => BdGeo::locate($district, $upazila),
             'division' => (string) ($division->name_bn ?? ''),
             'incident' => (string) (($upazila ?? $district)->name_bn ?? ''),
+            'incident_type' => $upazila ? 'upazila' : ($district ? 'district' : ''),
         ];
     }
 }

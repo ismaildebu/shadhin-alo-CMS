@@ -13,10 +13,10 @@
 */
 
 return [
-    'name' => env('SUPER_ADMIN_NAME', 'Devprosad Mallcick'),
-    'email' => env('SUPER_ADMIN_EMAIL', 'mallick.jess@gmail.com'),
-    'phone' => env('SUPER_ADMIN_PHONE', '01783057931'),
-    'support_email' => env('SUPPORT_EMAIL', 'mnupur37@gmail.com'),
+    'name' => env('SUPER_ADMIN_NAME', 'Super Admin'),
+    'email' => env('SUPER_ADMIN_EMAIL', ''),
+    'phone' => env('SUPER_ADMIN_PHONE'),
+    'support_email' => env('SUPPORT_EMAIL'),
     'password' => env(
         'SUPER_ADMIN_PASSWORD',
         env('SUPER_ADMIN_INITIAL_PASSWORD')

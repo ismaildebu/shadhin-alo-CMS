@@ -8,6 +8,7 @@ use App\Support\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Support\FrontendCache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -73,6 +74,9 @@ class NewsCardController extends Controller
         // সরাসরি কোয়েরি: খবরের updated_at বা অন্য ইভেন্ট ছোঁয়া হয় না।
         News::whereKey($news->id)->update(['card_image' => $name]);
 
+        // সরাসরি আপডেটে মডেল ইভেন্ট চলে না, তাই ফ্রন্টএন্ড ক্যাশ নিজে পরিষ্কার করতে হয়।
+        FrontendCache::flush();
+
         $this->deleteFile($old);
 
         if ($request->expectsJson()) {
@@ -89,6 +93,8 @@ class NewsCardController extends Controller
         $old = $news->card_image;
 
         News::whereKey($news->id)->update(['card_image' => null]);
+
+        FrontendCache::flush();
 
         $this->deleteFile($old);
 

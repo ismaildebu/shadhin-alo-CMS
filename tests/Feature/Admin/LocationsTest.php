@@ -314,9 +314,9 @@ it('renders the user forms with the districts', function () {
     $user = User::factory()->reporter()->create();
     $user->forceFill(['district_id' => $this->gazipur->id])->save();
 
-    $this->actingAs($this->admin)->get('/admin/users/create')->assertOk()->assertSee('জেলা প্রতিনিধি')->assertSee('ঢাকা › গাজীপুর');
+    $this->actingAs($this->admin)->get('/admin/users/create')->assertOk()->assertSee('রিপোর্টারের এলাকা')->assertSee('গাজীপুর');
     $this->actingAs($this->admin)->get("/admin/users/{$user->id}/edit")->assertOk()
-        ->assertSee('<option value="'.$this->gazipur->id.'" selected>', false);
+        ->assertSee('data-selected="'.$this->gazipur->id.'"', false);
 });
 
 // ------------------------------------------------------------- revisions

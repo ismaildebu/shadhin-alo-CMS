@@ -101,17 +101,16 @@ it('keeps the slug stable when the title changes', function () {
         ->and($news->fresh()->slug)->toBe($slug);
 });
 
-it('stores uploads under a random name so two uploads in one second cannot collide', function () {
+it('keeps the client filename and adds a suffix when two uploads in one second collide', function () {
     $this->actingAs($this->admin)->post('/admin/news', newsPayload(['image' => UploadedFile::fake()->image('a.jpg')]));
     $this->actingAs($this->admin)->post('/admin/news', newsPayload(['image' => UploadedFile::fake()->image('a.jpg')]));
 
     $images = News::pluck('image');
 
-    expect($images->unique())->toHaveCount(2);
+    expect($images->all())->toEqualCanonicalizing(['a.jpg', 'a-1.jpg']);
 
     foreach ($images as $name) {
-        expect($name)->toMatch('/^[0-9a-f-]{36}\.jpg$/')
-            ->and(File::exists($this->publicDir.'/uploads/news/'.$name))->toBeTrue();
+        expect(File::exists($this->publicDir.'/uploads/news/'.$name))->toBeTrue();
     }
 });
 

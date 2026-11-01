@@ -105,6 +105,31 @@ class HomeController extends Controller
         ) + $widgetData);
     }
 
+
+
+    /**
+     * অটো-লোড হওয়া খবর স্ক্রিনে এলে ব্রাউজার এটি ডাকে; পাঠ গোনা হয়, কিছু ফেরত দেয় না।
+     * শুধু জাভাস্ক্রিপ্টের (ajax) অনুরোধ নেয়, তাই সাধারণ লিংক খুলে বা রোবট দিয়ে গোনা যায় না।
+     */
+    public function view(Request $request, string $slug): Response
+    {
+        abort_unless($request->ajax(), 404);
+
+        $news = News::published()->where('slug', $slug)->first(['id']);
+
+        if ($news) {
+            try {
+                ViewCounter::hit($news, $request);
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
+
+        return response()->noContent();
+    }
+
+
+
     /**
      * একই ক্যাটাগরির পরের (পুরোনো) প্রকাশিত খবর, অসীম স্ক্রলের জন্য।
      */
@@ -233,35 +258,39 @@ class HomeController extends Controller
      */
     private function popular(int $limit): Collection
     {
-        return Cache::remember('frontend.popular.'.$limit, 120, function () use ($limit) {
-            $ids = DB::table('news_view_stats')
-                ->where('day', '>=', now()->subDays(6)->toDateString())
-                ->selectRaw('news_id, sum(views) as total')
-                ->groupBy('news_id')
-                ->orderByDesc('total')
-                ->limit($limit)
-                ->pluck('news_id');
+        // Cache only the ranking (ids). The articles themselves are read again
+        // on every request, so an unpublished or deleted article disappears
+        // immediately even while its id is still in the short-lived ranking.
+        $ids = Cache::remember('frontend.popular.ids.'.$limit, 120, fn () => DB::table('news_view_stats')
+            ->where('day', '>=', now()->subDays(6)->toDateString())
+            ->selectRaw('news_id, sum(views) as total')
+            ->groupBy('news_id')
+            ->orderByDesc('total')
+            ->limit($limit)
+            ->pluck('news_id')
+            ->all());
 
-            $news = News::published()
+        $order = array_flip($ids);
+
+        $news = News::published()
+            ->with('category')
+            ->whereIn('id', $ids)
+            ->get()
+            ->sortBy(fn (News $n) => $order[$n->id] ?? PHP_INT_MAX)
+            ->values();
+
+        if ($news->count() < $limit) {
+            $extra = News::published()
                 ->with('category')
-                ->whereIn('id', $ids)
-                ->get()
-                ->sortBy(fn (News $n) => $ids->search($n->id))
-                ->values();
+                ->whereNotIn('id', $news->pluck('id'))
+                ->orderByDesc('view_count')
+                ->latestPublished()
+                ->take($limit - $news->count())
+                ->get();
 
-            if ($news->count() < $limit) {
-                $extra = News::published()
-                    ->with('category')
-                    ->whereNotIn('id', $news->pluck('id'))
-                    ->orderByDesc('view_count')
-                    ->latestPublished()
-                    ->take($limit - $news->count())
-                    ->get();
+            $news = $news->concat($extra);
+        }
 
-                $news = $news->concat($extra);
-            }
-
-            return $news;
-        });
+        return $news;
     }
 }

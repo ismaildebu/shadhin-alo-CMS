@@ -14,8 +14,6 @@
     <meta property="og:site_name" content="{{ \App\Support\Settings::get('site_name') }}">
 
 
-
-
     @if($shareImage)
         <meta property="og:image" content="{{ $shareImage }}">
         <meta name="twitter:card" content="summary_large_image">
@@ -35,12 +33,17 @@
     {{-- Dashboard design values. Built only from whitelisted options and validated hex colors. --}}
     <style>{!! $design['css'] !!}</style>
 
-    @if($design['toggles']['autoload'] && $news->category_id)
+       @if($design['toggles']['autoload'] && $news->category_id)
         <script src="{{ asset('js/article-autoload.js') }}" defer></script>
+        <script src="{{ asset('js/article-view-count.js') }}" defer></script>
     @endif
 @endsection
 
 @section('content')
+
+
+    <!-- 🎧 অডিও প্লেয়ারটি এখানে বসিয়ে দিন -->
+    <x-audio-player :news="$news" />
 
 @php
     $by = \App\Support\Avatars::byline($news);
@@ -56,6 +59,7 @@
         $widgetLimit = fn (string $name) => $mainWidgets->get($name)?->item_limit
             ?? (\App\Models\SidebarWidget::META[$name]['limit']['default'] ?? null);
     @endphp
+
 
     @if($show['no_image_card'])
         @include('frontend.partials.bd-map-defs')
@@ -125,6 +129,7 @@
                     class="sa-autoload"
                     data-slug="{{ $news->slug }}"
                     data-endpoint="{{ route('frontend.news.next', '__SLUG__') }}"
+                    data-view="{{ route('frontend.news.view', '__SLUG__') }}"
                     data-max="{{ $design['counts']['autoload'] }}"
                     data-loading="পরের খবর লোড হচ্ছে…"
                     data-error="পরের খবর আনা যায়নি।"
