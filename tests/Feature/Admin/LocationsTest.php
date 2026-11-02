@@ -365,41 +365,39 @@ it('detaches articles from a place that is deleted instead of deleting them', fu
     expect(News::find($news->id))->not->toBeNull()->and($news->fresh()->location_id)->toBeNull();
 });
 
-// ------------------------------------------------- সারাদেশ reports need all three levels
+// ------------------------------------------------- সারাদেশ reports need a district
 
-it('requires division, district and upazila when the article is in সারাদেশ', function () {
+it('requires division and district when the article is in সারাদেশ, upazila is optional', function () {
     $saradesh = Category::create(['name' => 'সারাদেশ', 'slug' => 'saradesh']);
     $payload = fn (array $extra = []) => lcPayload(['category_id' => $saradesh->id] + $extra);
 
-    $this->actingAs($this->editor)->post('/admin/news', $payload())->assertSessionHasErrors('upazila_id');
-    $this->actingAs($this->editor)->post('/admin/news', $payload(['division_id' => $this->dhakaDiv->id]))->assertSessionHasErrors('upazila_id');
-    $this->actingAs($this->editor)->post('/admin/news', $payload([
-        'division_id' => $this->dhakaDiv->id, 'district_id' => $this->dhakaDist->id,
-    ]))->assertSessionHasErrors('upazila_id');
+    $this->actingAs($this->editor)->post('/admin/news', $payload())->assertSessionHasErrors('district_id');
+    $this->actingAs($this->editor)->post('/admin/news', $payload(['division_id' => $this->dhakaDiv->id]))->assertSessionHasErrors('district_id');
 
     expect(News::count())->toBe(0);
+
+    $this->actingAs($this->editor)->post('/admin/news', $payload([
+        'division_id' => $this->dhakaDiv->id, 'district_id' => $this->dhakaDist->id,
+    ]))->assertSessionHasNoErrors();
+
+    expect(News::firstOrFail()->location_id)->toBe($this->dhakaDist->id);
 
     $this->actingAs($this->editor)->post('/admin/news', $payload([
         'division_id' => $this->dhakaDiv->id, 'district_id' => $this->dhakaDist->id, 'upazila_id' => $this->savar->id,
     ]))->assertSessionHasNoErrors();
 
-    expect(News::firstOrFail()->location_id)->toBe($this->savar->id);
+    expect(News::latest('id')->first()->location_id)->toBe($this->savar->id);
 });
 
-it('keeps the সারাদেশ rule for an update that never mentions the place', function () {
+it('keeps the existing district for an update that never mentions the place', function () {
     $saradesh = Category::create(['name' => 'সারাদেশ', 'slug' => 'saradesh']);
     $news = lcArticle($this->dhakaDist, 'draft', ['category_id' => $saradesh->id]);
 
     $this->actingAs($this->editor)->put("/admin/news/{$news->id}", lcPayload([
         'category_id' => $saradesh->id, 'title' => 'সংশোধিত সারাদেশ',
-    ]))->assertSessionHasErrors('upazila_id');
-
-    $this->actingAs($this->editor)->put("/admin/news/{$news->id}", lcPayload([
-        'category_id' => $saradesh->id, 'title' => 'সংশোধিত সারাদেশ',
-        'division_id' => $this->dhakaDiv->id, 'district_id' => $this->dhakaDist->id, 'upazila_id' => $this->savar->id,
     ]))->assertSessionHasNoErrors();
 
-    expect($news->fresh()->location_id)->toBe($this->savar->id);
+    expect($news->fresh()->location_id)->toBe($this->dhakaDist->id);
 });
 
 it('guesses a সারাদেশ report\'s place from the names in its title', function () {
@@ -417,5 +415,5 @@ it('marks the category checkboxes so the form can require the place for সা�
 
     expect($html)->toContain('data-slug="saradesh"')
         ->toContain('data-role="location-hint"')
-        ->toContain('সারাদেশ সংবাদে বিভাগ, জেলা ও উপজেলা');
+        ->toContain('সারাদেশ সংবাদে বিভাগ ও জেলা');
 });

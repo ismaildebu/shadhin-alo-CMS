@@ -473,11 +473,11 @@
 
                 <p class="ad-hint" style="margin:0 0 12px;">
                     সংবাদটি কোন এলাকার; জাতীয় বা আন্তর্জাতিক হলে ফাঁকা রাখুন।
-                    সারাদেশ সংবাদে বিভাগ, জেলা ও উপজেলা — তিনটিই বেছে নিতে হবে।
+                    সারাদেশ সংবাদে বিভাগ ও জেলা বাধ্যতামূলক; উপজেলা শহরের খবর হলে উপজেলাও বেছে নিন।
                 </p>
 
                 <p class="ad-hint" data-role="location-hint" style="display:none;margin:0 0 12px;color:#b45309;">
-                    সারাদেশ ক্যাটাগরি নির্বাচন করা হয়েছে — বিভাগ, জেলা ও উপজেলা তিনটিই বেছে নিন।
+                    সারাদেশ ক্যাটাগরি নির্বাচন করা হয়েছে — বিভাগ ও জেলা বেছে নিন; উপজেলা শহরের খবর হলে উপজেলাও।
                 </p>
 
                 @if($districtOnly)
@@ -640,7 +640,7 @@
 </div>
 
 <script src="{{ asset('js/admin-tag-input.js') }}"></script>
-<script src="{{ asset('js/admin-location-select.js') }}"></script>
+<script src="{{ asset('js/admin-location-select.js') }}?v={{ filemtime(public_path('js/admin-location-select.js')) }}"></script>
 <script src="{{ asset('js/admin-media-picker.js') }}"></script>
 <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
 

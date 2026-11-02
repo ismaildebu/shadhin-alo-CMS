@@ -313,9 +313,9 @@ class NewsController extends Controller
             ->where('slug', Category::NATIONWIDE_SLUG)
             ->exists();
 
-        if ($needsPlace && $news->location?->type !== Location::UPAZILA) {
+        if ($needsPlace && (! $news->location || $news->location->isDivision())) {
             return back()->withErrors([
-                'category_ids' => 'সারাদেশ ক্যাটাগরির সংবাদে বিভাগ, জেলা ও উপজেলা — তিনটিই থাকতে হবে। আগে সম্পাদনা পেজে স্থান ঠিক করুন।',
+                'category_ids' => 'সারাদেশ ক্যাটাগরির সংবাদে বিভাগ ও জেলা থাকতে হবে। আগে সম্পাদনা পেজে স্থান ঠিক করুন।',
             ]);
         }
 

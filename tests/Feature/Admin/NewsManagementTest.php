@@ -388,7 +388,7 @@ it('only lets editors and admins permanently delete from the trash', function ()
     expect(News::withTrashed()->find($news->id))->not->toBeNull();
 });
 
-it('will not add সারাদেশ from the list without division, district and upazila', function () {
+it('will not add সারাদেশ from the list without a district', function () {
     $saradesh = Category::create(['name' => 'সারাদেশ', 'slug' => 'saradesh']);
 
     $news = News::create([
@@ -404,8 +404,7 @@ it('will not add সারাদেশ from the list without division, district 
 
     $division = \App\Models\Location::create(['parent_id' => null, 'type' => 'division', 'name_bn' => 'ঢাকা', 'name_en' => 'Dhaka', 'slug' => 'dhaka']);
     $district = \App\Models\Location::create(['parent_id' => $division->id, 'type' => 'district', 'name_bn' => 'ঢাকা', 'name_en' => 'Dhaka', 'slug' => 'dhaka']);
-    $upazila = \App\Models\Location::create(['parent_id' => $district->id, 'type' => 'upazila', 'name_bn' => 'সাভার', 'name_en' => 'Savar', 'slug' => 'savar']);
-    $news->forceFill(['location_id' => $upazila->id])->save();
+    $news->forceFill(['location_id' => $district->id])->save();
 
     $this->actingAs($this->admin)->post(route('news.category', $news), ['category_ids' => [$saradesh->id]])
         ->assertSessionHasNoErrors();

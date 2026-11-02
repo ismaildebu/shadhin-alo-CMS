@@ -35,15 +35,18 @@
             filter(upazila, district.value);
         }
 
-        // A সারাদেশ report must name its division, district and upazila; every other category may stay empty.
+        // A সারাদেশ report must name its division and district; the upazila is optional because
+        // a report from a district town (including Dhaka, Chattogram, Khulna and Rajshahi) has none.
         function applyRequired() {
             var form = field.closest ? field.closest('form') : null;
             var saradesh = form && form.querySelector('input[name="category_ids[]"][data-slug="saradesh"]');
             var needed = !!(saradesh && saradesh.checked);
 
-            [division, district, upazila].forEach(function (select) {
+            [division, district].forEach(function (select) {
                 select.required = needed;
             });
+
+            upazila.required = false;
 
             var hint = field.querySelector('[data-role="location-hint"]');
             if (hint) { hint.style.display = needed ? '' : 'none'; }

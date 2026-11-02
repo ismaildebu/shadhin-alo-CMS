@@ -25,6 +25,17 @@
             সংবাদ
         </a>
 
+        @can('create', App\Models\News::class)
+            <form method="POST" action="{{ route('news.import') }}"
+                  onsubmit="const b=this.querySelector('button'); b.disabled=true; b.querySelector('span').textContent='সংবাদ আনা হচ্ছে…';">
+                @csrf
+                <button type="submit" class="ad-link" title="ফিড থেকে নতুন সংবাদ এনে খসড়া হিসেবে রাখুন">
+                    <svg class="ad-ico" viewBox="0 0 24 24"><path d="M12 4v10"/><path d="M8 10l4 4 4-4"/><path d="M5 18a2 2 0 002 2h10a2 2 0 002-2"/></svg>
+                    <span>নতুন সংবাদ আনুন</span>
+                </button>
+            </form>
+        @endcan
+
         @can('manage-categories')
             <a href="{{ route('categories.index') }}"
                class="ad-link {{ request()->routeIs('categories.*') ? 'is-active' : '' }}">

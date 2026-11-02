@@ -221,6 +221,7 @@ final class FeedReader
                 'category' => $category,
                 'categories' => $categories,
                 'category_tag' => $tag,
+                'tags' => $tags,
                 'published_at' => $stamp ? date('c', $stamp) : null,
                 'excerpt' => $excerpt,
                 'content' => $content,

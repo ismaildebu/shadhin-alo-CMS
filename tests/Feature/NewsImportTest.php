@@ -5,12 +5,12 @@ use App\Models\News;
 use App\Models\NewsImport;
 use App\Support\NewsImport\FeedReader;
 use App\Support\NewsImport\NewsImporter;
+use Database\Seeders\CategorySeeder;
 
 beforeEach(function () {
     Category::create(['name' => 'জাতীয়', 'slug' => 'jatiyo']);
     Category::create(['name' => 'সারাদেশ', 'slug' => 'saradesh']);
     Category::create(['name' => 'অন্যান্য', 'slug' => 'others']);
-    Category::create(['name' => 'সর্বশেষ', 'slug' => 'Latest']);
 
     config(['news_import.images.required' => false]);
 
@@ -70,6 +70,18 @@ test('প্রতিটি সোর্সের কনফিগে ফিড, 
         expect($source)->toHaveKey('content');
         expect($source['content'])->toHaveKeys(['class', 'exclude']);
     }
+});
+
+test('ইমপোর্টের সব ক্যাটাগরি slug সিডারের সাথে মেলে', function () {
+    $known = array_values(CategorySeeder::CATEGORIES);
+    $used = [];
+
+    foreach ((array) config('news_import.sources') as $source) {
+        $used[] = (string) $source['default_category'];
+        $used = array_merge($used, array_values($source['category_map']));
+    }
+
+    expect(array_values(array_diff(array_unique($used), $known)))->toBe([]);
 });
 
 test('সংবাদ পেজ থেকে পূর্ণাঙ্গ প্রতিবেদন বের হয়', function () {
@@ -258,7 +270,7 @@ test('একই শিরোনাম অন্য লিংকে এলেও 
     expect(News::count())->toBe(1);
 });
 
-test('অজানা বা মুছে ফেলা ক্যাটাগরি হলে Latest-এ যায়', function () {
+test('অজানা বা মুছে ফেলা ক্যাটাগরি হলে অন্যান্যে যায়', function () {
     $result = NewsImporter::save([
         'source' => 'jagonews24',
         'title' => 'অজানা বিভাগের একটি সংবাদ',
@@ -273,7 +285,7 @@ test('অজানা বা মুছে ফেলা ক্যাটাগর�
     ]);
 
     expect($result['state'])->toBe('imported');
-    expect(News::firstOrFail()->categories->pluck('slug')->all())->toBe(['Latest']);
+    expect(News::firstOrFail()->categories->pluck('slug')->all())->toBe(['others']);
 });
 
 test('Google News সাইটম্যাপ থেকেও শিরোনাম, লিংক, তারিখ ও ছবি পড়া হয়', function () {
@@ -325,8 +337,81 @@ test('সারাদেশ সংবাদে শিরোনামে থা�
         'reason' => '',
     ]);
 
+    $news = News::firstOrFail();
+
     expect($result['state'])->toBe('imported');
-    expect(News::firstOrFail()->location_id)->toBe($savar->id);
+    expect($news->location_id)->toBe($savar->id);
+    expect($news->reporter)->toBe('সংবাদদাতা, সাভার (ঢাকা)');
+    expect($news->tags->pluck('name')->all())->toContain('সাভার', 'ঢাকা', 'সারাদেশ');
+});
+
+test('জেলা শহরের সারাদেশ সংবাদে বাইলাইন জেলার নাম', function () {
+    \App\Support\LocationImporter::import();
+    $kushtia = \App\Models\Location::districts()->where('slug', 'kushtia')->firstOrFail();
+
+    $result = NewsImporter::save([
+        'source' => 'prothomalo',
+        'title' => 'কুষ্টিয়ায় নতুন সেতু চালু হলো',
+        'link' => 'https://www.prothomalo.com/bangladesh/kushtia-bridge',
+        'category' => 'saradesh',
+        'category_tag' => 'জেলা',
+        'published_at' => now()->toIso8601String(),
+        'excerpt' => 'সেতুটি আজ চালু হয়েছে।',
+        'image' => null,
+        'state' => 'new',
+        'reason' => '',
+    ]);
+
+    $news = News::firstOrFail();
+
+    expect($result['state'])->toBe('imported');
+    expect($news->location_id)->toBe($kushtia->id);
+    expect($news->reporter)->toBe('সংবাদদাতা, কুষ্টিয়া');
+});
+
+test('সদর উপজেলা নেই এমন জেলার সংবাদও আমদানি হয়', function () {
+    \App\Support\LocationImporter::import();
+    $dhaka = \App\Models\Location::districts()->where('slug', 'dhaka')->firstOrFail();
+
+    $result = NewsImporter::save([
+        'source' => 'prothomalo',
+        'title' => 'ঢাকায় নতুন সেতু চালু হলো',
+        'link' => 'https://www.prothomalo.com/bangladesh/dhaka-bridge',
+        'category' => 'saradesh',
+        'category_tag' => 'জেলা',
+        'published_at' => now()->toIso8601String(),
+        'excerpt' => 'সেতুটি আজ চালু হয়েছে।',
+        'image' => null,
+        'state' => 'new',
+        'reason' => '',
+    ]);
+
+    $news = News::firstOrFail();
+
+    expect($result['state'])->toBe('imported');
+    expect($news->location_id)->toBe($dhaka->id);
+    expect($news->reporter)->toBe('সংবাদদাতা, ঢাকা');
+});
+
+test('প্রতিটি আমদানি করা সংবাদে ট্যাগ বসে', function () {
+    $result = NewsImporter::save([
+        'source' => 'prothomalo',
+        'title' => 'নতুন সেতু উদ্বোধন করা হয়েছে',
+        'link' => 'https://www.prothomalo.com/bangladesh/new-bridge-tags',
+        'category' => 'jatiyo',
+        'category_tag' => 'বাংলাদেশ',
+        'tags' => ['বাংলাদেশ', 'সেতু'],
+        'published_at' => now()->toIso8601String(),
+        'excerpt' => 'সেতুটি উদ্বোধন করা হয়েছে।',
+        'image' => null,
+        'state' => 'new',
+        'reason' => '',
+    ]);
+
+    $tags = News::firstOrFail()->tags->pluck('name')->all();
+
+    expect($result['state'])->toBe('imported');
+    expect($tags)->toContain('বাংলাদেশ', 'সেতু', 'জাতীয়');
 });
 
 test('সারাদেশ ছাড়া অন্য বিভাগের সংবাদে স্থান নিজে থেকে বসে না', function () {
@@ -368,8 +453,44 @@ test('ফিডের একাধিক ট্যাগ থেকে একা�
 
     $items = FeedReader::parse('prothomalo', $source, $xml, $config, [], 5);
 
-    expect($items[0]['category'])->toBe('Jayato');
-    expect($items[0]['categories'])->toBe(['Jayato', 'Sports']);
+    expect($items[0]['category'])->toBe('jatiyo');
+    expect($items[0]['categories'])->toBe(['jatiyo', 'sports']);
+    expect($items[0]['tags'])->toBe(['বাংলাদেশ', 'খেলা']);
+});
+
+test('শিক্ষা ট্যাগ বা সেকশন শিক্ষা ক্যাটাগরিতেই মাপে', function () {
+    $sources = (array) config('news_import.sources');
+
+    expect(FeedReader::categoriesFor($sources['khulnagazette'], ['টপ নিউজ', 'শিক্ষা'], 'https://khulnagazette.com/a'))
+        ->toBe(['others', 'education'])
+        ->and(FeedReader::categoriesFor($sources['banglanews24'], [], 'https://www.banglanews24.com/education/news/bd/1.details'))
+        ->toBe(['education'])
+        ->and(FeedReader::categoriesFor($sources['bdnews24'], [], 'https://bangla.bdnews24.com/education/abc123'))
+        ->toBe(['education']);
+});
+
+test('ফিডের প্রথম ট্যাগ others হলেও প্রধান ক্যাটাগরি আসল বিভাগ হয়', function () {
+    Category::create(['name' => 'শিক্ষা', 'slug' => 'education']);
+
+    $result = NewsImporter::save([
+        'source' => 'khulnagazette',
+        'title' => 'শিক্ষা প্রতিষ্ঠান নিয়ে নতুন ঘোষণা',
+        'link' => 'https://khulnagazette.com/education/new-announcement',
+        'category' => 'others',
+        'categories' => ['others', 'education'],
+        'category_tag' => 'টপ নিউজ',
+        'published_at' => now()->toIso8601String(),
+        'excerpt' => 'সংক্ষিপ্ত অংশ।',
+        'image' => null,
+        'state' => 'new',
+        'reason' => '',
+    ]);
+
+    expect($result['state'])->toBe('imported');
+
+    $news = News::firstOrFail();
+    expect($news->category_id)->toBe(Category::where('slug', 'education')->value('id'))
+        ->and($news->categories->pluck('slug')->all())->toContain('others')->toContain('education');
 });
 
 test('সংবাদ সংরক্ষণে সব ক্যাটাগরি যুক্ত হয়', function () {
@@ -414,7 +535,7 @@ test('ছবি না থাকলে সংবাদ আমদানি হয
     expect(News::count())->toBe(0);
 });
 
-test('সারাদেশ সংবাদে উপজেলা শনাক্ত না হলে আমদানি হয় না', function () {
+test('সারাদেশ সংবাদে জেলা বা উপজেলা শনাক্ত না হলে আমদানি হয় না', function () {
     $result = NewsImporter::save([
         'source' => 'prothomalo',
         'title' => 'সারাদেশে নতুন প্রকল্প চালু হলো',

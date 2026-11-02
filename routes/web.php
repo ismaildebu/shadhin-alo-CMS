@@ -8,6 +8,7 @@ use App\Http\Controllers\Frontend\ChartController as FrontendChartController;
 use App\Http\Controllers\Admin\HomeLayoutController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\NewsController;
+use App\Http\Controllers\Admin\NewsImportController;
 use App\Http\Controllers\Admin\NewsRevisionController;
 use App\Http\Controllers\Admin\NewsVideoController;
 use App\Http\Controllers\Admin\NewsWorkflowController;
@@ -83,6 +84,9 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
     Route::prefix('admin')->group(function () {
 
         // News: everyone with panel access (non-editors are limited to their own by the policy)
+        Route::post('news/import', [NewsImportController::class, 'store'])
+            ->middleware('throttle:6,1')
+            ->name('news.import');
         Route::resource('news', NewsController::class)->except('show');
         Route::post('news/bulk-destroy', [NewsController::class, 'bulkDestroy'])->name('news.bulk-destroy');
         Route::post('news/bulk-force-delete', [NewsController::class, 'bulkForceDestroy'])->name('news.bulk-force-delete');

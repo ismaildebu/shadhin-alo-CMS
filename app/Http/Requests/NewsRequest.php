@@ -193,9 +193,10 @@ class NewsRequest extends FormRequest
                 }
             }
 
-            // A সারাদেশ report is about one specific place, so all three selects are required.
-            if ($this->hasNationwideCategory() && (! $location || $location->type !== Location::UPAZILA)) {
-                $validator->errors()->add('upazila_id', 'সারাদেশ ক্যাটাগরির সংবাদে বিভাগ, জেলা ও উপজেলা — তিনটিই নির্বাচন করুন।');
+            // A সারাদেশ report is about one place: at least a district; an upazila only when
+            // the event happened in an upazila town.
+            if ($this->hasNationwideCategory() && (! $location || $location->isDivision())) {
+                $validator->errors()->add('district_id', 'সারাদেশ ক্যাটাগরির সংবাদে বিভাগ ও জেলা নির্বাচন করুন; উপজেলা শহরের খবর হলে উপজেলাও।');
 
                 return;
             }

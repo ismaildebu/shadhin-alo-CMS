@@ -3,6 +3,7 @@
 namespace App\Support\NewsImport;
 
 use App\Models\Category;
+use App\Models\Location;
 use App\Models\Media;
 use App\Models\News;
 use App\Models\NewsImport;
@@ -116,7 +117,9 @@ final class NewsImporter
             return self::failed('ক্যাটাগরি পাওয়া যায়নি (আগে ক্যাটাগরি সিড করুন)');
         }
 
-        $category = $categories->first();
+        // A feed's first tag is often a flag such as "টপ নিউজ" (others); the legacy column
+        // should point at the real section so listings show the story in the right category.
+        $category = $categories->first(fn (Category $cat) => $cat->slug !== 'others') ?? $categories->first();
         $nationwide = $categories->contains(fn (Category $cat) => $cat->slug === Category::NATIONWIDE_SLUG);
 
         $author = self::author($config);
@@ -129,9 +132,11 @@ final class NewsImporter
             ? LocationMatcher::detect($title, trim($excerpt.' '.strip_tags($content)))
             : null;
 
-        if ($nationwide && (! $location || ! $location->isUpazila())) {
-            return self::skipped('সারাদেশ সংবাদে বিভাগ/জেলা/উপজেলা শনাক্ত হয়নি');
+        if ($nationwide && (! $location || (! $location->isDistrict() && ! $location->isUpazila()))) {
+            return self::skipped('সারাদেশ সংবাদে জেলা বা উপজেলা শনাক্ত হয়নি');
         }
+
+        $reporter = $nationwide && $location ? self::reporterFor($location) : null;
 
         $image = self::importImage($item['image'] ?? null, $author, $config);
 
@@ -143,7 +148,7 @@ final class NewsImporter
             .self::sourceLine($link, $sourceName);
 
         try {
-            $news = DB::transaction(function () use ($item, $category, $categories, $location, $author, $title, $summary, $description, $image, $sourceKey, $sourceName, $link, $titleKey, $externalHash) {
+            $news = DB::transaction(function () use ($item, $category, $categories, $location, $reporter, $author, $title, $summary, $description, $image, $sourceKey, $sourceName, $link, $titleKey, $externalHash) {
                 $news = News::create([
                     'category_id' => $category->id,
                     'location_id' => $location?->id,
@@ -153,6 +158,7 @@ final class NewsImporter
                     'slug' => News::uniqueSlug($title),
                     'summary' => $summary,
                     'description' => $description,
+                    'reporter' => $reporter,
                     'image' => $image,
                     'image_credit' => $image ? $sourceName : null,
                     'status' => News::STATUS_DRAFT,
@@ -160,6 +166,7 @@ final class NewsImporter
                 ]);
 
                 $news->categories()->sync($categories->pluck('id')->all());
+                $news->syncTagNames(self::tagNames($categories, $location, $item));
 
                 NewsImport::create([
                     'source' => $sourceKey,
@@ -319,7 +326,7 @@ final class NewsImporter
 
     /**
      * Every local category for an entry: the primary slug plus all additional feed tags.
-     * Falls back to the source default, then Latest, then others.
+     * Falls back to the source default, then others.
      */
     private static function resolveCategories(array $item, string $sourceKey, array $config): Collection
     {
@@ -344,7 +351,6 @@ final class NewsImporter
 
         foreach (array_unique(array_filter([
             (string) ($config['sources'][$sourceKey]['default_category'] ?? ''),
-            'Latest',
             'others',
         ])) as $slug) {
             $category = Category::query()->where('slug', $slug)->first();
@@ -355,6 +361,47 @@ final class NewsImporter
         }
 
         return collect();
+    }
+
+    /** সারাদেশের বাইলাইন: জেলা শহরের ঘটনা হলে জেলা, উপজেলা শহরের হলে "উপজেলা (জেলা)". */
+    private static function reporterFor(Location $location): string
+    {
+        if ($location->isDistrict()) {
+            return 'সংবাদদাতা, '.$location->name_bn;
+        }
+
+        $district = $location->parent?->name_bn;
+
+        if ($district && str_ends_with($location->name_bn, 'সদর')) {
+            return 'সংবাদদাতা, '.$district;
+        }
+
+        return 'সংবাদদাতা, '.$location->name_bn.($district ? ' ('.$district.')' : '');
+    }
+
+    /**
+     * Tags for an imported draft: the feed's own labels, the detected place and the local
+     * categories. Tag::idsForNames drops duplicates, enforces the per-article limit and
+     * creates missing tags.
+     *
+     * @param  Collection<int, Category>  $categories
+     * @return list<string>
+     */
+    private static function tagNames(Collection $categories, ?Location $location, array $item): array
+    {
+        $names = array_map(fn ($tag) => trim((string) $tag), (array) ($item['tags'] ?? []));
+
+        if ($location) {
+            foreach ($location->path()->reverse() as $place) {
+                $names[] = (string) $place->name_bn;
+            }
+        }
+
+        foreach ($categories as $category) {
+            $names[] = (string) $category->name;
+        }
+
+        return array_values(array_filter($names, fn (string $name) => $name !== ''));
     }
 
     private static function author(array $config): ?User
