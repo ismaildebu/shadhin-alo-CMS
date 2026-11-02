@@ -185,8 +185,27 @@
 .sa-noimg-thumb.sa-noimg-plain .sa-noimg-logo { padding: .15rem .3rem; }
 .sa-noimg-thumb.sa-noimg-plain .sa-noimg-logo img { height: 1rem; max-width: 3.2rem; }
 
-/* ---------- slots that already define their own box ---------- */
-.sa-g4-img .sa-noimg,
+/* ---------- full-bleed map picture: Saradesh news without a photo or chart ---------- */
+.sa-noimg-scene {
+    display: block;
+    padding: 0;
+    background: #01878a;
+    border-radius: 10px;
+    line-height: 0;
+}
+.sa-noimg-scene.sa-noimg-hero { padding: 0; }
+.sa-noimg-art { display: block; width: 100%; height: 100%; }
+
+.sa-noimg-cty { fill: #f4f6f5; stroke: #c2d5d1; stroke-width: 1.1; stroke-linejoin: round; }
+.sa-noimg-outline { fill: #026465; stroke: #e5b13c; stroke-linejoin: round; }
+.sa-noimg-upz { fill: none; stroke: #e5b13c; stroke-linejoin: round; opacity: .75; }
+.sa-noimg-link { fill: none; stroke: #0b2f2e; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; opacity: .7; }
+.sa-noimg-dot { fill: #0b2f2e; }
+.sa-noimg-pin { filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .28)); }
+.sa-noimg-label { fill: #fff; font-weight: 800; letter-spacing: .2px; }
+.sa-noimg-scene .sa-noimg-credit { fill: rgba(255, 255, 255, .55); font-size: 15px; letter-spacing: .2px; }
+
+/* ---------- slots that already define their own box ---------- */.sa-g4-img .sa-noimg,
 .sa-box-img .sa-noimg,
 .sa-wide-img .sa-noimg { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; }
 
