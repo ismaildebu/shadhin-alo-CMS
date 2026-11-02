@@ -226,5 +226,7 @@ Route::middleware(['web', \App\Http\Middleware\SetLocale::class])->group(functio
     Route::get('lang/{locale}', [LanguageController::class, 'switch'])->name('lang.switch');
 
     // Audio News Generation Route
-    Route::post('news/{id}/generate-audio', [AudioNewsController::class, 'generateAudio'])->name('news.generate-audio');
+    Route::post('news/{id}/generate-audio', [AudioNewsController::class, 'generateAudio'])
+        ->middleware('throttle:3,1')
+        ->name('news.generate-audio');
 });

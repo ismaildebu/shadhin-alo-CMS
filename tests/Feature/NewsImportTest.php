@@ -12,6 +12,8 @@ beforeEach(function () {
     Category::create(['name' => 'অন্যান্য', 'slug' => 'others']);
     Category::create(['name' => 'সর্বশেষ', 'slug' => 'Latest']);
 
+    config(['news_import.images.required' => false]);
+
     NewsImporter::resetMemo();
 });
 
@@ -20,10 +22,17 @@ function importFeedXml(array $items): string
     $body = '';
 
     foreach ($items as $item) {
+        $tags = $item['categories'] ?? [$item['category'] ?? ''];
+        $categories = '';
+
+        foreach ($tags as $tag) {
+            $categories .= '<category>'.htmlspecialchars((string) $tag, ENT_XML1).'</category>';
+        }
+
         $body .= '<item>'
             .'<title>'.htmlspecialchars($item['title'], ENT_XML1).'</title>'
             .'<link>'.$item['link'].'</link>'
-            .'<category>'.htmlspecialchars($item['category'] ?? '', ENT_XML1).'</category>'
+            .$categories
             .'<pubDate>'.$item['date'].'</pubDate>'
             .'<description>'.htmlspecialchars($item['description'] ?? '', ENT_XML1).'</description>'
             .(isset($item['image']) ? '<media:content url="'.$item['image'].'" type="image/jpeg"/>' : '')
@@ -338,4 +347,96 @@ test('সারাদেশ ছাড়া অন্য বিভাগের �
 
     expect($result['state'])->toBe('imported');
     expect(News::firstOrFail()->location_id)->toBeNull();
+});
+
+test('ফিডের একাধিক ট্যাগ থেকে একাধিক ক্যাটাগরি আসে', function () {
+    $config = (array) config('news_import');
+    $config['text']['og_lookup'] = false;
+    $config['images']['og_lookup'] = false;
+    $source = $config['sources']['prothomalo'];
+
+    $xml = importFeedXml([
+        [
+            'title' => 'বাংলাদেশের ক্রিকেট দলের নতুন সিরিজ',
+            'link' => 'https://www.prothomalo.com/sports/cricket-series',
+            'categories' => ['বাংলাদেশ', 'খেলা'],
+            'date' => gmdate('D, d M Y H:i:s').' GMT',
+            'description' => 'সিরিজ শুরু হচ্ছে।',
+            'image' => 'https://www.prothomalo.com/images/cricket.jpg',
+        ],
+    ]);
+
+    $items = FeedReader::parse('prothomalo', $source, $xml, $config, [], 5);
+
+    expect($items[0]['category'])->toBe('Jayato');
+    expect($items[0]['categories'])->toBe(['Jayato', 'Sports']);
+});
+
+test('সংবাদ সংরক্ষণে সব ক্যাটাগরি যুক্ত হয়', function () {
+    $result = NewsImporter::save([
+        'source' => 'prothomalo',
+        'title' => 'একাধিক ক্যাটাগরির একটি সংবাদ',
+        'link' => 'https://www.prothomalo.com/bangladesh/multi-category',
+        'category' => 'jatiyo',
+        'categories' => ['jatiyo', 'others'],
+        'category_tag' => 'বাংলাদেশ',
+        'published_at' => now()->toIso8601String(),
+        'excerpt' => 'সংক্ষিপ্ত অংশ।',
+        'image' => null,
+        'state' => 'new',
+        'reason' => '',
+    ]);
+
+    expect($result['state'])->toBe('imported');
+
+    $slugs = News::firstOrFail()->categories->pluck('slug')->all();
+    expect($slugs)->toHaveCount(2)->toContain('jatiyo')->toContain('others');
+});
+
+test('ছবি না থাকলে সংবাদ আমদানি হয় না', function () {
+    config(['news_import.images.required' => true]);
+
+    $result = NewsImporter::save([
+        'source' => 'prothomalo',
+        'title' => 'ছবি ছাড়া একটি সংবাদ',
+        'link' => 'https://www.prothomalo.com/bangladesh/no-image',
+        'category' => 'jatiyo',
+        'category_tag' => 'বাংলাদেশ',
+        'published_at' => now()->toIso8601String(),
+        'excerpt' => 'ছবি নেই।',
+        'image' => null,
+        'state' => 'new',
+        'reason' => '',
+    ]);
+
+    expect($result['state'])->toBe('skipped');
+    expect($result['reason'])->toBe('ছবি নেই');
+    expect(News::count())->toBe(0);
+});
+
+test('সারাদেশ সংবাদে উপজেলা শনাক্ত না হলে আমদানি হয় না', function () {
+    $result = NewsImporter::save([
+        'source' => 'prothomalo',
+        'title' => 'সারাদেশে নতুন প্রকল্প চালু হলো',
+        'link' => 'https://www.prothomalo.com/country/no-upazila',
+        'category' => 'saradesh',
+        'category_tag' => 'জেলা',
+        'published_at' => now()->toIso8601String(),
+        'excerpt' => 'কোনো উপজেলার নাম নেই।',
+        'image' => null,
+        'state' => 'new',
+        'reason' => '',
+    ]);
+
+    expect($result['state'])->toBe('skipped');
+    expect($result['reason'])->toContain('উপজেলা');
+    expect(News::count())->toBe(0);
+});
+
+test('প্রতি চালে সর্বোচ্চ ২০টি এবং খুলনা সোর্স আগে পড়া হয়', function () {
+    $collect = (array) config('news_import.collect');
+
+    expect($collect['max_per_run'])->toBe(20);
+    expect($collect['priority_sources'])->toBe(['khulnagazette', 'gramerkagoj']);
+    expect($collect['priority_per_source'])->toBeGreaterThan($collect['other_per_source']);
 });

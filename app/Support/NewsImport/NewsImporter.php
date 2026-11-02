@@ -9,6 +9,7 @@ use App\Models\NewsImport;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -34,15 +35,27 @@ final class NewsImporter
     {
         self::resetMemo();
 
+        $config = (array) config('news_import', []);
         $blocks = FeedReader::collect($only, $limit);
 
         if ($dryRun) {
             return $blocks;
         }
 
+        $maxPerRun = max(1, (int) ($config['collect']['max_per_run'] ?? 20));
+        $imported = 0;
+
         foreach ($blocks as &$block) {
             foreach ($block['items'] as &$item) {
                 if (($item['state'] ?? '') !== 'new') {
+                    continue;
+                }
+
+                if ($imported >= $maxPerRun) {
+                    $item['state'] = 'skipped';
+                    $item['reason'] = 'এই চালের সীমা পূর্ণ ('.$maxPerRun.'টি)';
+                    $item['news_id'] = null;
+
                     continue;
                 }
 
@@ -51,6 +64,10 @@ final class NewsImporter
                 $item['state'] = $result['state'];
                 $item['reason'] = $result['reason'];
                 $item['news_id'] = $result['news_id'];
+
+                if ($result['state'] === 'imported') {
+                    $imported++;
+                }
             }
 
             unset($item);
@@ -93,30 +110,40 @@ final class NewsImporter
             return self::duplicate('একই শিরোনামের সংবাদ আগেই আছে');
         }
 
-        $category = self::resolveCategory($item, $sourceKey, $config);
+        $categories = self::resolveCategories($item, $sourceKey, $config);
 
-        if (! $category) {
+        if ($categories->isEmpty()) {
             return self::failed('ক্যাটাগরি পাওয়া যায়নি (আগে ক্যাটাগরি সিড করুন)');
         }
+
+        $category = $categories->first();
+        $nationwide = $categories->contains(fn (Category $cat) => $cat->slug === Category::NATIONWIDE_SLUG);
 
         $author = self::author($config);
         $content = trim((string) ($item['content'] ?? ''));
         $excerpt = trim((string) ($item['excerpt'] ?? ''));
         $summary = mb_substr($excerpt !== '' ? $excerpt : $title, 0, 1000);
 
-        $description = self::body($content, $excerpt !== '' ? $excerpt : $title)
-            .self::sourceLine($link, $sourceName);
+        // সারাদেশ সংবাদে বিভাগ, জেলা ও উপজেলা — তিনটিই শিরোনাম/সারাংশ/বডি থেকে শনাক্ত হতে হবে।
+        $location = $nationwide
+            ? LocationMatcher::detect($title, trim($excerpt.' '.strip_tags($content)))
+            : null;
+
+        if ($nationwide && (! $location || ! $location->isUpazila())) {
+            return self::skipped('সারাদেশ সংবাদে বিভাগ/জেলা/উপজেলা শনাক্ত হয়নি');
+        }
 
         $image = self::importImage($item['image'] ?? null, $author, $config);
 
-        // A সারাদেশ report names one place; the title usually says which. The editor still
-        // reviews the draft and completes the three selects before publishing.
-        $location = $category->slug === Category::NATIONWIDE_SLUG
-            ? LocationMatcher::detect($title, $excerpt)
-            : null;
+        if ($image === null && ($config['images']['required'] ?? true)) {
+            return self::skipped('ছবি নেই');
+        }
+
+        $description = self::body($content, $excerpt !== '' ? $excerpt : $title)
+            .self::sourceLine($link, $sourceName);
 
         try {
-            $news = DB::transaction(function () use ($item, $category, $location, $author, $title, $summary, $description, $image, $sourceKey, $sourceName, $link, $titleKey, $externalHash) {
+            $news = DB::transaction(function () use ($item, $category, $categories, $location, $author, $title, $summary, $description, $image, $sourceKey, $sourceName, $link, $titleKey, $externalHash) {
                 $news = News::create([
                     'category_id' => $category->id,
                     'location_id' => $location?->id,
@@ -132,7 +159,7 @@ final class NewsImporter
                     'published_at' => $item['published_at'] ? Carbon::parse((string) $item['published_at']) : null,
                 ]);
 
-                $news->categories()->sync([$category->id]);
+                $news->categories()->sync($categories->pluck('id')->all());
 
                 NewsImport::create([
                     'source' => $sourceKey,
@@ -291,27 +318,43 @@ final class NewsImporter
     }
 
     /**
-     * The local category for a feed section. If the mapped slug is missing (an admin
-     * renamed it), the source's default, then Latest, then others are tried.
+     * Every local category for an entry: the primary slug plus all additional feed tags.
+     * Falls back to the source default, then Latest, then others.
      */
-    private static function resolveCategory(array $item, string $sourceKey, array $config): ?Category
+    private static function resolveCategories(array $item, string $sourceKey, array $config): Collection
     {
-        $candidates = array_unique(array_filter([
-            (string) ($item['category'] ?? ''),
-            (string) ($config['sources'][$sourceKey]['default_category'] ?? ''),
-            'Latest',
-            'others',
-        ]));
+        $slugs = array_values(array_unique(array_filter(array_merge(
+            [(string) ($item['category'] ?? '')],
+            array_map('strval', (array) ($item['categories'] ?? []))
+        ), fn (string $slug) => $slug !== '')));
 
-        foreach ($candidates as $slug) {
+        $found = collect();
+
+        foreach ($slugs as $slug) {
             $category = Category::query()->where('slug', $slug)->first();
 
-            if ($category) {
-                return $category;
+            if ($category && ! $found->contains('id', $category->id)) {
+                $found->push($category);
             }
         }
 
-        return null;
+        if ($found->isNotEmpty()) {
+            return $found;
+        }
+
+        foreach (array_unique(array_filter([
+            (string) ($config['sources'][$sourceKey]['default_category'] ?? ''),
+            'Latest',
+            'others',
+        ])) as $slug) {
+            $category = Category::query()->where('slug', $slug)->first();
+
+            if ($category) {
+                return collect([$category]);
+            }
+        }
+
+        return collect();
     }
 
     private static function author(array $config): ?User
@@ -328,10 +371,6 @@ final class NewsImporter
     private static function importImage(mixed $url, ?User $author, array $config): ?string
     {
         if (! is_string($url) || trim($url) === '' || empty($config['images']['download'])) {
-            return null;
-        }
-
-        if (self::publicImageUrl(trim($url)) === null) {
             return null;
         }
 
@@ -367,33 +406,14 @@ final class NewsImporter
         }
     }
 
-    /** Only plain http(s) URLs on public hosts are fetched (no localhost / private ranges). */
-    private static function publicImageUrl(string $url): ?string
-    {
-        if (! preg_match('#^https?://#i', $url)) {
-            return null;
-        }
-
-        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
-
-        if ($host === '' || $host === 'localhost' || str_ends_with($host, '.local')) {
-            return null;
-        }
-
-        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
-            $public = filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
-
-            if ($public === false) {
-                return null;
-            }
-        }
-
-        return $url;
-    }
-
     private static function duplicate(string $reason): array
     {
         return ['state' => 'duplicate', 'reason' => $reason, 'news_id' => null];
+    }
+
+    private static function skipped(string $reason): array
+    {
+        return ['state' => 'skipped', 'reason' => $reason, 'news_id' => null];
     }
 
     private static function failed(string $reason): array

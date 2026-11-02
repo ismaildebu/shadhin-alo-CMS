@@ -16,6 +16,9 @@ return [
         'audio_encoding' => 'MP3',
     ],
 
+    // শুধু লোকাল ডেভেলপমেন্টে .env-এ TTS_VERIFY_SSL=false দেওয়া যাবে।
+    'verify_ssl' => env('TTS_VERIFY_SSL', true),
+
     'audio_disk' => env('TTS_AUDIO_DISK', 'public'),
     'audio_path' => 'audio-news/',
 ];

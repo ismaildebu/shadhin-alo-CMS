@@ -6,6 +6,7 @@ use App\Models\News;
 use App\Services\TextToSpeechService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class AudioNewsController extends Controller
 {
@@ -23,50 +24,83 @@ class AudioNewsController extends Controller
 
         $news = News::published()->findOrFail($id);
 
-        $text = collect([
-            $news->localized_content,
-            $news->content,
-            $news->description,
-            $news->summary,
-            $news->localized_title,
-            $news->title,
-        ])->first(fn ($value) => trim(strip_tags((string) $value)) !== '');
+        if (trim((string) $news->audio_url) !== '') {
+            return $this->existingAudioResponse($news);
+        }
 
-        if (! $text) {
+        // একই খবরের জন্য একসাথে একাধিক TTS অনুরোধ যেন না চলে।
+        $lock = Cache::lock('tts:'.$news->id, 120);
+
+        if (! $lock->get()) {
             return response()->json([
                 'success' => false,
-                'message' => 'এই সংবাদে পড়ার মতো কোনো লেখা নেই।',
-            ], 422);
+                'message' => 'এই সংবাদের অডিও এখনই তৈরি হচ্ছে। একটু পরে আবার চেষ্টা করুন।',
+            ], 429);
         }
 
-        $news->update(['tts_status' => 'processing']);
+        try {
+            $news->refresh();
 
-        // বাংলা লেখা যেন ইংরেজি ভয়েসে না পড়া হয়, তাই সংবাদের নিজের ভাষা ব্যবহার হয়।
-        $language = $news->lang === 'en' ? 'en' : 'bn';
+            if (trim((string) $news->audio_url) !== '') {
+                return $this->existingAudioResponse($news);
+            }
 
-        $audioUrl = $this->ttsService->generateAudioFromText(
-            (string) $text,
-            $language
-        );
+            $text = collect([
+                $news->localized_content,
+                $news->content,
+                $news->description,
+                $news->summary,
+                $news->localized_title,
+                $news->title,
+            ])->first(fn ($value) => trim(strip_tags((string) $value)) !== '');
 
-        if ($audioUrl) {
-            $news->update([
-                'audio_url' => $audioUrl,
-                'tts_status' => 'completed',
-            ]);
+            if (! $text) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'এই সংবাদে পড়ার মতো কোনো লেখা নেই।',
+                ], 422);
+            }
+
+            $news->update(['tts_status' => 'processing']);
+
+            // বাংলা লেখা যেন ইংরেজি ভয়েসে না পড়া হয়, তাই সংবাদের নিজের ভাষা ব্যবহার হয়।
+            $language = $news->lang === 'en' ? 'en' : 'bn';
+
+            $audioUrl = $this->ttsService->generateAudioFromText(
+                (string) $text,
+                $language
+            );
+
+            if ($audioUrl) {
+                $news->update([
+                    'audio_url' => $audioUrl,
+                    'tts_status' => 'completed',
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'audio_url' => $audioUrl,
+                    'message' => 'অডিও সফলভাবে তৈরি হয়েছে',
+                ]);
+            }
+
+            $news->update(['tts_status' => 'failed']);
 
             return response()->json([
-                'success' => true,
-                'audio_url' => $audioUrl,
-                'message' => 'অডিও সফলভাবে তৈরি হয়েছে',
-            ]);
+                'success' => false,
+                'message' => 'অডিও জেনারেট করতে সমস্যা হয়েছে। দয়া করে লোগ ফাইলটি চেক করুন।',
+            ], 500);
+        } finally {
+            $lock->release();
         }
+    }
 
-        $news->update(['tts_status' => 'failed']);
-
+    private function existingAudioResponse(News $news): JsonResponse
+    {
         return response()->json([
-            'success' => false,
-            'message' => 'অডিও জেনারেট করতে সমস্যা হয়েছে। দয়া করে লোগ ফাইলটি চেক করুন।',
-        ], 500);
+            'success' => true,
+            'audio_url' => $news->audio_url,
+            'message' => 'এই সংবাদের অডিও আগেই তৈরি আছে।',
+        ]);
     }
 }

@@ -15,3 +15,8 @@ Schedule::command('articles:publish-scheduled')->everyMinute()->withoutOverlappi
 Schedule::command('videos:sync')->everyThirtyMinutes()->withoutOverlapping();
 
 Schedule::command('news:import')->everyThirtyMinutes()->withoutOverlapping();
+
+// তৈরি ভিডিও, অডিও ও ফটোকার্ড এক দিন পর মুছে যায়; এরপর ক্যাশও পরিষ্কার হয়।
+Schedule::command('media:prune')->dailyAt('03:10')->withoutOverlapping();
+
+Schedule::command('cache:clear')->dailyAt('03:20');

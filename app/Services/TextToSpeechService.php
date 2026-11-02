@@ -16,6 +16,8 @@ class TextToSpeechService
 
     private const MAX_CHUNKS = 60;
 
+    private const MAX_CHUNK_BYTES = 2 * 1024 * 1024;
+
     private const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
     /**
@@ -62,20 +64,44 @@ class TextToSpeechService
                 .'&q='.urlencode($text)
                 ."&tl={$lang}&client=tw-ob&total=1&idx=0&textlen=".mb_strlen($text);
 
-            // withoutVerifying() যোগ করা হয়েছে যাতে লোকাল পিসিতে SSL সার্টিফিকেট এরর না দেয়
-            $response = Http::withoutVerifying()->withHeaders([
+            $request = Http::withHeaders([
                 'User-Agent' => self::USER_AGENT,
-            ])->timeout(15)->get($url);
+            ])->timeout(15)->withOptions([
+                // রিডাইরেক্ট ফলো করা হয় না, যাতে ভিন্ন হোস্টে ঘুরিয়ে দেওয়া না যায়।
+                'allow_redirects' => false,
+                'stream' => true,
+            ]);
+
+            // সার্টিফিকেট যাচাই ডিফল্টেই চালু; শুধু লোকাল ডেভেলপমেন্টে বন্ধ করা যায়।
+            if (! config('tts.verify_ssl', true)) {
+                $request = $request->withoutVerifying();
+            }
+
+            $response = $request->get($url);
 
             $isAudio = str_contains((string) $response->header('Content-Type'), 'audio');
 
-            if ($response->successful() && $isAudio && $response->body() !== '') {
-                return $response->body();
+            if (! $response->successful() || ! $isAudio) {
+                \Log::error('TTS HTTP Request Failed with status: '.$response->status().' type: '.$response->header('Content-Type'));
+
+                return null;
             }
 
-            \Log::error('TTS HTTP Request Failed with status: '.$response->status().' type: '.$response->header('Content-Type'));
+            $audio = $response->toPsrResponse()->getBody()->read(self::MAX_CHUNK_BYTES + 1);
 
-            return null;
+            if ($audio === '' || strlen($audio) > self::MAX_CHUNK_BYTES) {
+                \Log::error('TTS response rejected: empty or larger than '.self::MAX_CHUNK_BYTES.' bytes');
+
+                return null;
+            }
+
+            if (! $this->looksLikeMp3($audio)) {
+                \Log::error('TTS response rejected: payload is not an MP3 stream');
+
+                return null;
+            }
+
+            return $audio;
         } catch (Exception $e) {
             \Log::error('TTS Exception: '.$e->getMessage());
 
@@ -138,6 +164,17 @@ class TextToSpeechService
         }
 
         return array_values(array_filter($chunks, fn ($chunk) => $chunk !== ''));
+    }
+
+    private function looksLikeMp3(string $audio): bool
+    {
+        if (str_starts_with($audio, 'ID3')) {
+            return true;
+        }
+
+        return strlen($audio) >= 2
+            && ord($audio[0]) === 0xFF
+            && (ord($audio[1]) & 0xE0) === 0xE0;
     }
 
     /**

@@ -72,6 +72,12 @@ final class NewsWorkflow
                 ]);
             }
 
+            // An article goes public the moment it is published; a draft's stored
+            // time (often the source feed's) must not survive as the publish time.
+            if ($news !== null && $news->status !== News::STATUS_PUBLISHED) {
+                return now();
+            }
+
             return $requested ?? now();
         }
 

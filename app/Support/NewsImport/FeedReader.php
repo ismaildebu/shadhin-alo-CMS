@@ -40,14 +40,36 @@ final class FeedReader
         $titles = self::recentTitles($config);
         $result = [];
 
-        foreach (($config['sources'] ?? []) as $key => $source) {
-            if (empty($source['enabled'])) {
-                continue;
+        $sources = (array) ($config['sources'] ?? []);
+        $budget = max(1, (int) ($config['collect']['max_per_run'] ?? 20));
+        $priority = array_map('strval', (array) ($config['collect']['priority_sources'] ?? []));
+        $priorityCap = max(1, (int) ($config['collect']['priority_per_source'] ?? 6));
+        $otherCap = max(1, (int) ($config['collect']['other_per_source'] ?? 2));
+        $perSource = max(1, (int) ($config['collect']['per_source_limit'] ?? 8));
+
+        // খুলনা বিভাগের সোর্স আগে পড়া হয়, তাই ২০টি স্লটে স্থানীয় সংবাদ বেশি থাকে।
+        $keys = array_merge(
+            array_values(array_intersect($priority, array_keys($sources))),
+            array_values(array_diff(array_keys($sources), $priority))
+        );
+        $keys = array_values(array_filter($keys, function (string $key) use ($sources, $only) {
+            return ! empty($sources[$key]['enabled'])
+                && ($only === [] || in_array($key, $only, true));
+        }));
+        $total = count($keys);
+
+        foreach ($keys as $index => $key) {
+            if ($budget <= 0) {
+                break;
             }
 
-            if ($only !== [] && ! in_array($key, $only, true)) {
-                continue;
-            }
+            $source = $sources[$key];
+            $isPriority = in_array($key, $priority, true);
+            $remainingSources = max(1, $total - $index);
+            $fairShare = (int) ceil($budget / $remainingSources);
+            $cap = $limit !== null
+                ? max(1, $limit)
+                : min($perSource, max($isPriority ? $priorityCap : $otherCap, $fairShare));
 
             $block = [
                 'name' => (string) ($source['name'] ?? $key),
@@ -58,15 +80,29 @@ final class FeedReader
 
             try {
                 $xml = self::fetchUrl($block['feed'], $config, (int) ($config['request']['max_bytes'] ?? 6_000_000));
-                $block['items'] = self::parse($key, $source, $xml, $config, $titles, $limit);
+                $items = self::parse($key, $source, $xml, $config, $titles, min($cap, $budget));
+
+                if ($isPriority) {
+                    // সারাদেশ (খুলনা বিভাগ) সংবাদ আগে, বাকিগুলো পরে।
+                    usort($items, fn (array $a, array $b) => self::localRank($a) <=> self::localRank($b));
+                }
+
+                $block['items'] = $items;
             } catch (Throwable $e) {
                 $block['error'] = $e->getMessage();
             }
 
             $result[$key] = $block;
+            $budget -= count(array_filter($block['items'], fn (array $item) => ($item['state'] ?? '') === 'new'));
         }
 
         return $result;
+    }
+
+    /** Priority sources list their district reports first. */
+    private static function localRank(array $item): int
+    {
+        return ($item['state'] ?? '') === 'new' && ($item['category'] ?? '') === 'saradesh' ? 0 : 1;
     }
 
     /**
@@ -115,7 +151,10 @@ final class FeedReader
 
             $link = $entry['link'];
             $host = strtolower((string) parse_url($link, PHP_URL_HOST));
-            [$tag, $category] = self::categoryFor($source, $entry['tag'], $link);
+            $tags = array_values(array_filter((array) ($entry['tags'] ?? []), fn ($tag) => trim((string) $tag) !== ''));
+            [$tag] = self::categoryFor($source, $entry['tag'], $link);
+            $categories = self::categoriesFor($source, $tags, $link);
+            $category = $categories[0];
 
             $stamp = $entry['stamp'];
             $excerpt = $entry['excerpt'];
@@ -127,7 +166,7 @@ final class FeedReader
             // Cheap checks first: nothing is downloaded for an entry that will not be used.
             if ($link === '' || ! in_array($host, $allowedHosts, true)) {
                 [$state, $reason] = ['skipped', 'অন্য সাইট'];
-            } elseif (in_array($tag, $skipCategories, true)) {
+            } elseif (array_intersect($tags, $skipCategories) !== []) {
                 [$state, $reason] = ['skipped', 'বাদ দেওয়া বিভাগ'];
             } elseif ($stamp !== null && (time() - $stamp) > $maxAge * 3600) {
                 [$state, $reason] = ['old', 'পুরোনো'];
@@ -180,6 +219,7 @@ final class FeedReader
                 'title' => $title,
                 'link' => $link,
                 'category' => $category,
+                'categories' => $categories,
                 'category_tag' => $tag,
                 'published_at' => $stamp ? date('c', $stamp) : null,
                 'excerpt' => $excerpt,
@@ -214,11 +254,21 @@ final class FeedReader
 
         foreach ($doc->channel->item as $node) {
             $link = trim((string) $node->link);
+            $tags = [];
+
+            foreach ($node->category as $categoryNode) {
+                $value = self::text((string) $categoryNode);
+
+                if ($value !== '') {
+                    $tags[] = $value;
+                }
+            }
 
             $entries[] = [
                 'title' => self::text((string) $node->title),
                 'link' => $link,
-                'tag' => self::text((string) $node->category),
+                'tag' => $tags[0] ?? '',
+                'tags' => $tags,
                 'stamp' => strtotime(trim((string) $node->pubDate)) ?: null,
                 'excerpt' => self::excerpt($node, $excerptChars),
                 'image' => self::feedImage($node, $source, $link, $config),
@@ -251,11 +301,17 @@ final class FeedReader
 
             $image = $node->children($imageNs)->image;
             $imageUrl = $image ? trim((string) $image->loc) : '';
+            $keywords = self::text((string) ($news->keywords ?? ''));
+            $tags = array_values(array_filter(
+                array_map('trim', preg_split('/[,،;|]+/u', $keywords) ?: []),
+                fn (string $tag) => $tag !== ''
+            ));
 
             $entries[] = [
                 'title' => $title,
                 'link' => $link,
-                'tag' => self::text((string) ($news->keywords ?? '')),
+                'tag' => $tags[0] ?? '',
+                'tags' => $tags,
                 'stamp' => strtotime(trim((string) ($news->publication_date ?? ''))) ?: null,
                 'excerpt' => '',
                 'image' => $imageUrl !== '' ? self::absUrl($imageUrl, $link) : null,
@@ -291,6 +347,47 @@ final class FeedReader
         return [$raw, (string) ($source['default_category'] ?? 'others')];
     }
 
+    /**
+     * Every local category an entry belongs to: all matching feed tags, or the URL section.
+     * Unmapped tags are ignored; when nothing matches, the source default is used.
+     *
+     * @param  list<string>  $rawTags
+     * @return list<string>
+     */
+    public static function categoriesFor(array $source, array $rawTags, string $link): array
+    {
+        $tags = array_map('trim', $rawTags);
+
+        if (($source['category_from'] ?? 'tag') === 'url') {
+            $path = trim((string) parse_url($link, PHP_URL_PATH), '/');
+            $tags = [explode('/', $path)[0] ?? ''];
+        }
+
+        $slugs = [];
+
+        foreach ($tags as $tag) {
+            $needle = mb_strtolower((string) $tag);
+
+            if ($needle === '') {
+                continue;
+            }
+
+            foreach ((array) ($source['category_map'] ?? []) as $from => $to) {
+                if (mb_strtolower((string) $from) === $needle) {
+                    $slugs[] = (string) $to;
+
+                    break;
+                }
+            }
+        }
+
+        if ($slugs === []) {
+            $slugs[] = (string) ($source['default_category'] ?? 'others');
+        }
+
+        return array_values(array_unique($slugs));
+    }
+
     /** Bengali-friendly title comparison key: case, punctuation, symbols and spaces are ignored. */
     public static function titleKey(string $title): string
     {
@@ -312,7 +409,12 @@ final class FeedReader
             return self::$ogMemo[$url];
         }
 
-        $html = self::fetchUrl($url, $config, (int) ($config['request']['article_max_bytes'] ?? 8_000_000));
+        $html = self::fetchUrl(
+            $url,
+            $config,
+            (int) ($config['request']['article_max_bytes'] ?? 8_000_000),
+            (array) ($source['allowed_hosts'] ?? [])
+        );
 
         $image = self::metaContent($html, ['og:image:secure_url', 'og:image:url', 'og:image', 'twitter:image', 'twitter:image:src']);
         $description = self::metaContent($html, ['og:description', 'twitter:description', 'description']);
@@ -412,47 +514,10 @@ final class FeedReader
         return HtmlSanitizer::clean(implode("\n", $parts));
     }
 
-    /** Fetch a URL through cURL with the timeouts and size cap from the config. */
-    public static function fetchUrl(string $url, array $config, ?int $maxBytes = null): string
+    /** Fetch a URL through the SSRF-safe client with the timeouts and size cap from the config. */
+    public static function fetchUrl(string $url, array $config, ?int $maxBytes = null, array $allowedHosts = []): string
     {
-        if (! preg_match('#^https?://#i', $url)) {
-            throw new RuntimeException('ঠিকানা সঠিক নয়');
-        }
-
-        $request = (array) ($config['request'] ?? []);
-        $ch = curl_init($url);
-
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS => 3,
-            CURLOPT_CONNECTTIMEOUT => (int) ($request['connect_timeout'] ?? 8),
-            CURLOPT_TIMEOUT => (int) ($request['timeout'] ?? 20),
-            CURLOPT_USERAGENT => (string) ($request['user_agent'] ?? 'NewsBot/1.0'),
-            CURLOPT_ENCODING => '',
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-        ]);
-
-        $body = curl_exec($ch);
-        $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-
-        if (! is_string($body)) {
-            throw new RuntimeException('আনা যায়নি: '.($error !== '' ? $error : 'অজানা ত্রুটি'));
-        }
-
-        if ($code < 200 || $code >= 300) {
-            throw new RuntimeException("আনা যায়নি (HTTP {$code})");
-        }
-
-        if ($maxBytes !== null && strlen($body) > $maxBytes) {
-            throw new RuntimeException('ফাইলটি খুব বড়');
-        }
-
-        return $body;
+        return SafeHttp::fetch($url, $config, $maxBytes, $allowedHosts);
     }
 
     // ------------------------------------------------------------------ internals

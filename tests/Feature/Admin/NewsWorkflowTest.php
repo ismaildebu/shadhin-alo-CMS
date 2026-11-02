@@ -158,6 +158,23 @@ it('lets an editor publish a pending article and stamps the publish time', funct
     $this->get(route('frontend.news.show', $news->slug))->assertOk();
 });
 
+it('stamps the publish moment, not the draft time, when a draft is published', function () {
+    $draftTime = now()->subDays(3);
+    $news = wfArticle($this->reporter, 'draft', ['published_at' => $draftTime]);
+
+    // The edit form prefills the stored time; publishing must ignore it.
+    $this->actingAs($this->editor)->post("/admin/news/{$news->id}/transition", [
+        'to' => 'published',
+        'published_at' => $draftTime->format('Y-m-d\TH:i'),
+    ])->assertSessionHasNoErrors();
+
+    $news->refresh();
+
+    expect($news->status)->toBe('published')
+        ->and($news->published_at->diffInSeconds(now(), true))->toBeLessThan(10)
+        ->and($news->published_at->diffInDays($draftTime, true))->toBeGreaterThan(2);
+});
+
 it('requires a reason when an editor sends someone else\'s article back', function () {
     $news = wfArticle($this->reporter, 'pending');
 
