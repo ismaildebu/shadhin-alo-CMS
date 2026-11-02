@@ -53,6 +53,11 @@ class NewsPolicy
         return $user->isEditorOrAdmin();
     }
 
+    public function forceDelete(User $user, News $news): bool
+    {
+        return $user->isEditorOrAdmin();
+    }
+
     private function ownsEditable(User $user, News $news, bool $includePublished = false): bool
     {
         if (! $user->canManageCms() || $news->author_id !== $user->id) {

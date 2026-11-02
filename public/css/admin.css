@@ -687,7 +687,7 @@ body.ad-body{
 .is-video:hover{ background:#0f766e; color:#fff; border-color:#0f766e; }
 .ad-tab-count{ margin-left:4px; font-weight:500; opacity:.75; }
 
-.ad-search{ display:flex; gap:8px; margin-bottom:16px; }
+.ad-search{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
 
 .ad-input{
     flex:1;
@@ -701,6 +701,17 @@ body.ad-body{
 
 .ad-input:focus{ outline:2px solid #2f7bc8; outline-offset:0; border-color:transparent; }
 
+.ad-select{
+    max-width:240px;
+    padding:9px 16px;
+    border:1px solid var(--ad-line);
+    border-radius:999px;
+    background:#fff;
+    font-size:.92rem;
+}
+
+.ad-select:focus{ outline:2px solid #2f7bc8; outline-offset:0; border-color:transparent; }
+
 .ad-btn-dark{
     padding:9px 22px;
     border:0;
@@ -712,6 +723,10 @@ body.ad-body{
 }
 
 .ad-btn-dark:hover{ background:var(--ad-primary); }
+
+.ad-btn-danger{ background:#b91c1c; }
+.ad-btn-danger:hover{ background:#991b1b; }
+.ad-btn-danger:disabled{ opacity:.45; cursor:not-allowed; }
 
 .ad-table-wrap{ overflow-x:auto; }
 .ad-table{ width:100%; border-collapse:collapse; font-size:.92rem; }
@@ -791,6 +806,30 @@ body.ad-body{
 .act-del:hover{ background:#b91c1c; color:#fff; border-color:#b91c1c; }
 
 .ad-pager{ padding:14px 20px; border-top:1px solid var(--ad-line); }
+
+/* তালিকা থেকেই ক্যাটাগরি বদলানোর সারি */
+tr.ad-cat-row td{
+    background:#f7f9fc;
+    border-top:1px dashed var(--ad-line);
+}
+
+.ad-cat-form{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+    padding:4px 0;
+}
+
+.ad-cat-form > strong{
+    font-size:.85rem;
+    color:var(--ad-ink);
+}
+
+.ad-cat-form .ad-category-checkboxes{
+    flex-basis:100%;
+    margin-top:0;
+}
 
 @media (max-width:767.98px){
     .ad-table thead{ display:none; }

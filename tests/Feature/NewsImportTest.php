@@ -38,7 +38,7 @@ function importFeedXml(array $items): string
 test('প্রতিটি সোর্সের কনফিগে ফিড, হোস্ট, বিভাগ ও ছবির নিয়ম আছে', function () {
     $sources = (array) config('news_import.sources');
 
-    expect($sources)->toHaveCount(4);
+    expect($sources)->toHaveCount(8);
 
     foreach ($sources as $key => $source) {
         expect($source['feed'])->toStartWith('https://');
@@ -265,4 +265,77 @@ test('অজানা বা মুছে ফেলা ক্যাটাগর�
 
     expect($result['state'])->toBe('imported');
     expect(News::firstOrFail()->categories->pluck('slug')->all())->toBe(['Latest']);
+});
+
+test('Google News সাইটম্যাপ থেকেও শিরোনাম, লিংক, তারিখ ও ছবি পড়া হয়', function () {
+    $config = (array) config('news_import');
+    $config['text']['og_lookup'] = false; // নেটওয়ার্ক ছাড়া পরীক্ষা
+    $config['images']['og_lookup'] = false;
+    $source = $config['sources']['bdnews24'];
+    $source['content']['class'] = null;
+
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>'
+        .'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'
+        .' xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"'
+        .' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'
+        .'<url><loc>https://bangla.bdnews24.com/bangladesh/abc123</loc>'
+        .'<image:image><image:loc>https://media.example.com/a.jpg</image:loc></image:image>'
+        .'<news:news><news:publication><news:name>বিডিনিউজ</news:name><news:language>bn</news:language></news:publication>'
+        .'<news:publication_date>'.now()->toIso8601String().'</news:publication_date>'
+        .'<news:title><![CDATA[সাভারে নতুন সেতু চালু হলো]]></news:title></news:news></url>'
+        .'<url><loc>https://other.example.com/x</loc>'
+        .'<news:news><news:title>অন্য সাইটের সংবাদ</news:title></news:news></url>'
+        .'</urlset>';
+
+    $items = FeedReader::parse('bdnews24', $source, $xml, $config, [], 10);
+
+    expect($items)->toHaveCount(2);
+    expect($items[0]['title'])->toBe('সাভারে নতুন সেতু চালু হলো')
+        ->and($items[0]['link'])->toBe('https://bangla.bdnews24.com/bangladesh/abc123')
+        ->and($items[0]['image'])->toBe('https://media.example.com/a.jpg')
+        ->and($items[0]['published_at'])->not->toBeNull()
+        ->and($items[0]['state'])->toBe('new')
+        ->and($items[1]['state'])->toBe('skipped')
+        ->and($items[1]['reason'])->toBe('অন্য সাইট');
+});
+
+test('সারাদেশ সংবাদে শিরোনামে থাকা স্থান খসড়ায় বসে', function () {
+    \App\Support\LocationImporter::import();
+    $savar = \App\Models\Location::upazilas()->where('slug', 'savar')->firstOrFail();
+
+    $result = NewsImporter::save([
+        'source' => 'prothomalo',
+        'title' => 'সাভারে নতুন সেতু চালু হলো',
+        'link' => 'https://www.prothomalo.com/bangladesh/savar-bridge',
+        'category' => 'saradesh',
+        'category_tag' => 'জেলা',
+        'published_at' => now()->toIso8601String(),
+        'excerpt' => 'সেতুটি আজ চালু হয়েছে।',
+        'image' => null,
+        'state' => 'new',
+        'reason' => '',
+    ]);
+
+    expect($result['state'])->toBe('imported');
+    expect(News::firstOrFail()->location_id)->toBe($savar->id);
+});
+
+test('সারাদেশ ছাড়া অন্য বিভাগের সংবাদে স্থান নিজে থেকে বসে না', function () {
+    \App\Support\LocationImporter::import();
+
+    $result = NewsImporter::save([
+        'source' => 'prothomalo',
+        'title' => 'সাভারে নতুন সেতু চালু হলো',
+        'link' => 'https://www.prothomalo.com/bangladesh/savar-bridge-jatiyo',
+        'category' => 'jatiyo',
+        'category_tag' => 'বাংলাদেশ',
+        'published_at' => now()->toIso8601String(),
+        'excerpt' => 'সেতুটি আজ চালু হয়েছে।',
+        'image' => null,
+        'state' => 'new',
+        'reason' => '',
+    ]);
+
+    expect($result['state'])->toBe('imported');
+    expect(News::firstOrFail()->location_id)->toBeNull();
 });

@@ -35,6 +35,20 @@
             filter(upazila, district.value);
         }
 
+        // A সারাদেশ report must name its division, district and upazila; every other category may stay empty.
+        function applyRequired() {
+            var form = field.closest ? field.closest('form') : null;
+            var saradesh = form && form.querySelector('input[name="category_ids[]"][data-slug="saradesh"]');
+            var needed = !!(saradesh && saradesh.checked);
+
+            [division, district, upazila].forEach(function (select) {
+                select.required = needed;
+            });
+
+            var hint = field.querySelector('[data-role="location-hint"]');
+            if (hint) { hint.style.display = needed ? '' : 'none'; }
+        }
+
         // The most specific choice is the truth: an upazila names its district, a district names its division.
         // So when the choices disagree on load (a form re-shown after an error, or an article saved with only
         // an upazila) we complete the upper levels from the lowest one, instead of throwing the lowest away.
@@ -69,6 +83,15 @@
 
         reconcile();
         apply();
+        applyRequired();
+
+        var form = field.closest ? field.closest('form') : null;
+        if (form) {
+            Array.prototype.forEach.call(
+                form.querySelectorAll('input[name="category_ids[]"]'),
+                function (box) { box.addEventListener('change', applyRequired); }
+            );
+        }
 
         field.__locationSelect = { apply: apply };
 

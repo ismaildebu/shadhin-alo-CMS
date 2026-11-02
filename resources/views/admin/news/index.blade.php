@@ -1,6 +1,6 @@
 @php
     $user = auth()->user();
-    $cols = $trashed ? 3 : 4;
+    $cols = 4;
 @endphp
 <x-app-layout>
     <x-slot name="header">
@@ -24,20 +24,20 @@
 
         {{-- status tabs --}}
         <div class="ad-tabs">
-            <a href="{{ route('news.index', array_filter(['q' => $term])) }}"
+            <a href="{{ route('news.index', array_filter(['q' => $term, 'category' => $categoryId])) }}"
                class="ad-tab {{ ! $status ? 'is-active' : '' }}">
                 সব <span class="ad-tab-count">({{ $counts->sum() }})</span>
             </a>
 
             @foreach(\App\Models\News::STATUS_LABELS as $key => $label)
-                <a href="{{ route('news.index', array_filter(['status' => $key, 'q' => $term])) }}"
+                <a href="{{ route('news.index', array_filter(['status' => $key, 'q' => $term, 'category' => $categoryId])) }}"
                    class="ad-tab {{ $status === $key ? 'is-active' : '' }}">
                     {{ $label }} <span class="ad-tab-count">({{ (int) ($counts[$key] ?? 0) }})</span>
                 </a>
             @endforeach
 
             @if($user->isEditorOrAdmin())
-                <a href="{{ route('news.index', ['status' => 'trashed']) }}"
+                <a href="{{ route('news.index', array_filter(['status' => 'trashed', 'category' => $categoryId])) }}"
                    class="ad-tab {{ $trashed ? 'is-active' : '' }}">
                     ট্র্যাশ <span class="ad-tab-count">({{ $trashedCount }})</span>
                 </a>
@@ -47,21 +47,33 @@
         <form method="GET" class="ad-search">
             @if($status)<input type="hidden" name="status" value="{{ $status }}">@endif
             <input type="text" name="q" value="{{ $term }}" placeholder="শিরোনামে খুঁজুন…" class="ad-input">
+            <select name="category" class="ad-select">
+                <option value="">সব ক্যাটাগরি</option>
+                @foreach($categories as $category)
+                    <option value="{{ $category->id }}" @selected($categoryId === $category->id)>{{ $category->name }}</option>
+                @endforeach
+            </select>
             <button type="submit" class="ad-btn-dark">খুঁজুন</button>
         </form>
 
         <div class="ad-panel">
-            @if(! $trashed && $news->isNotEmpty())
-                {{-- একসাথে অনেক সংবাদ ট্র্যাশে পাঠানোর ফর্ম। প্রতিটি সারির checkbox form="bulk-form" দিয়ে এর সাথে যুক্ত। --}}
-                <form id="bulk-form" action="{{ route('news.bulk-destroy') }}" method="POST"
+            @if($news->isNotEmpty())
+                {{-- একসাথে সর্বোচ্চ ১০০টি সংবাদ। প্রতিটি সারির checkbox form="bulk-form" দিয়ে এর সাথে যুক্ত। --}}
+                <form id="bulk-form"
+                      action="{{ $trashed ? route('news.bulk-force-delete') : route('news.bulk-destroy') }}"
+                      method="POST" data-mode="{{ $trashed ? 'force' : 'trash' }}"
                       style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 0 14px;">
                     @csrf
                     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
                         <input type="checkbox" id="select-all">
-                        <span>এই পাতার সব বাছুন</span>
+                        <span>এই পাতার সব বাছুন (সর্বোচ্চ ১০০)</span>
                     </label>
                     <span id="selected-count" class="ad-hint" style="margin:0;">০টি বাছা হয়েছে</span>
-                    <button type="submit" id="bulk-delete" class="ad-btn-dark" disabled>বাছাইগুলো মুছুন</button>
+                    @if($trashed)
+                        <button type="submit" id="bulk-delete" class="ad-btn-dark ad-btn-danger" disabled>স্থায়ীভাবে মুছুন</button>
+                    @else
+                        <button type="submit" id="bulk-delete" class="ad-btn-dark" disabled>বাছাইগুলো ট্র্যাশে পাঠান</button>
+                    @endif
                 </form>
             @endif
 
@@ -69,9 +81,7 @@
                 <table class="ad-table">
                     <thead>
                         <tr>
-                            @unless($trashed)
-                                <th style="width:36px;"></th>
-                            @endunless
+                            <th style="width:36px;"></th>
                             <th>সংবাদ</th>
                             <th>অবস্থা</th>
                             <th>কাজ</th>
@@ -84,14 +94,17 @@
                             $targets = $trashed ? [] : \App\Services\NewsWorkflow::allowedTargets($user, $item);
                         @endphp
                         <tr>
-                            @unless($trashed)
-                                <td>
+                            <td>
+                                @if($trashed)
+                                    <input type="checkbox" name="ids[]" value="{{ $item->id }}" form="bulk-form"
+                                           class="news-check">
+                                @else
                                     @can('delete', $item)
                                         <input type="checkbox" name="ids[]" value="{{ $item->id }}" form="bulk-form"
                                                class="news-check" data-published="{{ $item->status === 'published' ? 1 : 0 }}">
                                     @endcan
-                                </td>
-                            @endunless
+                                @endif
+                            </td>
 
                             <td>
                                 <div class="ad-news-cell">
@@ -138,6 +151,7 @@
                                 @else
                                     @can('update', $item)
                                         <a href="{{ route('news.edit', $item) }}" class="ad-act act-edit">সম্পাদনা</a>
+                                        <button type="button" class="ad-act" data-cat-toggle="{{ $item->id }}">ক্যাটাগরি</button>
                                     @endcan
 
                                     @can('view', $item)
@@ -193,6 +207,36 @@
                                 </div>
                             </td>
                         </tr>
+
+                        @unless($trashed)
+                            @can('update', $item)
+                                <tr id="cat-row-{{ $item->id }}" class="ad-cat-row" hidden>
+                                    <td colspan="{{ $cols }}">
+                                        <form action="{{ route('news.category', $item) }}" method="POST" class="ad-cat-form">
+                                            @csrf
+                                            <strong>ক্যাটাগরি বাছুন:</strong>
+
+                                            <div class="ad-category-checkboxes">
+                                                @foreach($categories as $category)
+                                                    <label class="ad-category-checkbox">
+                                                        <input
+                                                            type="checkbox"
+                                                            name="category_ids[]"
+                                                            value="{{ $category->id }}"
+                                                            @checked($item->categories->contains('id', $category->id))
+                                                        >
+                                                        <span>{{ $category->name }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+
+                                            <button type="submit" class="ad-btn-solid">সেভ</button>
+                                            <button type="button" class="ad-btn-dark" data-cat-close="{{ $item->id }}">বাতিল</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @endcan
+                        @endunless
                     @empty
                         <tr><td colspan="{{ $cols }}" class="ad-empty">কোনো সংবাদ পাওয়া যায়নি।</td></tr>
                     @endforelse
@@ -207,12 +251,12 @@
 
     </div>
 
-    @unless($trashed)
-        <script>
+    <script>
             (function () {
                 var form = document.getElementById('bulk-form');
                 if (!form) { return; }
 
+                var force = form.dataset.mode === 'force';
                 var all = document.getElementById('select-all');
                 var countEl = document.getElementById('selected-count');
                 var button = document.getElementById('bulk-delete');
@@ -244,14 +288,21 @@
                         return;
                     }
 
-                    var published = selected.filter(function (b) { return Number(b.dataset.published) === 1; }).length;
-                    var message = selected.length + 'টি সংবাদ ট্র্যাশে সরানো হবে।';
+                    var message;
 
-                    if (published > 0) {
-                        message += '\n\nএর মধ্যে ' + published + 'টি প্রকাশিত সংবাদ। ট্র্যাশে গেলে সেগুলো ওয়েবসাইট থেকে সরে যাবে।';
+                    if (force) {
+                        message = selected.length + 'টি সংবাদ স্থায়ীভাবে মুছে ফেলা হবে।'
+                            + '\n\nএই কাজ ফিরিয়ে আনা যাবে না। চালিয়ে যাবেন?';
+                    } else {
+                        var published = selected.filter(function (b) { return Number(b.dataset.published) === 1; }).length;
+                        message = selected.length + 'টি সংবাদ ট্র্যাশে সরানো হবে।';
+
+                        if (published > 0) {
+                            message += '\n\nএর মধ্যে ' + published + 'টি প্রকাশিত সংবাদ। ট্র্যাশে গেলে সেগুলো ওয়েবসাইট থেকে সরে যাবে।';
+                        }
+
+                        message += '\n\nপরে ট্র্যাশ থেকে পুনরুদ্ধার করা যাবে। চালিয়ে যাবেন?';
                     }
-
-                    message += '\n\nপরে ট্র্যাশ থেকে পুনরুদ্ধার করা যাবে। চালিয়ে যাবেন?';
 
                     if (!confirm(message)) {
                         e.preventDefault();
@@ -260,6 +311,29 @@
 
                 refresh();
             })();
+
+            (function () {
+                // একটি সারির «ক্যাটাগরি» চাপলে শুধু সেই সারির নিচে ক্যাটাগরির ফর্ম খোলে; পাতা বদলায় না।
+                document.querySelectorAll('[data-cat-toggle]').forEach(function (button) {
+                    button.addEventListener('click', function () {
+                        var row = document.getElementById('cat-row-' + button.dataset.catToggle);
+                        if (!row) { return; }
+
+                        var opening = row.hidden;
+
+                        document.querySelectorAll('tr.ad-cat-row').forEach(function (other) { other.hidden = true; });
+                        row.hidden = !opening;
+
+                        if (opening) { row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+                    });
+                });
+
+                document.querySelectorAll('[data-cat-close]').forEach(function (button) {
+                    button.addEventListener('click', function () {
+                        var row = document.getElementById('cat-row-' + button.dataset.catClose);
+                        if (row) { row.hidden = true; }
+                    });
+                });
+            })();
         </script>
-    @endunless
 </x-app-layout>

@@ -109,10 +109,17 @@ final class NewsImporter
 
         $image = self::importImage($item['image'] ?? null, $author, $config);
 
+        // A সারাদেশ report names one place; the title usually says which. The editor still
+        // reviews the draft and completes the three selects before publishing.
+        $location = $category->slug === Category::NATIONWIDE_SLUG
+            ? LocationMatcher::detect($title, $excerpt)
+            : null;
+
         try {
-            $news = DB::transaction(function () use ($item, $category, $author, $title, $summary, $description, $image, $sourceKey, $sourceName, $link, $titleKey, $externalHash) {
+            $news = DB::transaction(function () use ($item, $category, $location, $author, $title, $summary, $description, $image, $sourceKey, $sourceName, $link, $titleKey, $externalHash) {
                 $news = News::create([
                     'category_id' => $category->id,
+                    'location_id' => $location?->id,
                     'author_id' => $author?->id,
                     'type' => News::TYPE_NEWS,
                     'title' => $title,

@@ -13,6 +13,7 @@ use App\Models\News;
 use App\Services\NewsWorkflow;
 use App\Support\ArticleDesign;
 use App\Support\HtmlSanitizer;
+use App\Support\NewsVideo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -37,8 +38,10 @@ class NewsController extends Controller
         $status = $request->query('status');
         $trashed = $status === 'trashed' && $user->isEditorOrAdmin();
         $term = trim((string) $request->query('q', ''));
+        $categoryId = (int) $request->query('category');
+        $categoryId = $categoryId > 0 ? $categoryId : null;
 
-        $query = News::with(['category', 'author'])
+        $query = News::with(['category', 'author', 'categories'])
             ->visibleTo($user);
 
         if ($trashed) {
@@ -55,9 +58,18 @@ class NewsController extends Controller
             );
         }
 
+        if ($categoryId !== null) {
+            // Match the primary column and the multi-category pivot alike.
+            $query->where(function ($query) use ($categoryId) {
+                $query->where('category_id', $categoryId)
+                    ->orWhereHas('categories', fn ($categories) => $categories
+                        ->where('categories.id', $categoryId));
+            });
+        }
+
         $news = $query
             ->orderByDesc('id')
-            ->paginate(15)
+            ->paginate(100)
             ->withQueryString();
 
         $counts = News::visibleTo($user)
@@ -75,8 +87,9 @@ class NewsController extends Controller
             'status',
             'term',
             'trashed',
-            'trashedCount'
-        ));
+            'trashedCount',
+            'categoryId'
+        ) + ['categories' => Category::orderBy('name')->get()]);
     }
 
     public function create(Request $request): View
@@ -277,6 +290,47 @@ class NewsController extends Controller
             ->with('success', 'সংবাদ আপডেট হয়েছে।');
     }
 
+    /**
+     * Change an article's categories straight from the management list.
+     * The whole set is replaced, so an article may keep several categories.
+     */
+    public function updateCategory(Request $request, News $news): RedirectResponse
+    {
+        Gate::authorize('update', $news);
+
+        $data = $request->validate([
+            'category_ids' => ['required', 'array', 'min:1'],
+            'category_ids.*' => ['required', 'integer', 'distinct', 'exists:categories,id'],
+        ], [
+            'category_ids.required' => 'অন্তত একটি ক্যাটাগরি বাছুন।',
+            'category_ids.min' => 'অন্তত একটি ক্যাটাগরি বাছুন।',
+            'category_ids.*.exists' => 'নির্বাচিত ক্যাটাগরিটি পাওয়া যায়নি।',
+        ]);
+
+        $categoryIds = array_values(array_unique($data['category_ids']));
+
+        $needsPlace = Category::whereIn('id', $categoryIds)
+            ->where('slug', Category::NATIONWIDE_SLUG)
+            ->exists();
+
+        if ($needsPlace && $news->location?->type !== Location::UPAZILA) {
+            return back()->withErrors([
+                'category_ids' => 'সারাদেশ ক্যাটাগরির সংবাদে বিভাগ, জেলা ও উপজেলা — তিনটিই থাকতে হবে। আগে সম্পাদনা পেজে স্থান ঠিক করুন।',
+            ]);
+        }
+
+        DB::transaction(function () use ($news, $categoryIds) {
+            // The legacy column keeps the first chosen category.
+            $news->update(['category_id' => $categoryIds[0]]);
+            $news->categories()->sync($categoryIds);
+        });
+
+        ArticleRevision::capture($news, $request->user());
+        Activity::record('article.updated', $news, ['category_ids' => $categoryIds], $request->user());
+
+        return back()->with('success', 'ক্যাটাগরি আপডেট হয়েছে।');
+    }
+
     public function destroy(News $news): RedirectResponse
     {
         Gate::authorize('delete', $news);
@@ -344,6 +398,79 @@ class NewsController extends Controller
 
         if ($skipped > 0) {
             $message .= " {$skipped}টি সংবাদ অনুমতির অভাবে বাদ গেছে।";
+        }
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Permanently remove several articles from the trash at once.
+     *
+     * Only real trash entries are touched, and the editor-level "forceDelete"
+     * rule is checked per article. Images, cards and generated videos go too.
+     */
+    public function bulkForceDestroy(Request $request): RedirectResponse
+    {
+        Gate::authorize('viewAny', News::class);
+
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:100'],
+            'ids.*' => ['integer'],
+        ], [
+            'ids.required' => 'মুছে ফেলার জন্য অন্তত একটি সংবাদ বাছুন।',
+            'ids.min' => 'মুছে ফেলার জন্য অন্তত একটি সংবাদ বাছুন।',
+            'ids.max' => 'একবারে সর্বোচ্চ ১০০টি সংবাদ স্থায়ীভাবে মোছা যাবে।',
+            'ids.*.integer' => 'সংবাদের তথ্য সঠিক নয়।',
+        ]);
+
+        $ids = array_unique($data['ids']);
+
+        $items = News::onlyTrashed()->whereIn('id', $ids)->get();
+
+        $deleted = 0;
+
+        foreach ($items as $news) {
+            if (! Gate::allows('forceDelete', $news)) {
+                continue;
+            }
+
+            $image = $news->image;
+            $card = $news->card_image;
+
+            $news->forceDelete();
+
+            if ($image) {
+                $this->deleteImageIfUnused($image, $news);
+            }
+
+            if ($card) {
+                File::delete(public_path(NewsCardController::DIR.'/'.basename($card)));
+            }
+
+            File::delete(NewsVideo::path($news));
+
+            Activity::record(
+                'article.force_deleted',
+                $news,
+                ['title' => $news->title],
+                $request->user()
+            );
+
+            $deleted++;
+        }
+
+        $skipped = count($ids) - $deleted;
+
+        if ($deleted === 0) {
+            return back()->withErrors([
+                'ids' => 'কোনো সংবাদ স্থায়ীভাবে মোছা যায়নি। ট্র্যাশে থাকা সংবাদ ও অনুমতি যাচাই করুন।',
+            ]);
+        }
+
+        $message = "{$deleted}টি সংবাদ স্থায়ীভাবে মোছা হয়েছে।";
+
+        if ($skipped > 0) {
+            $message .= " {$skipped}টি সংবাদ বাদ গেছে (ট্র্যাশে নেই বা অনুমতি নেই)।";
         }
 
         return back()->with('success', $message);

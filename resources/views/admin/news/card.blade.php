@@ -161,8 +161,8 @@
     </div>
 
     <script>window.CARD = @json($card);</script>
-    <script src="{{ asset('js/admin-photocard.js') }}"></script>
-    <script src="{{ asset('js/admin-photocard-more.js') }}"></script>
+    <script src="{{ asset('js/admin-photocard.js') }}?v={{ filemtime(public_path('js/admin-photocard.js')) }}"></script>
+    <script src="{{ asset('js/admin-photocard-more.js') }}?v={{ filemtime(public_path('js/admin-photocard-more.js')) }}"></script>
     <script>
         (function () {
             const d = window.CARD;

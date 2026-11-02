@@ -14,7 +14,7 @@ class ImportNews extends Command
         {--source=* : নির্দিষ্ট সোর্স (যেমন prothomalo); না দিলে সব সোর্স}
         {--limit= : প্রতি সোর্সে সর্বোচ্চ কতটি নতুন সংবাদ}';
 
-    protected $description = 'কনফিগ করা RSS ফিড থেকে সংবাদ ও ছবি এনে খসড়া হিসেবে রাখে';
+    protected $description = 'কনফিগ করা ফিড/Google News সাইটম্যাপ থেকে সংবাদ ও ছবি এনে খসড়া হিসেবে রাখে';
 
     private const STATE_LABELS = [
         'new' => 'নতুন',

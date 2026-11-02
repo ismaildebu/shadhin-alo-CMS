@@ -78,13 +78,13 @@ it('renders the revisions page', function () {
 });
 
 it('renders the news list with status filters, search and pagination', function () {
-    foreach (range(1, 17) as $i) {
+    foreach (range(1, 101) as $i) {
         pgArticle($this->editor, $i % 2 ? 'draft' : 'published', ['title' => "তালিকা সংবাদ {$i}"]);
     }
 
     $this->actingAs($this->editor)->get('/admin/news')
         ->assertOk()
-        ->assertSee('page=2', false); // 17 articles, 15 per page: the pager must exist
+        ->assertSee('page=2', false); // 101 articles, 100 per page: the pager must exist
 
     $this->actingAs($this->editor)->get('/admin/news?status=published')->assertOk()->assertDontSee('খসড়া</span>', false);
     $this->actingAs($this->editor)->get('/admin/news?q=১')->assertOk();
@@ -233,4 +233,53 @@ it('shows a compact chart instead of the fallback map in card image slots', func
         ->toContain('sa-card-img')
         ->toContain('<svg')
         ->not->toContain('sa-noimg');
+});
+
+it('shows the inline category form in the news management list', function () {
+    $news = pgArticle($this->admin, 'draft');
+    $news->categories()->sync([$this->category->id]);
+
+    $html = $this->actingAs($this->admin)->get('/admin/news')->assertOk()->getContent();
+
+    expect($html)->toContain('data-cat-toggle="'.$news->id.'"')
+        ->toContain('id="cat-row-'.$news->id.'"')
+        ->toContain(route('news.category', $news))
+        ->toContain('name="category_ids[]"');
+});
+
+it('filters the management list by category, including secondary categories', function () {
+    $sports = Category::create(['name' => 'খেলাধুলা', 'slug' => 'sports']);
+
+    $national = pgArticle($this->admin, 'draft', ['title' => 'শুধু জাতীয় খবর']);
+    $national->categories()->sync([$this->category->id]);
+
+    $sport = pgArticle($this->admin, 'draft', ['title' => 'শুধু খেলার খবর', 'category_id' => $sports->id]);
+    $sport->categories()->sync([$sports->id]);
+
+    $both = pgArticle($this->admin, 'draft', ['title' => 'জাতীয় ও খেলার খবর']);
+    $both->categories()->sync([$this->category->id, $sports->id]);
+
+    $html = $this->actingAs($this->admin)
+        ->get('/admin/news?category='.$sports->id)
+        ->assertOk()
+        ->getContent();
+
+    expect($html)->toContain('শুধু খেলার খবর')
+        ->toContain('জাতীয় ও খেলার খবর')
+        ->not->toContain('শুধু জাতীয় খবর')
+        ->toContain('<option value="'.$sports->id.'" selected');
+});
+
+it('shows bulk checkboxes and permanent delete controls in the trash list', function () {
+    $news = pgArticle($this->admin, 'draft');
+    $news->delete();
+
+    $html = $this->actingAs($this->admin)->get('/admin/news?status=trashed')->assertOk()->getContent();
+
+    expect($html)->toContain('action="'.route('news.bulk-force-delete').'"')
+        ->toContain('data-mode="force"')
+        ->toContain('name="ids[]"')
+        ->toContain('value="'.$news->id.'"')
+        ->toContain('স্থায়ীভাবে মুছুন')
+        ->toContain('সর্বোচ্চ ১০০');
 });

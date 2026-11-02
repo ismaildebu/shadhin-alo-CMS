@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Category;
 use App\Models\Location;
 use App\Models\News;
 use App\Models\Tag;
@@ -192,8 +193,32 @@ class NewsRequest extends FormRequest
                 }
             }
 
+            // A সারাদেশ report is about one specific place, so all three selects are required.
+            if ($this->hasNationwideCategory() && (! $location || $location->type !== Location::UPAZILA)) {
+                $validator->errors()->add('upazila_id', 'সারাদেশ ক্যাটাগরির সংবাদে বিভাগ, জেলা ও উপজেলা — তিনটিই নির্বাচন করুন।');
+
+                return;
+            }
+
             $this->resolvedLocation = $location;
         });
+    }
+
+    /** Does the article carry the সারাদেশ category (from the form, or from the stored article on update)? */
+    private function hasNationwideCategory(): bool
+    {
+        $ids = $this->input('category_ids', []);
+
+        if (! is_array($ids) || $ids === []) {
+            $article = $this->route('news');
+
+            return $article instanceof News
+                && $article->categories()->where('slug', Category::NATIONWIDE_SLUG)->exists();
+        }
+
+        return Category::whereIn('id', array_map('intval', $ids))
+            ->where('slug', Category::NATIONWIDE_SLUG)
+            ->exists();
     }
 
     /**

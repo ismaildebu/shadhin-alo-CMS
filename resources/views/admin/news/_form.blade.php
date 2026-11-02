@@ -284,6 +284,7 @@
                                     type="checkbox"
                                     name="category_ids[]"
                                     value="{{ $category->id }}"
+                                    data-slug="{{ $category->slug }}"
                                     @checked(
                                         in_array(
                                             (int) $category->id,
@@ -472,6 +473,11 @@
 
                 <p class="ad-hint" style="margin:0 0 12px;">
                     সংবাদটি কোন এলাকার; জাতীয় বা আন্তর্জাতিক হলে ফাঁকা রাখুন।
+                    সারাদেশ সংবাদে বিভাগ, জেলা ও উপজেলা — তিনটিই বেছে নিতে হবে।
+                </p>
+
+                <p class="ad-hint" data-role="location-hint" style="display:none;margin:0 0 12px;color:#b45309;">
+                    সারাদেশ ক্যাটাগরি নির্বাচন করা হয়েছে — বিভাগ, জেলা ও উপজেলা তিনটিই বেছে নিন।
                 </p>
 
                 @if($districtOnly)
@@ -525,6 +531,13 @@
                             </select>
                         </div>
                     @endif
+
+                    @foreach(['division_id', 'district_id', 'upazila_id'] as $locationError)
+                        @error($locationError)
+                            <p class="ad-hint" style="color:#b91c1c;margin:8px 0 0;">{{ $message }}</p>
+                        @enderror
+                    @endforeach
+
    
 
             </div>

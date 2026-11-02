@@ -85,7 +85,9 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
         // News: everyone with panel access (non-editors are limited to their own by the policy)
         Route::resource('news', NewsController::class)->except('show');
         Route::post('news/bulk-destroy', [NewsController::class, 'bulkDestroy'])->name('news.bulk-destroy');
+        Route::post('news/bulk-force-delete', [NewsController::class, 'bulkForceDestroy'])->name('news.bulk-force-delete');
         Route::post('news/{news}/restore', [NewsController::class, 'restore'])->name('news.restore')->withTrashed();
+        Route::post('news/{news}/category', [NewsController::class, 'updateCategory'])->name('news.category');
         Route::get('news/{news}/preview', [NewsController::class, 'preview'])->name('news.preview');
 
         Route::get('news/{news}/card', [NewsCardController::class, 'show'])->name('news.card');

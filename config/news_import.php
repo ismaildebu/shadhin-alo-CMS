@@ -2,12 +2,15 @@
 
 /*
  |--------------------------------------------------------------------------
- | স্বয়ংক্রিয় সংবাদ সংগ্রহ (RSS)
+ | স্বয়ংক্রিয় সংবাদ সংগ্রহ (RSS ও Google News সাইটম্যাপ)
  |--------------------------------------------------------------------------
  |
  | প্রতিটি সোর্সের ফিড, কোন সাইটের লিংক নেওয়া হবে, সোর্সের বিভাগ কোন স্থানীয়
  | ক্যাটাগরিতে (slug) যাবে, ছবি কোথা থেকে নেওয়া হবে এবং কতটি আইটেম নেওয়া হবে
  | এখানে ঠিক করা হয়। নতুন সোর্স যোগ করতে নিচের sources তালিকায় একটি এন্ট্রি দিন।
+ | `feed`-এ RSS ঠিকানা অথবা Google News সাইটম্যাপ (news_sitemap.xml) — দুটোই চলবে।
+ | সারাদেশ (saradesh) সংবাদে বিভাগ, জেলা ও উপজেলা বাধ্যতামূলক; আনা খসড়ায়
+ | শিরোনামে থাকা স্থানের নাম দেখে বিভাগ/জেলা/উপজেলা নিজে থেকে বসিয়ে দেওয়া হয়।
  |
  | সব সংবাদ খসড়া (draft) হিসেবে আসে; সম্পাদক দেখে প্রকাশ করেন। প্রতিটি খসড়ার
  | শেষে সোর্সের মূল লিংক থাকে। `content` ব্লকে সোর্স পেজের কোন কনটেইনারে আসল
@@ -195,12 +198,12 @@ return [
         ],
 
         'banglanews24' => [
-            // ফিডটি Cloudflare-এর চ্যালেঞ্জ দেখায় (PHP cURL → HTTP 403), তাই আপাতত বন্ধ।
-            // সাইটটি অনুমতি দিলে enabled => true করলেই আবার চলবে।
-            'enabled' => false,
+            // www হোস্টে Cloudflare 403 দেয়, কিন্তু www ছাড়া ফিডটি খোলে; সংবাদ পেজ দুভাবেই
+            // আটকানো, তাই পূর্ণ বডি আসে না — ফিডের সারাংশ ও থাম্বনেইলই থাকে।
+            'enabled' => true,
             'name' => 'বাংলানিউজ ২৪',
-            'feed' => 'https://www.banglanews24.com/rss.xml',
-            'allowed_hosts' => ['www.banglanews24.com'],
+            'feed' => 'https://banglanews24.com/rss.xml',
+            'allowed_hosts' => ['www.banglanews24.com', 'banglanews24.com'],
             'category_from' => 'url',
             'category_map' => [
                 'national' => 'Jayato',
@@ -220,10 +223,145 @@ return [
             'default_category' => 'Latest',
             'image' => [
                 'from' => ['enclosure'], // ফিডে থাম্বনেইল আছে
-                'og' => true,            // সংবাদ পেজে বড় (৮০০x৬০০) ছবি
+                'og' => false,           // সংবাদ পেজ খোলা যায় না, বড় ছবি পাওয়া যাবে না
             ],
             'content' => [
                 'class' => null, // পেজ খোলা যায় না, তাই বডি কনটেইনার যাচাই করা যায়নি
+                'exclude' => [],
+            ],
+        ],
+
+        'bdnews24' => [
+            // আরএসএস নেই; বিডিনিউজ বাংলা Google News সাইটম্যাপ প্রকাশ করে, তাই সেটিই পড়া হয়।
+            'enabled' => true,
+            'name' => 'বিডিনিউজ ২৪',
+            'feed' => 'https://bangla.bdnews24.com/news_sitemap.xml',
+            'allowed_hosts' => ['bangla.bdnews24.com'],
+            'category_from' => 'url', // সাইটম্যাপে বিভাগ নেই; লিংকের প্রথম অংশ
+            'category_map' => [
+                'bangladesh' => 'Jayato',
+                'samagrabangladesh' => 'Jayato',
+                'politics' => 'Politics',
+                'ctg' => 'saradesh',
+                'sport' => 'Sports',
+                'cricket' => 'Sports',
+                'world' => 'International',
+                'probash' => 'International',
+                'business' => 'Economics',
+                'economy' => 'Economics',
+                'corporate' => 'Economics',
+                'stocks' => 'Economics',
+                'tech' => 'Science-Technology',
+                'health' => 'Health',
+                'campus' => 'Education',
+                'opinion' => 'Opinion',
+                'amarkotha' => 'Opinion',
+                'glitz' => 'Entertainment',
+                'lifestyle' => 'Feature',
+                'arts' => 'Feature',
+                'onyachokhe' => 'Feature',
+                'media_bn' => 'Feature',
+                'photostory' => 'Feature',
+            ],
+            'content' => [
+                'class' => 'details-brief',
+                'exclude' => ['jsembed-wrapper'], // ইনস্টাগ্রাম/সোশ্যাল এমবেডের লেখা বডিতে ঢোকে না
+            ],
+            'default_category' => 'Latest',
+            'image' => [
+                'from' => [], // সাইটম্যাপের image:loc
+                'og' => true, // সাইটম্যাপে ছবি না থাকলে সংবাদ পেজ
+            ],
+        ],
+
+        'khulnagazette' => [
+            'enabled' => true,
+            'name' => 'খুলনা গেজেট',
+            'feed' => 'https://khulnagazette.com/feed/',
+            'allowed_hosts' => ['khulnagazette.com', 'www.khulnagazette.com'],
+            'category_from' => 'tag',
+            'category_map' => [
+                'বাংলাদেশ' => 'Jayato',
+                'টপ নিউজ' => 'Latest',
+                'আন্তর্জাতিক' => 'International',
+                'খেলা' => 'Sports',
+                'বিনোদন' => 'Entertainment',
+                'খুলনা' => 'saradesh',
+                'সাতক্ষীরা' => 'saradesh',
+                'মেহেরপুর' => 'saradesh',
+                'মুক্ত ভাবনা' => 'Opinion',
+            ],
+            'content' => [
+                'class' => 'entry-content',
+                'exclude' => ['kg-article-tags'],
+            ],
+            'default_category' => 'Latest',
+            'image' => [
+                'from' => ['media_content', 'enclosure'],
+                'og' => true,
+            ],
+        ],
+
+        'gramerkagoj' => [
+            // আরএসএস নেই; গ্রামের কাগজ Google News সাইটম্যাপ প্রকাশ করে।
+            'enabled' => true,
+            'name' => 'গ্রামের কাগজ',
+            'feed' => 'https://www.gramerkagoj.com/sitemap/news-sitemap.xml',
+            'allowed_hosts' => ['gramerkagoj.com', 'www.gramerkagoj.com'],
+            'category_from' => 'url',
+            'category_map' => [
+                'national' => 'Jayato',
+                'country-news' => 'saradesh',
+                'south-west' => 'saradesh', // খুলনা বিভাগের জেলা ও উপজেলার সংবাদ
+                'politics' => 'Politics',
+                'economy' => 'Economics',
+                'sports' => 'Sports',
+                'international' => 'International',
+                'entertainment' => 'Entertainment',
+                'information-technology' => 'Science-Technology',
+                'educational-message' => 'Education',
+                'islamic-world' => 'Religion-Festivals',
+                'court-law' => 'Jayato',
+            ],
+            'content' => [
+                'class' => 'dtl_content_section',
+                'exclude' => [],
+            ],
+            'default_category' => 'Latest',
+            'image' => [
+                'from' => [], // সাইটম্যাপের image:loc
+                'og' => true,
+            ],
+        ],
+
+        'kalbela' => [
+            // পুরো সাইট Cloudflare-এর চ্যালেঞ্জে আটকানো (PHP cURL ও সাধারণ curl — সব 403)।
+            // সাইটটি অনুমতি দিলে enabled => true করলেই চলবে।
+            'enabled' => false,
+            'name' => 'কালবেলা',
+            'feed' => 'https://www.kalbela.com/rss',
+            'allowed_hosts' => ['www.kalbela.com', 'kalbela.com'],
+            'category_from' => 'url',
+            'category_map' => [
+                'saradesh' => 'saradesh',
+                'bangladesh' => 'Jayato',
+                'politics' => 'Politics',
+                'economics' => 'Economics',
+                'sports' => 'Sports',
+                'international' => 'International',
+                'entertainment' => 'Entertainment',
+                'technology' => 'Science-Technology',
+                'education' => 'Education',
+                'health' => 'Health',
+                'opinion' => 'Opinion',
+            ],
+            'default_category' => 'Latest',
+            'image' => [
+                'from' => ['media_content', 'enclosure'],
+                'og' => false,
+            ],
+            'content' => [
+                'class' => null, // পেজ খোলা যায় না, বডি কনটেইনার যাচাই করা যায়নি
                 'exclude' => [],
             ],
         ],

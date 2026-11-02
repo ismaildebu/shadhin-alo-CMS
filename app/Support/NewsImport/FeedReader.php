@@ -79,9 +79,11 @@ final class FeedReader
     {
         $doc = @simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA | LIBXML_NONET | LIBXML_NOERROR);
 
-        if (! $doc || ! isset($doc->channel->item)) {
-            throw new RuntimeException('ফিডটি পড়া যায়নি (RSS নয়?)');
+        if (! $doc) {
+            throw new RuntimeException('ফিডটি পড়া যায়নি (RSS বা সাইটম্যাপ নয়?)');
         }
+
+        $entries = self::entries($doc, $source, $config);
 
         $max = $limit ?? (int) ($config['collect']['per_source_limit'] ?? 8);
         $maxAge = (int) ($config['collect']['max_age_hours'] ?? 36);
@@ -98,26 +100,26 @@ final class FeedReader
         $scanned = 0;
         $accepted = 0;
 
-        foreach ($doc->channel->item as $node) {
+        foreach ($entries as $entry) {
             if ($accepted >= $max || $scanned >= $scanLimit) {
                 break;
             }
 
             $scanned++;
 
-            $title = self::text((string) $node->title);
+            $title = $entry['title'];
 
             if ($title === '') {
                 continue;
             }
 
-            $link = trim((string) $node->link);
+            $link = $entry['link'];
             $host = strtolower((string) parse_url($link, PHP_URL_HOST));
-            [$tag, $category] = self::categoryFor($source, (string) $node->category, $link);
+            [$tag, $category] = self::categoryFor($source, $entry['tag'], $link);
 
-            $stamp = strtotime(trim((string) $node->pubDate)) ?: null;
-            $excerpt = self::excerpt($node, $excerptChars);
-            $image = self::feedImage($node, $source, $link, $config);
+            $stamp = $entry['stamp'];
+            $excerpt = $entry['excerpt'];
+            $image = $entry['image'];
 
             $state = 'new';
             $reason = '';
@@ -189,6 +191,78 @@ final class FeedReader
         }
 
         return $items;
+    }
+
+    /**
+     * Normalize either an RSS feed or a Google News sitemap into one list of entries.
+     * Both carry the same four things: title, link, time and an optional image.
+     *
+     * @return list<array{title: string, link: string, tag: string, stamp: ?int, excerpt: string, image: ?string}>
+     */
+    private static function entries(\SimpleXMLElement $doc, array $source, array $config): array
+    {
+        if (isset($doc->url)) {
+            return self::sitemapEntries($doc);
+        }
+
+        if (! isset($doc->channel->item)) {
+            throw new RuntimeException('ফিডটি পড়া যায়নি (RSS নয়?)');
+        }
+
+        $excerptChars = (int) ($config['text']['excerpt_chars'] ?? 500);
+        $entries = [];
+
+        foreach ($doc->channel->item as $node) {
+            $link = trim((string) $node->link);
+
+            $entries[] = [
+                'title' => self::text((string) $node->title),
+                'link' => $link,
+                'tag' => self::text((string) $node->category),
+                'stamp' => strtotime(trim((string) $node->pubDate)) ?: null,
+                'excerpt' => self::excerpt($node, $excerptChars),
+                'image' => self::feedImage($node, $source, $link, $config),
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Google News sitemaps list only the last couple of days and carry an image per URL.
+     * They are what bdnews24 and Gramer Kagoj publish instead of an RSS feed.
+     *
+     * @return list<array{title: string, link: string, tag: string, stamp: ?int, excerpt: string, image: ?string}>
+     */
+    private static function sitemapEntries(\SimpleXMLElement $doc): array
+    {
+        $newsNs = 'http://www.google.com/schemas/sitemap-news/0.9';
+        $imageNs = 'http://www.google.com/schemas/sitemap-image/1.1';
+        $entries = [];
+
+        foreach ($doc->url as $node) {
+            $news = $node->children($newsNs)->news;
+            $title = self::text((string) ($news->title ?? ''));
+            $link = trim((string) $node->loc);
+
+            if ($title === '' || $link === '') {
+                continue;
+            }
+
+            $image = $node->children($imageNs)->image;
+            $imageUrl = $image ? trim((string) $image->loc) : '';
+
+            $entries[] = [
+                'title' => $title,
+                'link' => $link,
+                'tag' => self::text((string) ($news->keywords ?? '')),
+                'stamp' => strtotime(trim((string) ($news->publication_date ?? ''))) ?: null,
+                'excerpt' => '',
+                'image' => $imageUrl !== '' ? self::absUrl($imageUrl, $link) : null,
+            ];
+        }
+
+        return $entries;
     }
 
     /**
