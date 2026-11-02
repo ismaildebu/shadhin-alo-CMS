@@ -276,6 +276,7 @@ final class SafeHttp
             CURLOPT_TIMEOUT => max(1, (int) ($request['timeout'] ?? 20)),
             CURLOPT_USERAGENT => (string) ($request['user_agent'] ?? 'NewsBot/1.0'),
             CURLOPT_ENCODING => '',
+            CURLOPT_BUFFERSIZE => 16 * 1024,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
@@ -291,9 +292,18 @@ final class SafeHttp
 
                 return strlen($chunk);
             },
-            CURLOPT_HEADERFUNCTION => function ($curl, string $line) use (&$location): int {
+            CURLOPT_HEADERFUNCTION => function ($curl, string $line) use (&$location, &$tooBig, $maxBytes): int {
                 if (stripos($line, 'location:') === 0) {
                     $location = trim(substr($line, 9));
+                }
+
+                // Abort before the body is transferred when the server already
+                // announces a response bigger than the allowed size.
+                if (stripos($line, 'content-length:') === 0
+                    && (int) trim(substr($line, 15)) > $maxBytes) {
+                    $tooBig = true;
+
+                    return 0;
                 }
 
                 return strlen($line);

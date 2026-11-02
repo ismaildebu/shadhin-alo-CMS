@@ -10,9 +10,11 @@ return new class extends Migration
     {
         if (! Schema::hasColumn('users', 'upazila_id')) {
             Schema::table('users', function (Blueprint $table) {
-                $table->unsignedBigInteger('upazila_id')
+                $table->foreignId('upazila_id')
                     ->nullable()
-                    ->index();
+                    ->index()
+                    ->constrained('locations')
+                    ->nullOnDelete();
             });
         }
     }
