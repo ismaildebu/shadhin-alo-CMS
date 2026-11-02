@@ -13,3 +13,5 @@ Artisan::command('inspire', function () {
 Schedule::command('articles:publish-scheduled')->everyMinute()->withoutOverlapping();
 
 Schedule::command('videos:sync')->everyThirtyMinutes()->withoutOverlapping();
+
+Schedule::command('news:import')->everyThirtyMinutes()->withoutOverlapping();
