@@ -18,16 +18,35 @@ class AudioNewsController extends Controller
 
     public function generateAudio(Request $request, int $id): JsonResponse
     {
-        $news = News::findOrFail($id);
+        // দীর্ঘ খবরে অনেকগুলো TTS অনুরোধ লাগে, তাই সময়সীমা বাড়ানো হয়।
+        @set_time_limit(120);
+
+        $news = News::published()->findOrFail($id);
+
+        $text = collect([
+            $news->localized_content,
+            $news->content,
+            $news->description,
+            $news->summary,
+            $news->localized_title,
+            $news->title,
+        ])->first(fn ($value) => trim(strip_tags((string) $value)) !== '');
+
+        if (! $text) {
+            return response()->json([
+                'success' => false,
+                'message' => 'এই সংবাদে পড়ার মতো কোনো লেখা নেই।',
+            ], 422);
+        }
 
         $news->update(['tts_status' => 'processing']);
 
-        // লেখা না পেলে মূল কনটেন্ট নিবে
-        $contentToSpeak = $news->localized_content ?? $news->content ?? $news->title;
+        // বাংলা লেখা যেন ইংরেজি ভয়েসে না পড়া হয়, তাই সংবাদের নিজের ভাষা ব্যবহার হয়।
+        $language = $news->lang === 'en' ? 'en' : 'bn';
 
         $audioUrl = $this->ttsService->generateAudioFromText(
-            $contentToSpeak,
-            app()->getLocale()
+            (string) $text,
+            $language
         );
 
         if ($audioUrl) {

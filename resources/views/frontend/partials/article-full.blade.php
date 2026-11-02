@@ -9,6 +9,17 @@
     $show = $design['toggles'];
     $articleBody = \App\Support\ArticleBody::render($news->description);
 
+    // ছবি না থাকলে মূল ছবির স্লটে গ্রাফ; ভুল বা অচল শর্টকোডে পুরনো no-image কার্ডই থাকবে।
+    $chartSlot = '';
+
+    if (! $news->image && trim((string) $news->chart_shortcode) !== '') {
+        $rendered = \App\Support\ArticleVisuals::expand(e(trim((string) $news->chart_shortcode)));
+
+        if (str_contains($rendered, 'sa-html-chart')) {
+            $chartSlot = $rendered;
+        }
+    }
+
     // লেখকের নাম, ছবি ও পরিচিতি (অটো-লোড হওয়া খবরেও কাজ করে, তাই এখানেই হিসাব)
     $by = \App\Support\Avatars::byline($news);
     $bylineName = $by['name'] !== '' ? $by['name'] : 'স্বাধীন আলো';
@@ -113,6 +124,8 @@
                     </figcaption>
                 @endif
             </figure>
+        @elseif($chartSlot !== '')
+            {!! $chartSlot !!}
         @elseif($show['no_image_card'])
             {{-- No photo: logo, category, location text and the highlighted division map. --}}
             <figure class="sa-figure">

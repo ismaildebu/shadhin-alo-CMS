@@ -15,6 +15,9 @@
 
     $variant = $variant ?? (preg_match('/thumb|tl-img|lr-img|bt-img|ditem-img/', $sizeClass) ? 'thumb' : 'card');
 
+    // ছবি নেই কিন্তু নিউজে গ্রাফ শর্টকোড আছে: একই স্লটে ছোট চার্ট।
+    $chartThumb = \App\Support\ArticleVisuals::thumb((string) ($news->chart_shortcode ?? ''));
+
     $place = \App\Support\NewsFallback::place($news);
     $showMap = \App\Support\NewsFallback::usesMap($news);
 
@@ -45,6 +48,14 @@
     $label = trim($category . ($text !== '' ? ' · ' . $text : ''));
 @endphp
 
+@if($chartThumb !== null)
+    <span
+        class="sa-chart-thumb {{ $sizeClass }}"
+        style="background: {{ $chartThumb['background'] }};"
+        role="img"
+        aria-label="{{ $chartThumb['label'] !== '' ? $chartThumb['label'] : $news->title }}"
+    >{!! $chartThumb['svg'] !!}</span>
+@else
 <span class="sa-noimg sa-noimg-{{ $variant }}@if(! $showMap) sa-noimg-plain @endif {{ $sizeClass }}@if($sizeClass === '' && $variant !== 'hero') sa-noimg-dflt @endif" role="img" aria-label="{{ $label !== '' ? $label : 'বাংলাদেশ' }}">
     <span class="sa-noimg-top">
         @if($showMap && $category !== '')
@@ -103,3 +114,4 @@
         @endif
     </span>
 </span>
+@endif

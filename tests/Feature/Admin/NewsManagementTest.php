@@ -114,6 +114,44 @@ it('keeps the client filename and adds a suffix when two uploads in one second c
     }
 });
 
+it('stores a chart shortcode for the main-image slot and clears it when emptied', function () {
+    $shortcode = '[chart id="5"]';
+
+    $this->actingAs($this->admin)
+        ->post('/admin/news', newsPayload(['chart_shortcode' => $shortcode]))
+        ->assertSessionHasNoErrors();
+
+    $news = News::firstOrFail();
+
+    expect($news->chart_shortcode)->toBe($shortcode);
+
+    $this->actingAs($this->admin)
+        ->put("/admin/news/{$news->id}", newsPayload(['chart_shortcode' => '']))
+        ->assertSessionHasNoErrors();
+
+    expect($news->fresh()->chart_shortcode)->toBeNull();
+});
+
+it('rejects a chart shortcode that is not a single chart shortcode', function (string $bad) {
+    $this->actingAs($this->admin)
+        ->post('/admin/news', newsPayload(['chart_shortcode' => $bad]))
+        ->assertSessionHasErrors('chart_shortcode');
+
+    expect(News::count())->toBe(0);
+})->with([
+    'another shortcode' => '[map title="বিভাগ" data="ঢাকা=1"]',
+    'html after it' => '[chart id="5"]<script>alert(1)</script>',
+    'plain text' => 'গ্রাফ দেখুন',
+]);
+
+it('accepts a chart shortcode surrounded by spaces', function () {
+    $this->actingAs($this->admin)
+        ->post('/admin/news', newsPayload(['chart_shortcode' => '  [chart type="column" labels="ক|খ" values="1|2"]  ']))
+        ->assertSessionHasNoErrors();
+
+    expect(News::firstOrFail()->chart_shortcode)->toContain('[chart type="column"');
+});
+
 it('rejects non-image uploads', function () {
     $this->actingAs($this->admin)
         ->post('/admin/news', newsPayload(['image' => UploadedFile::fake()->create('shell.php', 10, 'application/x-php')]))

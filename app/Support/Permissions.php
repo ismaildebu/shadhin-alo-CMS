@@ -159,7 +159,7 @@ class Permissions
                 'group' => 'design',
                 'label' => 'সাইট লেআউট ও ডিজাইন',
                 'short' => 'ডিজাইন',
-                'help' => 'হোমপেজ সাজানো, মেনু, সাইডবার, সংবাদ পেজ ডিজাইন ও ডেটা ভিজ্যুয়াল বিল্ডার।',
+                'help' => 'হোমপেজ সাজানো, মেনু, সাইডবার, সংবাদ পেজ ডিজাইন, ডেটা ভিজ্যুয়াল বিল্ডার ও গ্রাফ-চার্ট।',
                 'danger' => false,
                 'defaults' => [$admin, $editor, $deputy, $newsEditor, $designer],
                 'locked' => [],

@@ -30,6 +30,8 @@
     <link rel="stylesheet" href="{{ asset('css/article-visuals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/news-fallback.css') }}">
 
+    @include('partials.chart-scripts')
+
     {{-- Dashboard design values. Built only from whitelisted options and validated hex colors. --}}
     <style>{!! $design['css'] !!}</style>
 

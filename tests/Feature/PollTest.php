@@ -4,8 +4,10 @@ use App\Models\Category;
 use App\Models\News;
 use App\Models\Poll;
 use App\Models\PollVote;
+use App\Models\SidebarWidget;
 use App\Models\User;
 use App\Support\PollMath;
+use Illuminate\Http\UploadedFile;
 
 function pollWithOptions(array $attributes = [], array $labels = ['হ্যাঁ ভোট', 'না ভোট', 'মন্তব্য নেই']): Poll
 {
@@ -293,4 +295,24 @@ it('lists the polls for an admin', function () {
     pollWithOptions(['question' => 'তালিকার প্রশ্ন']);
 
     $this->actingAs(pollAdmin())->get(route('admin.polls.index'))->assertOk()->assertSee('তালিকার প্রশ্ন')->assertSee('চালু');
+});
+
+it('stores a poll image and shows it with the sidebar design', function () {
+    $this->actingAs(pollAdmin())->post(route('admin.polls.store'), [
+        'question' => 'ছবিসহ প্রশ্ন?',
+        'is_active' => '1',
+        'options' => [['label' => 'এক'], ['label' => 'দুই']],
+        'image' => UploadedFile::fake()->image('poll.jpg', 1200, 800),
+    ])->assertRedirect(route('admin.polls.index'));
+
+    $poll = Poll::firstOrFail();
+
+    SidebarWidget::where('name', 'poll')->firstOrFail()->update(['layout' => 'side', 'accent' => '#0f766e']);
+    pollHomeNeedsNews();
+
+    $this->get('/')->assertOk()
+        ->assertSee('ছবিসহ প্রশ্ন?')
+        ->assertSee('sa-poll--side', false)
+        ->assertSee('--sa-poll-accent: #0f766e', false)
+        ->assertSee($poll->imageUrl(900), false);
 });

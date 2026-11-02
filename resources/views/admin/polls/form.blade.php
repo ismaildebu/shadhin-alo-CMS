@@ -12,6 +12,8 @@
 
     $activeChecked = $errors->any() ? old('is_active') !== null : (bool) $poll->is_active;
     $publishedValue = old('published_at', $poll->published_at ? $poll->published_at->format('Y-m-d\TH:i') : '');
+    $imageUrlValue = old('image_url', $poll->image && preg_match('#^https?://#i', $poll->image) ? $poll->image : '');
+    $imagePreview = old('image_url') ?: ($poll->image ? $poll->imageUrl(600) : '');
 @endphp
 <x-app-layout>
     <x-slot name="header">
@@ -29,7 +31,7 @@
             <a href="{{ route('admin.polls.index') }}" class="ad-tab">সব ভোট</a>
         </div>
 
-        <form method="POST" action="{{ $poll->exists ? route('admin.polls.update', $poll) : route('admin.polls.store') }}" class="ad-form">
+        <form method="POST" action="{{ $poll->exists ? route('admin.polls.update', $poll) : route('admin.polls.store') }}" class="ad-form" enctype="multipart/form-data">
             @csrf
             @if($poll->exists)
                 @method('PUT')
@@ -39,6 +41,30 @@
 
                 <label for="poll-question"><b>প্রশ্ন</b></label>
                 <textarea id="poll-question" name="question" rows="3" maxlength="500" class="ad-field" style="width:100%;margin:.4rem 0 1rem;" required>{{ old('question', $poll->question) }}</textarea>
+
+                <label><b>ভোটের ছবি</b> <span class="ad-hint">(ঐচ্ছিক — সাইডবারের কার্ডে সুন্দরভাবে বসবে)</span></label>
+                <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start;margin:.5rem 0 1.2rem;">
+                    <div id="poll-image-preview" style="width:220px;aspect-ratio:16/9;border:1px dashed #cbd5e1;border-radius:.6rem;background:#f8fafc;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#64748b;font-size:.85rem;">
+                        @if($imagePreview)
+                            <img src="{{ $imagePreview }}" alt="ভোটের ছবি" style="width:100%;height:100%;object-fit:cover;">
+                        @else
+                            <span>ছবি নেই</span>
+                        @endif
+                    </div>
+
+                    <div style="flex:1;min-width:240px;">
+                        <input type="file" name="image" accept="image/jpeg,image/png,image/webp" class="ad-field" style="width:100%;">
+                        <div class="ad-hint">JPG, PNG বা WebP; সর্বোচ্চ ৪ মেগাবাইট। আপলোড করলে নিচের লিংকের চেয়ে এটিই অগ্রাধিকার পাবে।</div>
+
+                        <input type="url" name="image_url" value="{{ $imageUrlValue }}" placeholder="অথবা ছবির লিংক: https://..." class="ad-field" style="width:100%;margin-top:.5rem;">
+
+                        @if($poll->exists && $poll->image)
+                            <label class="ad-check" style="margin-top:.45rem;">
+                                <input type="checkbox" name="remove_image" value="1"> বর্তমান ছবিটি সরান
+                            </label>
+                        @endif
+                    </div>
+                </div>
 
                 <label><b>অপশন</b> <span class="ad-hint">(২ থেকে ৬টি)</span></label>
 
@@ -113,6 +139,28 @@
                 if (! button || box.children.length <= 2) { return; }
 
                 button.closest('[data-row]').remove();
+            });
+        })();
+    </script>
+
+    <script>
+        (function () {
+            var input = document.querySelector('input[name="image"]');
+            var box = document.getElementById('poll-image-preview');
+
+            if (! input || ! box) { return; }
+
+            input.addEventListener('change', function () {
+                var file = input.files && input.files[0];
+
+                if (! file) { return; }
+
+                var img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.alt = 'ভোটের ছবি';
+                img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+
+                box.replaceChildren(img);
             });
         })();
     </script>

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Poll extends Model
 {
-    protected $fillable = ['question', 'is_active', 'published_at'];
+    protected $fillable = ['question', 'image', 'is_active', 'published_at'];
 
     protected function casts(): array
     {
@@ -71,5 +71,26 @@ class Poll extends Model
     public function shownDate(): \DateTimeInterface
     {
         return $this->published_at ?? $this->created_at ?? now();
+    }
+
+    /** গ্যালারির ছবি অথবা বাইরের সরাসরি লিংক, দুটোই চলবে। */
+    public function imageUrl(int $width = 900): string
+    {
+        $image = trim((string) $this->image);
+
+        if ($image === '') {
+            return '';
+        }
+
+        if (preg_match('#^https?://#i', $image)) {
+            return $image;
+        }
+
+        return Media::thumbUrl($image, $width);
+    }
+
+    public function imageAlt(): string
+    {
+        return Media::altFor($this->image, $this->question);
     }
 }

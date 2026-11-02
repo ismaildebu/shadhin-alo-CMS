@@ -438,6 +438,25 @@
                     >
                 </div>
 
+                <div class="ad-fgroup">
+                    <label class="ad-label" for="chart-shortcode">গ্রাফ শর্টকোড</label>
+
+                    <textarea
+                        id="chart-shortcode"
+                        name="chart_shortcode"
+                        rows="3"
+                        dir="ltr"
+                        spellcheck="false"
+                        placeholder='[chart id="5"]'
+                        class="ad-field"
+                        style="font-family:ui-monospace, SFMono-Regular, Consolas, monospace;"
+                    >{{ $val('chart_shortcode') }}</textarea>
+
+                    <p class="ad-hint">
+                        ছবি না থাকলে এই গ্রাফটি মূল ছবির জায়গায় দেখাবে। অ্যাডমিন → গ্রাফ ও চার্ট থেকে শর্টকোড কপি করে বসান।
+                    </p>
+                </div>
+
             </div>
         </div>
 

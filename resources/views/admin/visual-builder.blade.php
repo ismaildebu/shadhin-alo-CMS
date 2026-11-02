@@ -4,16 +4,19 @@
     </x-slot>
 
     <link rel="stylesheet" href="{{ asset('css/article-visuals.css') }}">
+    @include('partials.chart-scripts')
 
     <div class="ad-page ad-narrow" style="max-width:62rem;">
 
         <div class="ad-pagehead">
             <h1>ডেটা ভিজ্যুয়াল বিল্ডার</h1>
+            <a href="{{ route('charts.index') }}" class="ad-tab">সংরক্ষিত গ্রাফ</a>
         </div>
 
         <p class="ad-note">
             তথ্য দিলে চার্ট বা সংখ্যা কার্ডের <b>শর্টকোড</b> তৈরি হবে। শর্টকোডটি কপি করে সংবাদের লেখার যেখানে ছবির বদলে চার্ট চান সেখানে পেস্ট করুন।
             এখানকার প্রিভিউ পাবলিক পেজের মতোই দেখায়।
+            একাধিক সিরিজের গ্রাফ এবং এক পেজে অনেকগুলো গ্রাফ রাখতে <a href="{{ route('charts.index') }}">গ্রাফ ও চার্ট</a> পেজ ব্যবহার করুন।
         </p>
 
         <div class="ad-panel" style="margin-bottom:20px;">
@@ -29,6 +32,7 @@
                             <option value="line">লাইন (সময়ের সাথে পরিবর্তন)</option>
                             <option value="pie">পাই (ভাগ)</option>
                             <option value="donut">ডোনাট (ভাগ)</option>
+                            <option value="3d">থ্রিডি অ্যারো (উত্থান)</option>
                             <option value="stats">সংখ্যা কার্ড (মূল তথ্য)</option>
                             <option value="map">বাংলাদেশের মানচিত্র (বিভাগ অনুযায়ী)</option>
                         </select>
@@ -47,6 +51,20 @@
                     <div>
                         <label class="ad-label" for="vb-source">সূত্র (ঐচ্ছিক)</label>
                         <input type="text" id="vb-source" class="ad-field" maxlength="150" placeholder="যেমন: বিবিএস ২০২৪">
+                    </div>
+                </div>
+
+                <div class="ad-two ad-fgroup">
+                    <div>
+                        <label class="ad-label" for="vb-style">স্টাইল</label>
+                        <select id="vb-style" class="ad-field">
+                            @foreach(\App\Models\Chart::STYLES as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <p class="ad-hint" style="margin-top:1.9rem;">একই তথ্য ছয়টি ডিজাইনে দেখানো যায়। স্টাইল বদলে আবার প্রিভিউ দেখুন।</p>
                     </div>
                 </div>
 
@@ -103,6 +121,7 @@
                 line: '২০২০ | 5.2\n২০২১ | 6.9\n২০২২ | 7.1\n২০২৩ | 5.8\n২০২৪ | 6.4',
                 pie: 'কৃষি | 40\nশিল্প | 30\nসেবা | 30',
                 donut: 'কৃষি | 40\nশিল্প | 30\nসেবা | 30',
+                '3d': '২০১৯ | 8\n২০২০ | 14\n২০২১ | 21\n২০২২ | 28\n২০২৩ | 36\n২০২৪ | 44',
                 stats: 'মোট জনসংখ্যা | ১৭ কোটি\nসাক্ষরতার হার | ৭৬%\nশহরে বসবাস | ৪০%'
             };
 
@@ -112,6 +131,7 @@
                 line: 'মান শুধু সংখ্যা; ঋণাত্মক হলে লিখুন -2.5। সময়ের ক্রমে দিন।',
                 pie: 'মান শুধু সংখ্যা (সর্বোচ্চ ৮টি ভাগ)।',
                 donut: 'মান শুধু সংখ্যা (সর্বোচ্চ ৮টি ভাগ)।',
+                '3d': 'মান শুধু সংখ্যা; বাম থেকে ডানে বাড়লে তীরটি উত্থান বোঝায় (সর্বোচ্চ ১২টি লাইন)।',
                 stats: 'মান লেখাও হতে পারে, যেমন "১৭ কোটি" (সর্বোচ্চ ৬টি কার্ড)।',
                 map: 'প্রতিটি বিভাগের পাশে সংখ্যা দিন। রং গাঢ় মানে মান বেশি। মানচিত্র সরলীকৃত, সীমানা আনুমানিক।'
             };
@@ -158,7 +178,7 @@
 
                 if (!pairs.length) { throw new Error('অন্তত একটি বিভাগের মান দিন।'); }
 
-                let code = '[map title="' + clean($('vb-title').value) + '" data="' + pairs.join('|') + '"';
+                let code = '[map title="' + clean($('vb-title').value) + '" style="' + $('vb-style').value + '" data="' + pairs.join('|') + '"';
                 const unit = clean($('vb-unit').value);
                 const source = clean($('vb-source').value);
 
@@ -189,7 +209,7 @@
                         if (!label || !value) { throw new Error((i + 1) + ' নম্বর লাইনে "লেবেল | মান" দিন।'); }
                         return label + '=' + value;
                     });
-                    code = '[stats title="' + title + '" items="' + items.join('|') + '"';
+                    code = '[stats title="' + title + '" style="' + $('vb-style').value + '" items="' + items.join('|') + '"';
                 } else {
                     const labels = [];
                     const values = [];
@@ -205,7 +225,7 @@
                         values.push(raw);
                     });
 
-                    code = '[chart type="' + type + '" title="' + title + '" labels="' + labels.join('|') +
+                    code = '[chart type="' + type + '" style="' + $('vb-style').value + '" title="' + title + '" labels="' + labels.join('|') +
                         '" values="' + values.join('|') + '"';
 
                     const unit = clean($('vb-unit').value);
@@ -227,6 +247,12 @@
 
             $('vb-type').addEventListener('change', refreshUi);
             refreshUi();
+
+            $('vb-style').addEventListener('change', function () {
+                if ($('vb-code').value) {
+                    $('vb-preview').click();
+                }
+            });
 
             $('vb-sample').addEventListener('click', function () {
                 const type = $('vb-type').value;

@@ -15,30 +15,64 @@
     --sa-chart-8: #b5179e;
 }
 
-.sa-fill-1 { fill: var(--sa-chart-1); } .sa-bg-1 { background: var(--sa-chart-1); }
-.sa-fill-2 { fill: var(--sa-chart-2); } .sa-bg-2 { background: var(--sa-chart-2); }
-.sa-fill-3 { fill: var(--sa-chart-3); } .sa-bg-3 { background: var(--sa-chart-3); }
-.sa-fill-4 { fill: var(--sa-chart-4); } .sa-bg-4 { background: var(--sa-chart-4); }
-.sa-fill-5 { fill: var(--sa-chart-5); } .sa-bg-5 { background: var(--sa-chart-5); }
-.sa-fill-6 { fill: var(--sa-chart-6); } .sa-bg-6 { background: var(--sa-chart-6); }
-.sa-fill-7 { fill: var(--sa-chart-7); } .sa-bg-7 { background: var(--sa-chart-7); }
-.sa-fill-8 { fill: var(--sa-chart-8); } .sa-bg-8 { background: var(--sa-chart-8); }
-
 /* ---------- Card shell (shared by every visual) ---------- */
 .sa-visual {
+    position: relative;
     margin: 2rem 0;
     padding: 1.15rem;
     border: 1px solid var(--sa-line, #dfe4e9);
     border-radius: 6px;
-    background: var(--sa-mist, #f3f5f7);
+    background: var(--sa-paper, #fff);
     font-family: var(--sa-font-ui, "Hind Siliguri", system-ui, sans-serif);
     font-size: 1rem;
     line-height: 1.6;
     color: var(--sa-ink, #16202a);
 }
-.sa-visual .sa-html-chart-title { margin-bottom: 1rem; font-weight: 700; font-size: 1.05rem; }
+.sa-visual.sa-visual-untitled { padding-top: 3rem; }
+.sa-visual .sa-html-chart-title { margin-bottom: 1rem; padding: 0 6.5rem; font-weight: 700; font-size: 1.05rem; text-align: center; }
 .sa-visual .sa-chart-note { margin: .85rem 0 0; font-size: .82rem; color: var(--sa-slate, #5b6773); }
-.sa-scroll { overflow-x: auto; padding-top: 1.6rem; }
+.sa-visual .sa-scroll {
+    display: block;
+    overflow-x: auto;
+    padding: 1.6rem 0 0;
+    scroll-snap-type: none;
+    scrollbar-width: thin;
+}
+
+/* ---------- Download as image ---------- */
+.sa-download {
+    position: absolute;
+    top: .65rem;
+    right: .65rem;
+    z-index: 2;
+    display: none;
+    align-items: center;
+    gap: .35rem;
+    padding: .32rem .6rem;
+    border: 1px solid var(--sa-line, #dfe4e9);
+    border-radius: 4px;
+    background: var(--sa-paper, #fff);
+    color: var(--sa-slate, #5b6773);
+    font: inherit;
+    font-size: .78rem;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: color .15s ease, border-color .15s ease;
+}
+body.sa-visuals-ready .sa-visual .sa-download { display: inline-flex; }
+.sa-download:hover,
+.sa-download:focus-visible { color: var(--sa-ink, #16202a); border-color: var(--sa-amber, #d98e04); }
+.sa-download:disabled { opacity: .6; cursor: progress; }
+.sa-download-icon { width: 1rem; height: 1rem; flex: 0 0 auto; }
+.sa-visual.sa-exporting .sa-download { visibility: hidden; }
+
+/* ---------- Horizontal bar chart (base for /graphs and articles) ---------- */
+.sa-visual .sa-chart-bars { display: grid; gap: .65rem; }
+.sa-visual .sa-chart-row { display: grid; grid-template-columns: minmax(6rem, 9rem) minmax(0, 1fr) auto; gap: .75rem; align-items: center; }
+.sa-visual .sa-chart-label { font-size: .92rem; line-height: 1.4; overflow-wrap: anywhere; }
+.sa-visual .sa-chart-track { height: .9rem; background: var(--sa-line, #dfe4e9); border-radius: 999px; overflow: hidden; }
+.sa-visual .sa-chart-bar { display: block; height: 100%; background: var(--sa-viz-primary, var(--sa-amber, #d98e04)); border-radius: 999px; }
+.sa-visual .sa-chart-value { min-width: 2.5rem; font-weight: 700; text-align: right; white-space: nowrap; }
 
 /* ---------- Column chart ---------- */
 .sa-col-chart {
@@ -59,7 +93,7 @@
     display: block;
     width: 100%;
     min-height: 2px;
-    background: var(--sa-amber, #d98e04);
+    background: var(--sa-viz-primary, var(--sa-amber, #d98e04));
     border-radius: 4px 4px 0 0;
 }
 .sa-col-value {
@@ -82,7 +116,7 @@
 .sa-line-zero { stroke: var(--sa-ink, #16202a); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .sa-line-path {
     fill: none;
-    stroke: var(--sa-chart-2);
+    stroke: var(--sa-viz-line, var(--sa-chart-2, #0a5a82));
     stroke-width: 3;
     stroke-linejoin: round;
     stroke-linecap: round;
@@ -95,7 +129,7 @@
     margin: -.4rem 0 0 -.4rem;
     border-radius: 50%;
     background: var(--sa-paper, #fff);
-    border: 3px solid var(--sa-chart-2);
+    border: 3px solid var(--sa-viz-line, var(--sa-chart-2, #0a5a82));
 }
 .sa-line-val {
     position: absolute;
@@ -112,13 +146,39 @@
 
 /* ---------- Pie / donut ---------- */
 .sa-pie-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; }
-.sa-pie-svg { flex: 0 0 auto; width: min(100%, 14rem); height: auto; }
-.sa-pie-svg path, .sa-pie-svg circle { stroke: var(--sa-paper, #fff); stroke-width: 1.5; }
-.sa-pie-svg .sa-donut-hole { fill: var(--sa-mist, #f3f5f7); stroke: none; }
-.sa-legend { flex: 1 1 14rem; margin: 0; padding: 0; list-style: none; display: grid; gap: .45rem; }
-.sa-legend li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .6rem; font-size: .95rem; }
-.sa-swatch { width: .9rem; height: .9rem; border-radius: 3px; }
+.sa-pie-svg { flex: 0 0 auto; width: min(100%, 16rem); height: auto; }
+.sa-pie-svg .sa-donut-hole { fill: var(--sa-paper, #fff); stroke: none; }
+.sa-pie-label { font-size: 9px; font-weight: 600; paint-order: stroke; stroke-width: .6px; stroke-linejoin: round; }
+.sa-legend { flex: 1 1 14rem; margin: 0; padding: 0; list-style: none; display: grid; gap: .55rem; }
+.sa-legend li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .6rem; font-size: 1rem; }
+.sa-swatch { flex: 0 0 auto; width: .95rem; height: .95rem; border-radius: 2px; }
 .sa-legend-value { font-weight: 700; }
+
+/* ---------- Grouped column chart (multiple series) ---------- */
+.sa-group-legend { display: flex; flex-wrap: wrap; gap: .45rem 1.2rem; margin: 0 0 .75rem; }
+.sa-group-key { display: inline-flex; align-items: center; gap: .4rem; font-size: .95rem; color: var(--sa-ink, #16202a); }
+.sa-group-chart { display: block; width: 100%; height: auto; }
+.sa-group-chart text { font-family: inherit; }
+.sa-group-grid { stroke: #e7eaee; stroke-width: 1; }
+.sa-group-base { stroke: #b9c0c8; stroke-width: 1.3; }
+.sa-group-tick { font-size: 12px; fill: var(--sa-slate, #5b6773); }
+.sa-group-xlabel { font-size: 12px; fill: var(--sa-ink, #16202a); }
+.sa-group-axis { font-size: 12px; fill: var(--sa-slate, #5b6773); }
+.sa-group-bar { transition: opacity .15s ease; }
+.sa-group-bar:hover { opacity: .84; }
+.sa-group-table { width: 100%; border-collapse: collapse; background: var(--sa-paper, #fff); }
+.sa-group-table th,
+.sa-group-table td { padding: .35rem .6rem; border: 1px solid var(--sa-line, #dfe4e9); text-align: left; }
+.sa-group-table th { font-weight: 700; background: var(--sa-mist, #f3f5f7); }
+.sa-group-table td:not(:first-child) { text-align: right; font-weight: 600; }
+
+/* ---------- Three-dimensional rising bars ---------- */
+.sa-3d-chart { display: block; width: 100%; height: auto; }
+.sa-3d-label { font-size: 12px; fill: var(--sa-slate, #5b6773); }
+
+/* ---------- Saved charts page ---------- */
+.sa-charts-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; max-width: 980px; margin: 0 auto; }
+.sa-charts-page .sa-visual { margin: 0; }
 
 /* ---------- Stat cards ---------- */
 .sa-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .75rem; }
@@ -141,6 +201,12 @@
 
 @media (max-width: 575.98px) {
     .sa-col-track, .sa-line-plot { height: 200px; }
+    .sa-pie-wrap { flex-direction: column; align-items: flex-start; gap: 1rem; }
+    .sa-pie-svg { width: min(100%, 15rem); }
+    .sa-legend { flex: 0 0 auto; width: 100%; }
+    .sa-visual .sa-html-chart-title { padding: 0 2.6rem; }
+    .sa-download { padding: .38rem; }
+    .sa-download span { display: none; }
 }
 
 /* ---------- Division map (fixed blue ramp so labels stay readable) ---------- */
@@ -153,7 +219,7 @@
 .sa-map-4 { fill: #2f78ad; } .sa-mapbg-4 { background: #2f78ad; }
 .sa-map-5 { fill: #0a4f7c; } .sa-mapbg-5 { background: #0a4f7c; }
 .sa-map-none { fill: #e1e5ea; }
-.sa-map-label { font-size: 12px; font-weight: 600; fill: var(--sa-ink, #16202a); pointer-events: none; }
+.sa-map-label { font-size: 12px; font-weight: 600; pointer-events: none; }
 .sa-map-label-light { fill: #fff; }
 .sa-map-num { font-weight: 800; }
 .sa-map-side { flex: 1 1 13rem; }
@@ -162,3 +228,77 @@
 .sa-map-rank { margin: 0; padding: 0; list-style: none; counter-reset: rank; display: grid; gap: .35rem; }
 .sa-map-rank li { counter-increment: rank; display: flex; justify-content: space-between; gap: .75rem; padding-bottom: .3rem; border-bottom: 1px solid var(--sa-line, #dfe4e9); font-size: .95rem; }
 .sa-map-rank li span::before { content: counter(rank) ". "; color: var(--sa-slate, #5b6773); }
+
+/* ==========================================================
+   Chart styles — the same data in six different looks
+   ========================================================== */
+
+/* ---------- Gradient ---------- */
+.sa-visual.sa-style-gradient { border-color: #c7d2fe; box-shadow: 0 16px 36px -28px rgba(37, 99, 235, .65); }
+.sa-style-gradient .sa-html-chart-title { color: #1e3a8a; }
+.sa-style-gradient .sa-chart-bar { background: var(--sa-viz-bar-gradient, var(--sa-viz-primary)); }
+.sa-style-gradient .sa-col-bar { background: var(--sa-viz-col-gradient, var(--sa-viz-primary)); box-shadow: 0 8px 18px -10px var(--sa-viz-primary); }
+.sa-style-gradient .sa-line-dot { box-shadow: 0 0 0 5px rgba(124, 58, 237, .12); }
+.sa-style-gradient .sa-stat { border-left-color: var(--sa-viz-primary); }
+
+/* ---------- Outline ---------- */
+.sa-visual.sa-style-outline { background: #fff; border: 1px dashed #94a3b8; }
+.sa-style-outline .sa-chart-track { background: transparent; box-shadow: inset 0 0 0 1px var(--sa-line, #dfe4e9); }
+.sa-style-outline .sa-chart-bar { background: transparent; box-shadow: inset 0 0 0 2px var(--sa-viz-primary); }
+.sa-style-outline .sa-col-track { border-bottom: 1px dashed #94a3b8; }
+.sa-style-outline .sa-col-bar { background: transparent; border: 2px solid var(--sa-viz-primary); border-bottom: 0; border-radius: 2px 2px 0 0; box-sizing: border-box; }
+.sa-style-outline .sa-line-dot { background: #fff; }
+.sa-style-outline .sa-stat { background: #fff; border-left-color: var(--sa-viz-primary); box-shadow: inset 0 0 0 1px var(--sa-viz-primary); }
+
+/* ---------- Rounded ---------- */
+.sa-visual.sa-style-rounded { background: #fbfdff; border-color: #e3ebf3; border-radius: 16px; box-shadow: 0 16px 34px -30px rgba(15, 23, 42, .55); }
+.sa-style-rounded .sa-chart-track { background: #e9eff6; }
+.sa-style-rounded .sa-chart-bar { box-shadow: 0 2px 5px -3px rgba(15, 23, 42, .35); }
+.sa-style-rounded .sa-col-track { border-bottom: 0; }
+.sa-style-rounded .sa-col-bar { border-radius: 12px 12px 4px 4px; }
+.sa-style-rounded .sa-stat { background: #fff; border-left-color: var(--sa-viz-primary); border-radius: 14px; }
+
+/* ---------- Dark ---------- */
+.sa-visual.sa-style-dark {
+    --sa-paper: #0f172a;
+    --sa-ink: #e2e8f0;
+    --sa-slate: #94a3b8;
+    --sa-line: #293548;
+    --sa-mist: #16233a;
+    background: #0f172a;
+    border-color: #293548;
+    color: #e2e8f0;
+}
+.sa-style-dark .sa-html-chart-title { color: #f8fafc; }
+.sa-style-dark .sa-chart-track { background: #1e293b; }
+.sa-style-dark .sa-chart-note { color: #94a3b8; }
+.sa-style-dark .sa-download { background: #16233a; border-color: #334155; color: #cbd5e1; }
+.sa-style-dark .sa-col-track { border-bottom-color: #475569; }
+.sa-style-dark .sa-visual-data table,
+.sa-style-dark .sa-group-table { background: #0f172a; color: #e2e8f0; }
+.sa-style-dark .sa-visual-data td,
+.sa-style-dark .sa-group-table th,
+.sa-style-dark .sa-group-table td,
+.sa-style-dark .sa-map-rank li { border-color: #293548; }
+.sa-style-dark .sa-group-table th { background: #16233a; }
+.sa-style-dark .sa-visual-data summary { color: #94a3b8; }
+.sa-style-dark .sa-stat { background: #16233a; border-color: #293548; }
+.sa-style-dark .sa-stat-label { color: #94a3b8; }
+.sa-style-dark .sa-legend li { color: #e2e8f0; }
+
+/* ---------- Monochrome ---------- */
+.sa-visual.sa-style-mono { border-color: #111827; }
+.sa-style-mono .sa-html-chart-title { font-family: var(--sa-font-display, "Noto Serif Bengali", serif); }
+.sa-style-mono .sa-chart-track { background: #e5e7eb; }
+.sa-style-mono .sa-chart-bar { border-radius: 2px; }
+.sa-style-mono .sa-col-track { border-bottom-color: #111827; }
+.sa-style-mono .sa-col-bar { border-radius: 0; }
+.sa-style-mono .sa-stat { border-left-color: #111827; }
+.sa-style-mono .sa-download { border-radius: 0; }
+
+/* ---------- Bar chart on small screens ---------- */
+@media (max-width: 575.98px) {
+    .sa-visual .sa-chart-row { grid-template-columns: minmax(0, 1fr) auto; }
+    .sa-visual .sa-chart-label { grid-column: 1 / -1; font-weight: 600; }
+    .sa-visual .sa-chart-track { grid-column: 1; }
+}

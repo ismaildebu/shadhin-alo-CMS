@@ -2,6 +2,7 @@
 
 use App\Models\ArticleRevision;
 use App\Models\Category;
+use App\Models\Chart;
 use App\Models\News;
 use App\Models\User;
 
@@ -50,6 +51,20 @@ it('renders the edit form with the current values and only the statuses the user
 it('renders the create form per role', function () {
     $this->actingAs($this->reporter)->get('/admin/news/create')->assertOk()->assertDontSee('value="published"', false);
     $this->actingAs($this->editor)->get('/admin/news/create')->assertOk()->assertSee('value="published"', false);
+});
+
+it('shows the chart shortcode field beside the main image', function () {
+    $news = pgArticle($this->editor, 'draft', ['chart_shortcode' => '[chart id="5"]']);
+
+    $this->actingAs($this->editor)->get("/admin/news/{$news->id}/edit")
+        ->assertOk()
+        ->assertSee('name="chart_shortcode"', false)
+        ->assertSee('ছবি না থাকলে এই গ্রাফটি মূল ছবির জায়গায় দেখাবে')
+        ->assertSee('[chart id="5"]', false);
+
+    $this->actingAs($this->editor)->get('/admin/news/create')
+        ->assertOk()
+        ->assertSee('name="chart_shortcode"', false);
 });
 
 it('renders the revisions page', function () {
@@ -144,4 +159,78 @@ it('renders the public site with a scheduled-then-published article date', funct
     $this->get(route('frontend.news.show', $news->slug))
         ->assertOk()
         ->assertSee($news->published_at->format('d M Y'));
+});
+
+it('puts the chart in the main-image slot when the article has no photo', function () {
+    $chart = Chart::create([
+        'title' => 'মূল ভিজ্যুয়ালের গ্রাফ',
+        'type' => 'column',
+        'style' => 'classic',
+        'data' => ['labels' => ['ক', 'খ'], 'values' => [12, 18]],
+        'is_published' => true,
+    ]);
+
+    $news = pgArticle($this->editor, 'published', [
+        'chart_shortcode' => '[chart id="'.$chart->id.'"]',
+    ]);
+
+    $this->get(route('frontend.news.show', $news->slug))
+        ->assertOk()
+        ->assertSee('মূল ভিজ্যুয়ালের গ্রাফ')
+        ->assertSee('sa-html-chart', false)
+        ->assertSee('sa-download', false)
+        ->assertDontSee('sa-noimg', false);
+});
+
+it('keeps the photo when an article has both a photo and a chart shortcode', function () {
+    $chart = Chart::create([
+        'title' => 'ছবির পাশের গ্রাফ',
+        'type' => 'line',
+        'data' => ['labels' => ['ক', 'খ'], 'values' => [1, 2]],
+        'is_published' => true,
+    ]);
+
+    $news = pgArticle($this->editor, 'published', [
+        'image' => 'photo.jpg',
+        'chart_shortcode' => '[chart id="'.$chart->id.'"]',
+    ]);
+
+    $this->get(route('frontend.news.show', $news->slug))
+        ->assertOk()
+        ->assertSee('photo.jpg', false)
+        ->assertDontSee('ছবির পাশের গ্রাফ');
+});
+
+it('falls back to the no-image card when the chart shortcode points at nothing', function () {
+    $news = pgArticle($this->editor, 'published', [
+        'chart_shortcode' => '[chart id="99999"]',
+    ]);
+
+    $this->get(route('frontend.news.show', $news->slug))
+        ->assertOk()
+        ->assertDontSee('sa-html-chart', false)
+        ->assertDontSee('sa-chart-error', false);
+});
+
+it('shows a compact chart instead of the fallback map in card image slots', function () {
+    $chart = Chart::create([
+        'title' => 'কার্ডের গ্রাফ',
+        'type' => 'column',
+        'data' => ['labels' => ['ক', 'খ', 'গ'], 'values' => [4, 7, 5]],
+        'is_published' => true,
+    ]);
+
+    $news = pgArticle($this->editor, 'published', [
+        'chart_shortcode' => '[chart id="'.$chart->id.'"]',
+    ]);
+
+    $html = view('frontend.partials.no-image', [
+        'news' => $news,
+        'sizeClass' => 'sa-card-img',
+    ])->render();
+
+    expect($html)->toContain('sa-chart-thumb')
+        ->toContain('sa-card-img')
+        ->toContain('<svg')
+        ->not->toContain('sa-noimg');
 });

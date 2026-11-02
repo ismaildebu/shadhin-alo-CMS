@@ -78,6 +78,7 @@ class News extends Model
         'image',
         'image_caption',
         'image_credit',
+        'chart_shortcode',
         'description',
         'reporter',
         'breaking',

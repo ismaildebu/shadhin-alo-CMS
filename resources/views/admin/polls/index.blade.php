@@ -11,12 +11,16 @@
 
         <div class="ad-pagehead">
             <h1>অনলাইন ভোট</h1>
-            <a href="{{ route('admin.polls.create') }}" class="ad-tab">+ নতুন ভোট</a>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                <a href="{{ route('sidebar.edit') }}" class="ad-tab">সাইডবারে সাজান</a>
+                <a href="{{ route('admin.polls.create') }}" class="ad-tab">+ নতুন ভোট</a>
+            </div>
         </div>
 
         <p class="ad-note">
             সাইডবারে সবচেয়ে নতুন <b>চালু</b> ভোটটি দেখানো হয়। ভোট বন্ধ করলে সেটি সাইডবার থেকে সরে যায়, তবে ফলাফলসহ আর্কাইভে থাকে।
             প্রকাশের তারিখ ভবিষ্যতের হলে ভোটটি সেই সময়ের আগে কোথাও দেখা যায় না।
+            ছবি, রং ও কার্ডের ডিজাইন — ছবি এখান থেকে, আর ক্রম ও স্টাইল <b>সাইডবারে সাজান</b> পেজ থেকে বদলানো যায়।
         </p>
 
         <div class="ad-panel">
@@ -34,7 +38,14 @@
                     <tbody>
                         @foreach($polls as $poll)
                             <tr>
-                                <td data-label="প্রশ্ন">{{ \Illuminate\Support\Str::limit($poll->question, 90) }}</td>
+                                <td data-label="প্রশ্ন">
+                                    <div style="display:flex;align-items:center;gap:.6rem;">
+                                        @if($poll->image)
+                                            <img src="{{ $poll->imageUrl(120) }}" alt="" style="width:56px;height:38px;object-fit:cover;border-radius:.35rem;flex:0 0 auto;">
+                                        @endif
+                                        <span>{{ \Illuminate\Support\Str::limit($poll->question, 90) }}</span>
+                                    </div>
+                                </td>
                                 <td data-label="অবস্থা">{{ $poll->isOpen() ? 'চালু' : ($poll->is_active ? 'নির্ধারিত' : 'বন্ধ') }}</td>
                                 <td class="ad-center" data-label="মোট ভোট">{{ \App\Support\BanglaTime::digits($poll->totalVotes()) }}</td>
                                 <td data-label="তারিখ">{{ \App\Support\BanglaTime::date($poll->shownDate()) }}</td>

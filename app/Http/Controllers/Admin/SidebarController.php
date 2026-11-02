@@ -29,6 +29,7 @@ class SidebarController extends Controller
                     'layouts' => $meta['layouts'],
                     'layout' => $widget->layout ?: ($meta['default_layout'] ?? ''),
                     'styled' => $meta['styled'],
+                    'accent_meta' => $meta['accent'] ?? $meta['styled'],
                     'accent' => $widget->accent,
                     'box_height' => $widget->box_height,
                     'serial' => $widget->serial,
@@ -81,6 +82,7 @@ class SidebarController extends Controller
             $layouts = $meta['layouts'];
             $layout = (string) ($row['layout'] ?? '');
             $heightRaw = trim((string) ($row['height'] ?? ''));
+            $accentAllowed = $meta['accent'] ?? $meta['styled'];
 
             $widget->update([
                 'visible' => isset($row['show']),
@@ -89,7 +91,7 @@ class SidebarController extends Controller
                 'layout' => $layouts
                     ? (array_key_exists($layout, $layouts) ? $layout : $meta['default_layout'])
                     : null,
-                'accent' => ($meta['styled'] && isset($row['accent_on']) && Colors::isHex($row['accent'] ?? null))
+                'accent' => ($accentAllowed && isset($row['accent_on']) && Colors::isHex($row['accent'] ?? null))
                     ? $row['accent']
                     : null,
                 'box_height' => ($meta['styled'] && $heightRaw !== '') ? (int) $heightRaw : null,

@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\ChartController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Frontend\ChartController as FrontendChartController;
 use App\Http\Controllers\Admin\HomeLayoutController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\NewsController;
@@ -52,6 +54,8 @@ Route::get('/tag/{slug}', [FrontendTagController::class, 'show'])
     ->name('frontend.tag.show');
 
 Route::get('/videos', [FrontendVideoController::class, 'index'])->name('frontend.videos');
+
+Route::get('/graphs', [FrontendChartController::class, 'index'])->name('frontend.charts.index');
 
 Route::get('/video/{id}', [FrontendVideoController::class, 'show'])
     ->whereNumber('id')
@@ -151,6 +155,8 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
 
             Route::get('visual-builder', [VisualBuilderController::class, 'index'])->name('visual-builder.index');
             Route::post('visual-builder/preview', [VisualBuilderController::class, 'preview'])->name('visual-builder.preview');
+
+            Route::resource('charts', ChartController::class)->except('show');
         });
 
         // Photo card center: permission "photocards_manage"

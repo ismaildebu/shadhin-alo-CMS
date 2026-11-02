@@ -65,6 +65,14 @@
             </a>
         @endcan
 
+        @can('manage-layout')
+            <a href="{{ route('charts.index') }}"
+               class="ad-link {{ request()->routeIs('charts.*') ? 'is-active' : '' }}">
+                <svg class="ad-ico" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/><circle cx="4" cy="10" r="1.3"/><circle cx="10" cy="4" r="1.3"/><circle cx="16" cy="12" r="1.3"/></svg>
+                গ্রাফ ও চার্ট
+            </a>
+        @endcan
+
 
         @can('manage-layout')
             <a href="{{ route('menu.edit') }}"
