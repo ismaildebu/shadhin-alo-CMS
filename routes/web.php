@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\HomeLayoutController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\Admin\NewsRevisionController;
+use App\Http\Controllers\Admin\NewsVideoController;
 use App\Http\Controllers\Admin\NewsWorkflowController;
 use App\Http\Controllers\Admin\TagController;
 use App\Http\Controllers\Admin\RolePermissionController;
@@ -90,6 +91,8 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
         Route::get('news/{news}/card', [NewsCardController::class, 'show'])->name('news.card');
         Route::post('news/{news}/card', [NewsCardController::class, 'store'])->name('news.card.store');
         Route::delete('news/{news}/card', [NewsCardController::class, 'destroy'])->name('news.card.destroy');
+        Route::post('news/{news}/video', [NewsVideoController::class, 'store'])->name('news.video.store');
+        Route::get('news/{news}/video', [NewsVideoController::class, 'show'])->name('news.video.show');
         Route::post('news/{news}/transition', [NewsWorkflowController::class, 'store'])->name('news.transition');
         Route::get('news/{news}/revisions', [NewsRevisionController::class, 'index'])->name('news.revisions.index');
         Route::post('news/{news}/revisions/{revision}/restore', [NewsRevisionController::class, 'restore'])

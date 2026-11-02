@@ -677,11 +677,14 @@ body.ad-body{
     font-size:.86rem;
     font-weight:600;
     text-decoration:none;
+    cursor:pointer;
     transition:border-color .2s,color .2s;
 }
 
 .ad-tab:hover{ border-color:var(--ad-primary); color:var(--ad-primary); }
 .ad-tab.is-active{ background:var(--ad-primary); border-color:var(--ad-primary); color:#fff; }
+.is-video{ color:#0f766e; border-color:#99f6e4; }
+.is-video:hover{ background:#0f766e; color:#fff; border-color:#0f766e; }
 .ad-tab-count{ margin-left:4px; font-weight:500; opacity:.75; }
 
 .ad-search{ display:flex; gap:8px; margin-bottom:16px; }
@@ -776,6 +779,8 @@ body.ad-body{
 }
 
 .ad-act:hover{ background:var(--ad-bg); }
+.act-video{ color:#0f766e; border-color:#99f6e4; }
+.act-video:hover{ background:#0f766e; color:#fff; border-color:#0f766e; }
 .act-edit{ color:var(--ad-primary); border-color:#bcd0ea; }
 .act-edit:hover{ background:var(--ad-primary); color:#fff; border-color:var(--ad-primary); }
 .act-flow{ color:#4338ca; border-color:#c7d2fe; }

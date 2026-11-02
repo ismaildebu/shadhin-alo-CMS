@@ -146,6 +146,18 @@
 
                                     @can('view', $item)
                                         <a href="{{ route('news.card', $item) }}" class="ad-act">ফটোকার্ড</a>
+
+                                        <form action="{{ route('news.video.store', $item) }}" method="POST"
+                                              title="লোকাল FFmpeg দিয়ে ফেসবুক রিলস ভিডিও তৈরি হবে; প্রায় এক মিনিট লাগতে পারে"
+                                              onsubmit="const b = this.querySelector('button'); b.disabled = true; b.textContent = 'তৈরি হচ্ছে…';">
+                                            @csrf
+                                            <button type="submit" class="ad-act act-video">ভিডিও তৈরি</button>
+                                        </form>
+
+                                        @if(\App\Support\NewsVideo::exists($item))
+                                            <a href="{{ route('news.video.show', $item) }}" target="_blank" class="ad-act">ভিডিও দেখুন</a>
+                                            <a href="{{ route('news.video.show', ['news' => $item, 'download' => 1]) }}" class="ad-act">ডাউনলোড</a>
+                                        @endif
                                     @endcan
 
                                     @foreach($targets as $to)
