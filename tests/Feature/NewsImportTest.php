@@ -48,10 +48,20 @@ function importFeedXml(array $items): string
 test('প্রতিটি সোর্সের কনফিগে ফিড, হোস্ট, বিভাগ ও ছবির নিয়ম আছে', function () {
     $sources = (array) config('news_import.sources');
 
-    expect($sources)->toHaveCount(8);
+    expect($sources)->toHaveCount(9);
 
     foreach ($sources as $key => $source) {
-        expect($source['feed'])->toStartWith('https://');
+        $feeds = (array) ($source['feeds'] ?? []);
+
+        if ($feeds === []) {
+            expect($source['feed'])->toStartWith('https://');
+        }
+
+        foreach ($feeds as $feed) {
+            expect($feed['feed'])->toStartWith('https://');
+            expect($feed['category'])->toMatch('/^[A-Za-z][A-Za-z0-9-]*$/');
+        }
+
         expect($source['allowed_hosts'])->not->toBeEmpty();
         expect(['tag', 'url'])->toContain($source['category_from']);
         expect($source['default_category'])->toMatch('/^[A-Za-z][A-Za-z0-9-]*$/');
@@ -80,6 +90,10 @@ test('ইমপোর্টের সব ক্যাটাগরি slug সি
     foreach ((array) config('news_import.sources') as $source) {
         $used[] = (string) $source['default_category'];
         $used = array_merge($used, array_values($source['category_map']));
+
+        foreach ((array) ($source['feeds'] ?? []) as $feed) {
+            $used[] = (string) $feed['category'];
+        }
     }
 
     expect(array_values(array_diff(array_unique($used), $known)))->toBe([]);
@@ -131,6 +145,83 @@ test('সংবাদ পেজ থেকে পূর্ণাঙ্গ প্�
     expect($content)->not->toContain('আরও পড়ুন');
     expect($content)->not->toContain('ট্যাগ');
     expect($content)->not->toContain('<script>');
+});
+
+test('id-তে কনটেইনার, div অনুচ্ছেদ ও "আরও পড়ুন" বাক্স—সময়ের আলোর মতো পেজ থেকে বডি বের হয়', function () {
+    $html = '<html><body>'
+        .'<div id="side">কনটেইনারের বাইরের লেখা</div>'
+        .'<div id="f" style="font-size: 20px">'
+        .'<img class="mood" src="https://www.shomoyeralo.com/2026/11/03/sa_1.jpg">'
+        .'<figcaption class="figcaption">ছবি : সংগৃহীত</figcaption>'
+        .'<div style=""><span>প্রথম&#x200E; অনুচ্ছেদ।</span></div>'
+        .'<div style=""><span>&#x200E;</span></div>'
+        .'<div style=""><span>দ্বিতীয় অনুচ্ছেদ।</span><div style=""><span>তৃতীয় অনুচ্ছেদ।</span></div></div>'
+        .'<div style=""><div>আরও পড়ুন</div><div style=""><a class="also" href="/news/101">সম্পর্কিত শিরোনাম</a></div></div>'
+        .'<div style=""><div id="ADL1"><script>serveAdvertisement()</script></div></div>'
+        .'<div style=""><span>শেষ অনুচ্ছেদ।</span></div>'
+        .'</div></body></html>';
+
+    $source = ['content' => [
+        'class' => '#f',
+        'blocks' => ['div'],
+        'exclude' => ['xpath:.//div[.//a[contains(concat(" ",normalize-space(@class)," ")," also ")]]'],
+    ]];
+    $content = FeedReader::articleContent($html, $source, 30_000, 'https://www.shomoyeralo.com/news/393411');
+
+    // div অনুচ্ছেদ স্যানিটাইজারে খোলা লাইন হয়ে যায়, তাই সেগুলো <p> হয়ে বের হয়
+    expect($content)->toContain('<p>প্রথম অনুচ্ছেদ।</p>'); // দিকনির্দেশক চিহ্ন (&#x200E;) বডিতে থাকে না
+    expect($content)->not->toMatch('/<p>\s*<\/p>/'); // শুধু সেই চিহ্ন নিয়ে থাকা div ফাঁকা অনুচ্ছেদ হয় না
+    expect($content)->toContain('দ্বিতীয় অনুচ্ছেদ');
+    expect($content)->toContain('শেষ অনুচ্ছেদ');
+    expect(substr_count($content, 'তৃতীয় অনুচ্ছেদ'))->toBe(1);
+    expect($content)->not->toContain('কনটেইনারের বাইরের লেখা');
+    expect($content)->not->toContain('সম্পর্কিত শিরোনাম');
+    expect($content)->not->toContain('আরও পড়ুন');
+    expect($content)->not->toContain('ছবি : সংগৃহীত');
+    expect($content)->not->toContain('<script>');
+    expect($content)->not->toContain('<div');
+});
+
+test('ফিডে বিভাগের ট্যাগ না থাকলে feeds-এর ক্যাটাগরি খসড়ায় বসে', function () {
+    $config = (array) config('news_import');
+    $config['text']['full_article'] = false;
+    $now = gmdate('D, d M Y H:i:s').' GMT';
+
+    // FeedReader::collect() প্রতিটি বিভাগ-ফিডের জন্য সোর্সের ক্যাটাগরি এই রূপে বসিয়ে দেয়।
+    $source = array_merge((array) $config['sources']['shomoyeralo'], [
+        'category_map' => [],
+        'default_category' => 'sports',
+    ]);
+
+    $items = FeedReader::parse(
+        'shomoyeralo',
+        $source,
+        importFeedXml([['title' => 'বুড়িগঙ্গায় জোয়ারের আগে নৌকার দৌড়', 'link' => 'https://www.shomoyeralo.com/news/393349', 'date' => $now]]),
+        $config,
+        [],
+        3
+    );
+
+    expect($items[0]['category'])->toBe('sports')
+        ->and($items[0]['categories'])->toBe(['sports'])
+        ->and($items[0]['tags'])->toBe([]);
+});
+
+test('ফিডের </rss> এর পর লেগে থাকা স্ক্রিপ্ট সংবাদ পড়াতে বাধা দেয় না', function () {
+    $config = (array) config('news_import');
+    $config['text']['full_article'] = false;
+    $source = (array) $config['sources']['shomoyeralo'];
+
+    // সময়ের আলো ফিডটি text/html হিসেবে পাঠায় ও </rss> এর পরে ট্র্যাকিং স্ক্রিপ্ট জোড়ে।
+    $xml = importFeedXml([
+        ['title' => 'খুলনায় বন্যার সতর্কতা জারি করা হয়েছে', 'link' => 'https://www.shomoyeralo.com/news/393403', 'date' => gmdate('D, d M Y H:i:s').' GMT'],
+    ]).'<script>window.__cf_beacon()</script>';
+
+    $items = FeedReader::parse('shomoyeralo', $source, $xml, $config, [], 3);
+
+    expect($items)->toHaveCount(1)
+        ->and($items[0]['state'])->toBe('new')
+        ->and($items[0]['link'])->toBe('https://www.shomoyeralo.com/news/393403');
 });
 
 test('বডি কনটেইনার না পেলে খালি প্রতিবেদন ফেরে', function () {

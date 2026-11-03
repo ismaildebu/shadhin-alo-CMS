@@ -14,6 +14,10 @@ use Throwable;
  * Reads the RSS feeds listed in config/news_import.php and turns each entry into a plain
  * array that the importer or the preview command can use.
  *
+ * A source has one `feed`, or a `feeds` list when the site publishes a separate feed per
+ * section and the feed itself carries no category (shomoyeralo); each entry then names the
+ * local category its items belong to.
+ *
  * A feed is never trusted: links must belong to the source's own hosts, old or very short
  * entries are dropped, the section is mapped to one of our category slugs, and a story whose
  * title is already in the database is marked as a duplicate instead of being imported again.
@@ -76,29 +80,74 @@ final class FeedReader
                     ? min($perSource, $budget)
                     : min($perSource, max($isPriority ? $priorityCap : $otherCap, $fairShare)));
 
+            // Sites that publish one feed per section and carry no category inside the feed list
+            // them as `feeds`: [feed => url] or [category => local slug, feed => url] per entry.
+            $feeds = [];
+
+            foreach ((array) ($source['feeds'] ?? []) as $slug => $feed) {
+                $feeds[] = [
+                    'feed' => trim((string) (is_array($feed) ? ($feed['feed'] ?? '') : $feed)),
+                    'category' => is_array($feed) ? trim((string) ($feed['category'] ?? '')) : (is_string($slug) ? trim($slug) : ''),
+                ];
+            }
+
+            if ($feeds === []) {
+                $feeds[] = ['feed' => trim((string) ($source['feed'] ?? '')), 'category' => ''];
+            }
+
             $block = [
                 'name' => (string) ($source['name'] ?? $key),
-                'feed' => (string) ($source['feed'] ?? ''),
+                'feed' => count($feeds) > 1
+                    ? $feeds[0]['feed'].' (+'.(count($feeds) - 1).'টি বিভাগের ফিড)'
+                    : $feeds[0]['feed'],
                 'error' => null,
                 'items' => [],
             ];
 
-            try {
-                $xml = self::fetchUrl($block['feed'], $config, (int) ($config['request']['max_bytes'] ?? 6_000_000));
-                $items = self::parse($key, $source, $xml, $config, $titles, min($cap, $budget), $group);
+            // The source cap covers the whole source; the shares below spread what is left of it
+            // over the feeds still to read, so every section of a multi-feed site gets a look.
+            $accepted = 0;
+            $failures = [];
 
-                if ($isPriority) {
-                    // সারাদেশ (খুলনা বিভাগ) সংবাদ আগে, বাকিগুলো পরে।
-                    usort($items, fn (array $a, array $b) => self::localRank($a) <=> self::localRank($b));
+            foreach ($feeds as $feedIndex => $feed) {
+                if ($budget <= 0 || $accepted >= $cap) {
+                    break;
                 }
 
-                $block['items'] = $items;
-            } catch (Throwable $e) {
-                $block['error'] = $e->getMessage();
+                $section = $feed['category'] === ''
+                    ? $source
+                    : array_merge($source, [
+                        'category_from' => 'tag',
+                        'category_map' => [],
+                        'default_category' => $feed['category'],
+                    ]);
+
+                $feedMax = max(1, (int) ceil(min($budget, $cap - $accepted) / max(1, count($feeds) - $feedIndex)));
+
+                try {
+                    $xml = self::fetchUrl($feed['feed'], $config, (int) ($config['request']['max_bytes'] ?? 6_000_000));
+                    $items = self::parse($key, $section, $xml, $config, $titles, $feedMax, $group);
+
+                    if ($isPriority) {
+                        // সারাদেশ (খুলনা বিভাগ) সংবাদ আগে, বাকিগুলো পরে।
+                        usort($items, fn (array $a, array $b) => self::localRank($a) <=> self::localRank($b));
+                    }
+
+                    $block['items'] = array_merge($block['items'], $items);
+                    $new = count(array_filter($items, fn (array $item) => ($item['state'] ?? '') === 'new'));
+                    $accepted += $new;
+                    $budget -= $new;
+                } catch (Throwable $e) {
+                    $failures[] = $e->getMessage();
+                }
+            }
+
+            // Only a source whose every feed failed is reported as unreadable.
+            if (count($failures) === count($feeds)) {
+                $block['error'] = $failures[0];
             }
 
             $result[$key] = $block;
-            $budget -= count(array_filter($block['items'], fn (array $item) => ($item['state'] ?? '') === 'new'));
         }
 
         return $result;
@@ -121,6 +170,10 @@ final class FeedReader
      */
     public static function parse(string $key, array $source, string $xml, array $config, array $titles = [], ?int $limit = null, ?array $group = null): array
     {
+        // ট্র্যাকিং স্ক্রিপ্ট জুড়ে দেয় এমন সাইট (সময়ের আলো) ফিডটি text/html হিসেবে পাঠায়;
+        // মূল উপাদান বন্ধ হওয়ার পরের অংশ XML পড়া বন্ধ করে দেয়, তাই সেটি আগেই কাটা হয়।
+        $xml = preg_replace('#</(rss|feed|urlset|rdf:RDF)>.*$#is', '</$1>', $xml, 1) ?? $xml;
+
         $doc = @simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA | LIBXML_NONET | LIBXML_NOERROR);
 
         if (! $doc) {
@@ -501,6 +554,12 @@ final class FeedReader
      * tags and scripts inside it are dropped. Paragraphs, sub-headings, quotes and lists are
      * kept as-is, links are made absolute, and the result is passed through the site's own
      * sanitizer. Blocks stop being added once $maxChars would be exceeded, so no tag is cut.
+     *
+     * Some sites need more: `content.class` starting with `#` picks the container by element id,
+     * `content.blocks` lists extra element paths kept as paragraph blocks and written out as `<p>`
+     * (for sites that put paragraphs in styled divs), and `content.exclude` entries starting with
+     * `xpath:` are run as verbatim xpath queries relative to the container (e.g. dropping a
+     * related-news box).
      */
     public static function articleContent(string $html, array $source, int $maxChars = 30_000, string $baseUrl = ''): string
     {
@@ -521,7 +580,13 @@ final class FeedReader
         }
 
         $xpath = new DOMXPath($doc);
-        $root = $xpath->query('//*['.self::classCondition($class).']')->item(0);
+
+        if (str_starts_with($class, '#')) {
+            $id = str_replace(["'", '"'], '', substr($class, 1));
+            $root = $xpath->query("//*[@id='".$id."']")->item(0);
+        } else {
+            $root = $xpath->query('//*['.self::classCondition($class).']')->item(0);
+        }
 
         if ($root === null) {
             return '';
@@ -539,9 +604,13 @@ final class FeedReader
                 continue;
             }
 
-            $query = in_array($needle, ['script', 'style', 'noscript', 'iframe', 'form'], true)
-                ? './/'.$needle
-                : './/*['.self::classCondition($needle).']';
+            if (str_starts_with($needle, 'xpath:')) {
+                $query = substr($needle, 6);
+            } else {
+                $query = in_array($needle, ['script', 'style', 'noscript', 'iframe', 'form'], true)
+                    ? './/'.$needle
+                    : './/*['.self::classCondition($needle).']';
+            }
 
             foreach ($xpath->query($query, $root) as $node) {
                 $node->parentNode?->removeChild($node);
@@ -554,17 +623,52 @@ final class FeedReader
             }
         }
 
+        $standardBlocks = ['p', 'h2', 'h3', 'h4', 'blockquote', 'li'];
+        $blockQuery = './/'.implode('|.//', $standardBlocks);
+        $blockNames = $standardBlocks;
+
+        foreach ((array) ($source['content']['blocks'] ?? []) as $fragment) {
+            $fragment = preg_replace('/[^a-zA-Z0-9\[\]\(\)\.\-]/', '', (string) $fragment);
+
+            if ($fragment !== '') {
+                $blockQuery .= '|.//'.$fragment;
+
+                if (preg_match('/^[a-zA-Z]+/', $fragment, $name)) {
+                    $blockNames[] = strtolower($name[0]);
+                }
+            }
+        }
+
         $parts = [];
         $length = 0;
 
-        foreach ($xpath->query('.//p|.//h2|.//h3|.//h4|.//blockquote|.//li', $root) as $node) {
+        foreach ($xpath->query($blockQuery, $root) as $node) {
             if (self::isNestedBlock($node, $root)) {
                 continue;
             }
 
-            $chunk = trim((string) $doc->saveHTML($node));
+            $standard = in_array(strtolower($node->nodeName), $standardBlocks, true);
 
-            if ($chunk === '') {
+            if ($standard) {
+                $chunk = trim((string) $doc->saveHTML($node));
+            } else {
+                // Sites that write paragraphs in styled divs often wrap them in extra div layers
+                // too. A nested block is collected on its own, so this one keeps only its own
+                // text — and comes out as <p>, because the sanitizer unwraps divs and the report
+                // would otherwise land as one unbroken line.
+                $paragraph = $doc->createElement('p');
+                self::copyParagraphContent($node, $paragraph, $doc, $blockNames);
+
+                $chunk = trim((string) $doc->saveHTML($paragraph));
+            }
+
+            // Directional marks that keep Bengali and English on one line are noise in the
+            // editor; on their own they leave a paragraph that looks like a blank line. A div
+            // with no text of its own is only a wrapper, so it goes — an image inside a real
+            // <p> is content, so those are kept as they always were.
+            $chunk = preg_replace('/[\x{200B}-\x{200F}\x{2060}\x{FEFF}]/u', '', $chunk) ?? $chunk;
+
+            if ($chunk === '' || (! $standard && trim(strip_tags($chunk)) === '')) {
                 continue;
             }
 
@@ -648,7 +752,7 @@ final class FeedReader
         return 'contains(concat(" ", normalize-space(@class), " "), " '.$class.' ")';
     }
 
-    /** True when a block sits inside another block we already keep (p inside blockquote, li inside p...). */
+    /** True when a block sits inside a standard block we already keep (p inside blockquote, li inside p...). */
     private static function isNestedBlock(\DOMNode $node, \DOMNode $root): bool
     {
         for ($parent = $node->parentNode; $parent !== null && $parent !== $root; $parent = $parent->parentNode) {
@@ -658,6 +762,31 @@ final class FeedReader
         }
 
         return false;
+    }
+
+    /**
+     * Copies a block's own content into a <p>. Nested blocks are left out: they are collected
+     * on their own, and a div inside a paragraph would break the markup the editor receives.
+     *
+     * @param  list<string>  $blockNames
+     */
+    private static function copyParagraphContent(\DOMNode $from, \DOMNode $to, DOMDocument $doc, array $blockNames): void
+    {
+        foreach ($from->childNodes as $child) {
+            if ($child instanceof \DOMElement) {
+                if (in_array(strtolower($child->nodeName), $blockNames, true)) {
+                    continue;
+                }
+
+                $copy = $doc->importNode($child, false);
+                $to->appendChild($copy);
+                self::copyParagraphContent($child, $copy, $doc, $blockNames);
+
+                continue;
+            }
+
+            $to->appendChild($doc->importNode($child));
+        }
     }
 
     /**

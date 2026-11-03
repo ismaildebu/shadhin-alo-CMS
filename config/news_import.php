@@ -9,6 +9,9 @@
  | ক্যাটাগরিতে (slug) যাবে, ছবি কোথা থেকে নেওয়া হবে এবং কতটি আইটেম নেওয়া হবে
  | এখানে ঠিক করা হয়। নতুন সোর্স যোগ করতে নিচের sources তালিকায় একটি এন্ট্রি দিন।
  | `feed`-এ RSS ঠিকানা অথবা Google News সাইটম্যাপ (news_sitemap.xml) — দুটোই চলবে।
+ | সাইট প্রতিটি বিভাগের আলাদা RSS প্রকাশ করে কিন্তু ফিডে বিভাগের ট্যাগ থাকে না
+ | (সময়ের আলো) — সেক্ষেত্রে একটি এন্ট্রিতেই `feeds` তালিকায় প্রতিটি ফিড ও তার
+ | স্থানীয় ক্যাটাগরি লিখে দিন; সেই ক্যাটাগরিই খসড়ায় বসে, `category_map` দেখা হয় না।
  | সারাদেশ (saradesh) সংবাদে বিভাগ, জেলা ও উপজেলা বাধ্যতামূলক; আনা খসড়ায়
  | শিরোনামে থাকা স্থানের নাম দেখে বিভাগ/জেলা/উপজেলা নিজে থেকে বসিয়ে দেওয়া হয়।
  |
@@ -348,9 +351,18 @@ return [
                 'শিক্ষা' => 'education',
                 'কৃষি' => 'agriculture',
                 'বিনোদন' => 'entertainment',
+                // খুলনা বিভাগের দশটি জেলার ট্যাগই সারাদেশ; না লেখা ট্যাগ 'others'-ে চলে
+                // যায়, ফলে "খুলনা বিভাগ" দল সেই সংবাদ ছেড়ে দেয়।
                 'খুলনা' => 'saradesh',
-                'সাতক্ষীরা' => 'saradesh',
+                'যশোর' => 'saradesh',
+                'কুষ্টিয়া' => 'saradesh',
+                'ঝিনাইদহ' => 'saradesh',
+                'মাগুরা' => 'saradesh',
+                'নড়াইল' => 'saradesh',
+                'বাগেরহাট' => 'saradesh',
+                'চুয়াডাঙ্গা' => 'saradesh',
                 'মেহেরপুর' => 'saradesh',
+                'সাতক্ষীরা' => 'saradesh',
                 'মুক্ত ভাবনা' => 'opinion',
             ],
             'content' => [
@@ -426,6 +438,45 @@ return [
             'content' => [
                 'class' => null, // পেজ খোলা যায় না, বডি কনটেইনার যাচাই করা যায়নি
                 'exclude' => [],
+            ],
+        ],
+
+        'shomoyeralo' => [
+            // সময়ের আলো প্রতিটি বিভাগের আলাদা RSS প্রকাশ করে (ঠিকানা: /rss/{menuId}) এবং
+            // ফিডের আইটেমে <category> ট্যাগ নেই; তাই feeds-এ প্রতিটি ফিডের নিজের ক্যাটাগরি বসানো।
+            'enabled' => true,
+            'name' => 'সময়ের আলো',
+            'feeds' => [
+                ['category' => 'jatiyo', 'feed' => 'https://www.shomoyeralo.com/rss/102'],       // জাতীয়
+                ['category' => 'rajniti', 'feed' => 'https://www.shomoyeralo.com/rss/115'],      // রাজনীতি
+                ['category' => 'international', 'feed' => 'https://www.shomoyeralo.com/rss/116'], // আন্তর্জাতিক
+                ['category' => 'saradesh', 'feed' => 'https://www.shomoyeralo.com/rss/107'],     // সারাদেশ
+                ['category' => 'saradesh', 'feed' => 'https://www.shomoyeralo.com/rss/113'],     // খুলনা
+                ['category' => 'sports', 'feed' => 'https://www.shomoyeralo.com/rss/119'],       // খেলা
+                ['category' => 'entertainment', 'feed' => 'https://www.shomoyeralo.com/rss/117'], // আনন্দ সময়
+                ['category' => 'business', 'feed' => 'https://www.shomoyeralo.com/rss/130'],     // বিজনেস
+                ['category' => 'education', 'feed' => 'https://www.shomoyeralo.com/rss/123'],    // শিক্ষা
+                ['category' => 'health', 'feed' => 'https://www.shomoyeralo.com/rss/141'],       // স্বাস্থ্য
+                ['category' => 'technology', 'feed' => 'https://www.shomoyeralo.com/rss/120'],   // প্রযুক্তি
+                ['category' => 'law-court', 'feed' => 'https://www.shomoyeralo.com/rss/122'],    // আইন-আদালত
+                ['category' => 'opinion', 'feed' => 'https://www.shomoyeralo.com/rss/295'],      // মতামত
+                ['category' => 'jobs', 'feed' => 'https://www.shomoyeralo.com/rss/296'],         // চাকরি
+            ],
+            'allowed_hosts' => ['www.shomoyeralo.com'],
+            'category_from' => 'tag', // feeds প্রতিটি ফিডের ক্যাটাগরি আগেই ঠিক করে দেয়
+            'category_map' => [],
+            'default_category' => 'others',
+            'content' => [
+                'class' => '#f', // মূল প্রতিবেদনের কনটেইনার (class নয়, id)
+                'blocks' => ['div'], // অনুচ্ছেদ <p> নয়, <div style=""><span>... আকারে লেখা হয়
+                'exclude' => [
+                    // বডির মাঝে বসানো "আরও পড়ুন" কার্ড (class="also" লিংকের পুরো বাক্সটি)
+                    'xpath:.//div[.//a[contains(concat(" ",normalize-space(@class)," ")," also ")]]',
+                ],
+            ],
+            'image' => [
+                'from' => ['enclosure'], // ফিডে সংবাদের ছবি থাকে
+                'og' => true,            // না থাকলে সংবাদ পেজের og:image
             ],
         ],
 
