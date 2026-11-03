@@ -47,6 +47,50 @@ return [
         'min_title_chars' => 12,   // খুব ছোট/ফাঁকা শিরোনাম বাদ
         'dedupe_window_days' => 30, // এই সময়ের শিরোনামের সাথে মিললে ডুপ্লিকেট
         'scan_factor' => 4,        // ডুপ্লিকেট এড়াতে ফিডে সর্বোচ্চ limit × এতটি আইটেম দেখা হবে
+        'group_scan_factor' => 8,  // দল বাছাই করলে বিরল ক্যাটাগরি খুঁজতে আরও আইটেম দেখা হয়
+        // পূর্ণ প্রতিবেদন আনা না গেলে ফিডের সারাংশই বডি হয়। সারাংশটি এর চেয়ে ছোট হলে
+        // (শিরোনামের কপি বা দুই লাইন) খসড়াই তৈরি হয় না — ছবি থাকলেও না।
+        'min_summary_chars' => 300,
+    ],
+
+    /*
+     | সাইটবারের "নতুন সংবাদ আনুন" বাটনগুলো এই দলগুলো থেকে তৈরি হয়। প্রতিটি দল
+     | কেবল নিজের ক্যাটাগরির সংবাদ আনে; সাতটি দল মিলে সাইটের সব ক্যাটাগরি কভার করে।
+     | `division` দেওয়া থাকলে সেই বিভাগের জেলা/উপজেলা শনাক্ত হওয়া সংবাদই নেওয়া হয়
+     | (খুলনা দলে saradesh/padmar-epar হলেও ঢাকা বা রাজশাহীর সংবাদ আসে না; বাকি
+     | বিভাগের সারাদেশ সংবাদ "সারাদেশ" দল থেকে আসে)।
+     | পরিবেশের আলাদা ক্যাটাগরি নেই; সেগুলো "জাতীয়" দলের সাথে আসে।
+     */
+    'groups' => [
+        'sports' => [
+            'label' => 'খেলা · বিনোদন · আন্তর্জাতিক',
+            'categories' => ['sports', 'entertainment', 'international'],
+        ],
+        'national' => [
+            'label' => 'জাতীয় · রাজনীতি · অর্থনীতি',
+            'categories' => ['jatiyo', 'rajniti', 'business'],
+        ],
+        'saradesh' => [
+            'label' => 'সারাদেশ · পদ্মার-এপার',
+            'categories' => ['saradesh', 'padmar-epar'],
+        ],
+        'khulna' => [
+            'label' => 'খুলনা বিভাগ',
+            'categories' => ['saradesh', 'padmar-epar'],
+            'division' => 'khulna',
+        ],
+        'education' => [
+            'label' => 'শিক্ষা · স্বাস্থ্য · কৃষি',
+            'categories' => ['education', 'health', 'agriculture'],
+        ],
+        'science' => [
+            'label' => 'বিজ্ঞান-প্রযুক্তি · লাইফস্টাইল · সাহিত্য · গণমাধ্যম',
+            'categories' => ['technology', 'lifestyle', 'literature', 'media'],
+        ],
+        'more' => [
+            'label' => 'মতামত · আইন-আদালত · অন্যান্য',
+            'categories' => ['opinion', 'law-court', 'special-report', 'jobs', 'photo-gallery', 'video-gallery', 'archives', 'others'],
+        ],
     ],
 
     'text' => [
@@ -58,10 +102,11 @@ return [
 
     'images' => [
         'download' => true,      // ছবি নিজের সার্ভারে নামানো হবে
-        'required' => true,      // ছবি না পেলে সংবাদটি খসড়াও করা হবে না
         'og_lookup' => true,     // ফিডে ছবি না থাকলে সংবাদ পেজের og:image
-        'min_width' => 480,      // এর চেয়ে ছোট ছবি বাদ (অটো ম্যাপ/গ্রাফ ফলব্যাক বসবে)
+        'min_width' => 480,      // এর চেয়ে ছোট ছবি বাদ
         'max_bytes' => 5_000_000,
+        // ছবি না পেলে সংবাদ বাদ যায় না — ছবি ছাড়াই খসড়া আসে,
+        // ফ্রন্টে ম্যাপ/চার্ট ফলব্যাক দেখায়; পরে হাতে ছবি যোগ করা যায়।
     ],
 
     'import' => [
@@ -97,11 +142,13 @@ return [
                 'দূর পরবাস' => 'international',
                 'শিক্ষা' => 'education',
                 'বৃত্তি' => 'education',
+                'কৃষি' => 'agriculture',
                 'স্বাস্থ্য' => 'health',
                 'বিজ্ঞান' => 'technology',
                 'প্রযুক্তি' => 'technology',
                 'biology' => 'technology',
-                'অপরাধ' => 'jatiyo', // আদালতের আলাদা ক্যাটাগরি নেই
+                'আইন-আদালত' => 'law-court',
+                'অপরাধ' => 'jatiyo', // অপরাধের আলাদা ক্যাটাগরি নেই
                 'মতামত' => 'opinion',
                 'সম্পাদকীয়' => 'opinion',
                 'কলাম' => 'opinion',
@@ -155,7 +202,8 @@ return [
                 'technology' => 'technology',
                 'education' => 'education',
                 'health' => 'health',
-                'law-court' => 'jatiyo',
+                'doctorbari' => 'health',
+                'law-court' => 'law-court',
                 'opinion' => 'opinion',
                 'lifestyle' => 'lifestyle',
             ],
@@ -187,26 +235,28 @@ return [
                 'entertainment' => 'entertainment',
                 'education' => 'education',
                 'campus' => 'education',
-                'law-courts' => 'jatiyo',
+                'law-courts' => 'law-court',
                 'mass-media' => 'media',
                 'jago-jobs' => 'jobs',
                 'religion' => 'others',
             ],
-            // সংবাদ পেজ Cloudflare-এ আটকানো; পূর্ণ বডি আনা যায় না, সারাংশই থাকে
-            'content' => ['class' => null, 'exclude' => []],
+            // সংবাদ পেজ Cloudflare-এ আটকানো; ফিডের সারাংশ দুই-তিন লাইন, তাই পেজ না খুললে
+            // collect.min_summary_chars গেটে সংবাদগুলো বাদ পড়ে (দুই লাইনের খসড়া হয় না)।
+            // পেজ খুললে নিচের class দিয়ে পূর্ণ বডি ও og ছবি আসবে — তখন আর বাদ পড়বে না।
+            'content' => ['class' => 'article-content-with-gear', 'exclude' => []],
             'default_category' => 'others',
             'image' => [
                 'from' => ['media_content', 'enclosure'],
-                // সাইটটি Cloudflare দিয়ে সুরক্ষিত, সংবাদ পেজ থেকে ছবি আনা যায় না;
-                // ছবি না থাকলে সাইটের অটো ম্যাপ/গ্রাফ ছবি ব্যবহার হবে
-                'og' => false,
+                'og' => true,
             ],
         ],
 
         'banglanews24' => [
             // www হোস্টে Cloudflare 403 দেয়, কিন্তু www ছাড়া ফিডটি খোলে; সংবাদ পেজ দুভাবেই
-            // আটকানো, তাই পূর্ণ বডি আসে না — ফিডের সারাংশ ও থাম্বনেইলই থাকে।
-            'enabled' => true,
+            // আটকানো। ফিডের সারাংশ শিরোনামেরই কপি আর থাম্বনেইল মাত্র ৩৭৫px (min_width ৪৮০),
+            // তাই প্রতিটি সংবাদই দুই লাইনের হতো — collect.min_summary_chars গেটে সব বাদ পড়ে।
+            // পেজ খুললে content.class দিয়ে বডি যাচাই করে আবার চালু করা যাবে।
+            'enabled' => false,
             'name' => 'বাংলানিউজ ২৪',
             'feed' => 'https://banglanews24.com/rss.xml',
             'allowed_hosts' => ['www.banglanews24.com', 'banglanews24.com'],
@@ -221,7 +271,7 @@ return [
                 'politics' => 'rajniti',
                 'sports' => 'sports',
                 'education' => 'education',
-                'law-court' => 'jatiyo',
+                'law-court' => 'law-court',
                 'lifestyle' => 'lifestyle',
                 'islam' => 'others',
                 'horoscopes' => 'entertainment',
@@ -270,6 +320,7 @@ return [
                 'onyachokhe' => 'lifestyle',
                 'media_bn' => 'media',
                 'photostory' => 'photo-gallery',
+                'tube' => 'video-gallery',
             ],
             'content' => [
                 'class' => 'details-brief',
@@ -295,6 +346,7 @@ return [
                 'আন্তর্জাতিক' => 'international',
                 'খেলা' => 'sports',
                 'শিক্ষা' => 'education',
+                'কৃষি' => 'agriculture',
                 'বিনোদন' => 'entertainment',
                 'খুলনা' => 'saradesh',
                 'সাতক্ষীরা' => 'saradesh',
@@ -330,8 +382,9 @@ return [
                 'entertainment' => 'entertainment',
                 'information-technology' => 'technology',
                 'educational-message' => 'education',
+                'health-story' => 'health',
                 'islamic-world' => 'international',
-                'court-law' => 'jatiyo',
+                'court-law' => 'law-court',
             ],
             'content' => [
                 'class' => 'dtl_content_section',

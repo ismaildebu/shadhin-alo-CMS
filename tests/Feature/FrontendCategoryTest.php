@@ -205,6 +205,17 @@ it('orders menu items by serial', function () {
     expect(strpos($html, '/category/rajniti'))->toBeLessThan(strpos($html, '/category/jatiyo'));
 });
 
+it('marks the current category in the menu on category and article pages', function () {
+    $news = fcNews($this->other, 'রাজনীতির খবর');
+
+    $this->get('/category/dhaka')->assertOk()
+        ->assertSee('class="nav-link active" href="'.route('frontend.category.show', 'jatiyo').'"', false)
+        ->assertSee('class="dropdown-item is-current" href="'.route('frontend.category.show', 'dhaka').'"', false);
+
+    $this->get(route('frontend.news.show', $news->slug))->assertOk()
+        ->assertSee('class="nav-link active" href="'.route('frontend.category.show', 'rajniti').'"', false);
+});
+
 // -------------------------------------------------------------- home blocks
 
 it('shows a sub-category\'s news in its parent\'s home block', function () {

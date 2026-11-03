@@ -49,6 +49,7 @@ final class Settings
         'card_accent' => '#d60000',
         'card_footer' => '',
         
+        ...MenuFooterDesign::DEFAULTS,
         ...ArticleDesign::DEFAULTS,
     ];
 

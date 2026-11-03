@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\News;
 use App\Support\NewsImport\NewsImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Cache;
@@ -12,9 +11,18 @@ use Illuminate\Support\Facades\Gate;
 class NewsImportController extends Controller
 {
     /** Fetch new feed items as drafts, straight from the sidebar button. */
-    public function store(): RedirectResponse
+    public function store(?string $groupKey = null): RedirectResponse
     {
-        Gate::authorize('create', News::class);
+        Gate::authorize('news-import');
+
+        $groups = (array) config('news_import.groups', []);
+        $group = null;
+
+        if ($groupKey !== null) {
+            abort_unless(isset($groups[$groupKey]), 404);
+
+            $group = (array) $groups[$groupKey];
+        }
 
         if (empty(config('news_import.enabled'))) {
             return redirect()->route('news.index')
@@ -32,7 +40,7 @@ class NewsImportController extends Controller
         @set_time_limit(600);
 
         try {
-            $blocks = NewsImporter::run();
+            $blocks = NewsImporter::run([], null, false, $group);
         } finally {
             $lock->release();
         }
@@ -81,6 +89,8 @@ class NewsImportController extends Controller
             $parts[] = count($problems).'টি ফিড আনা যায়নি';
         }
 
-        return redirect()->route('news.index')->with('success', implode(', ', $parts).'।');
+        $prefix = $group !== null ? '«'.($group['label'] ?? $groupKey).'»: ' : '';
+
+        return redirect()->route('news.index')->with('success', $prefix.implode(', ', $parts).'।');
     }
 }

@@ -1,9 +1,11 @@
 <?php
 
 use App\Models\Category;
+use App\Models\Media;
 use App\Models\News;
 use App\Models\NewsImport;
 use App\Support\NewsImport\FeedReader;
+use App\Support\NewsImport\LocationMatcher;
 use App\Support\NewsImport\NewsImporter;
 use Database\Seeders\CategorySeeder;
 
@@ -12,9 +14,8 @@ beforeEach(function () {
     Category::create(['name' => 'সারাদেশ', 'slug' => 'saradesh']);
     Category::create(['name' => 'অন্যান্য', 'slug' => 'others']);
 
-    config(['news_import.images.required' => false]);
-
     NewsImporter::resetMemo();
+    LocationMatcher::reset();
 });
 
 function importFeedXml(array $items): string
@@ -84,6 +85,27 @@ test('ইমপোর্টের সব ক্যাটাগরি slug সি
     expect(array_values(array_diff(array_unique($used), $known)))->toBe([]);
 });
 
+test('ইমপোর্টের দলগুলো সাইটের সব ক্যাটাগরি একবারেই কভার করে', function () {
+    $groups = (array) config('news_import.groups');
+    $covered = [];
+
+    foreach ($groups as $group) {
+        expect((string) $group['label'])->not->toBe('');
+        $covered = array_merge($covered, array_map('strval', (array) $group['categories']));
+    }
+
+    expect($groups)->toHaveCount(7)
+        ->and(array_unique($covered))->toHaveCount(count(CategorySeeder::CATEGORIES))
+        ->and(array_values(array_diff(array_unique($covered), array_values(CategorySeeder::CATEGORIES))))->toBe([])
+        ->and(array_values(array_diff(array_values(CategorySeeder::CATEGORIES), array_unique($covered))))->toBe([]);
+
+    // সারাদেশ কেবল খুলনা-ফিল্টার করা দলে থাকলে অন্য জেলার সংবাদ কোনোমতেই আসে না।
+    expect(collect($groups)->contains(
+        fn (array $group) => in_array('saradesh', (array) $group['categories'], true)
+            && empty($group['division'])
+    ))->toBeTrue();
+});
+
 test('সংবাদ পেজ থেকে পূর্ণাঙ্গ প্রতিবেদন বের হয়', function () {
     $html = '<html><body>'
         .'<div class="story-head"><h1>শিরোনাম</h1><p>এই অনুচ্ছেদ বাদ যাবে</p></div>'
@@ -124,6 +146,7 @@ test('বডি কনটেইনার না পেলে খালি প্
 
 test('ফিড পড়ে নতুন, ডুপ্লিকেট, পুরোনো ও বাইরের লিংক আলাদা করে', function () {
     $config = (array) config('news_import');
+    $config['text']['full_article'] = false; // এই পরীক্ষায় শুধু অবস্থা দেখা হয়
     $source = $config['sources']['prothomalo'];
     $now = gmdate('D, d M Y H:i:s').' GMT';
     $old = gmdate('D, d M Y H:i:s', time() - 5 * 86400).' GMT';
@@ -191,6 +214,47 @@ test('ফিড পড়ে নতুন, ডুপ্লিকেট, পু�
     expect(collect($items)->firstWhere('state', 'old')['title'])->toBe('পাঁচ দিন আগের একটি সংবাদ');
     expect(collect($items)->where('state', 'skipped')->pluck('reason')->all())
         ->toBe(['অন্য সাইট', 'শিরোনাম খুব ছোট', 'বাদ দেওয়া বিভাগ']);
+});
+
+test('পূর্ণ প্রতিবেদন বা যথেষ্ট বড় সারাংশ না এলে দুই লাইনের খসড়া হয় না', function () {
+    $config = (array) config('news_import');
+    $config['text']['og_lookup'] = false;
+    $config['images']['og_lookup'] = false;
+    $source = $config['sources']['prothomalo'];
+    $source['content']['class'] = null; // সংবাদ পেজ খোলা যায় না
+    $now = gmdate('D, d M Y H:i:s').' GMT';
+
+    $xml = importFeedXml([
+        [
+            'title' => 'শিরোনামের কপিই সারাংশ',
+            'link' => 'https://www.prothomalo.com/bangladesh/headline-copy',
+            'category' => 'বাংলাদেশ',
+            'date' => $now,
+            'description' => 'শিরোনামের কপিই সারাংশ',
+        ],
+        [
+            'title' => 'দুই লাইন সারাংশের একটি সংবাদ',
+            'link' => 'https://www.prothomalo.com/bangladesh/short-summary',
+            'category' => 'বাংলাদেশ',
+            'date' => $now,
+            'description' => 'শ্রমিকরা আজ সকাল থেকে বিক্ষোভ করছেন এবং পুলিশ ঘটনাস্থলে গেছে।',
+            'image' => 'https://www.prothomalo.com/images/short.jpg',
+        ],
+        [
+            'title' => 'যথেষ্ট বড় সারাংশের একটি সংবাদ',
+            'link' => 'https://www.prothomalo.com/bangladesh/long-summary',
+            'category' => 'বাংলাদেশ',
+            'date' => $now,
+            'description' => str_repeat('বিস্তারিত প্রতিবেদনের সারাংশ এখানে আছে। ', 20),
+        ],
+    ]);
+
+    $items = collect(FeedReader::parse('prothomalo', $source, $xml, $config, [], 10))->keyBy('title');
+
+    expect($items['শিরোনামের কপিই সারাংশ']['state'])->toBe('skipped')
+        ->and($items['শিরোনামের কপিই সারাংশ']['reason'])->toBe('পূর্ণ প্রতিবেদন পাওয়া যায়নি')
+        ->and($items['দুই লাইন সারাংশের একটি সংবাদ']['state'])->toBe('skipped')
+        ->and($items['যথেষ্ট বড় সারাংশের একটি সংবাদ']['state'])->toBe('new');
 });
 
 test('নির্বাচিত সংবাদ খসড়া হিসেবে সংরক্ষিত হয়, একই সংবাদ আবার আসে না', function () {
@@ -291,6 +355,7 @@ test('অজানা বা মুছে ফেলা ক্যাটাগর�
 test('Google News সাইটম্যাপ থেকেও শিরোনাম, লিংক, তারিখ ও ছবি পড়া হয়', function () {
     $config = (array) config('news_import');
     $config['text']['og_lookup'] = false; // নেটওয়ার্ক ছাড়া পরীক্ষা
+    $config['text']['full_article'] = false;
     $config['images']['og_lookup'] = false;
     $source = $config['sources']['bdnews24'];
     $source['content']['class'] = null;
@@ -437,6 +502,7 @@ test('সারাদেশ ছাড়া অন্য বিভাগের �
 test('ফিডের একাধিক ট্যাগ থেকে একাধিক ক্যাটাগরি আসে', function () {
     $config = (array) config('news_import');
     $config['text']['og_lookup'] = false;
+    $config['text']['full_article'] = false;
     $config['images']['og_lookup'] = false;
     $source = $config['sources']['prothomalo'];
 
@@ -456,6 +522,135 @@ test('ফিডের একাধিক ট্যাগ থেকে একা�
     expect($items[0]['category'])->toBe('jatiyo');
     expect($items[0]['categories'])->toBe(['jatiyo', 'sports']);
     expect($items[0]['tags'])->toBe(['বাংলাদেশ', 'খেলা']);
+});
+
+test('দল বাছাই করলে শুধু সেই দলের ক্যাটাগরির সংবাদ আসে', function () {
+    $config = (array) config('news_import');
+    $config['text']['og_lookup'] = false;
+    $config['text']['full_article'] = false;
+    $config['images']['og_lookup'] = false;
+    $source = $config['sources']['prothomalo'];
+    $now = gmdate('D, d M Y H:i:s').' GMT';
+
+    $xml = importFeedXml([
+        [
+            'title' => 'বাংলাদেশের ক্রিকেট দলের নতুন সিরিজ',
+            'link' => 'https://www.prothomalo.com/sports/cricket-series',
+            'category' => 'খেলা',
+            'date' => $now,
+            'description' => 'সিরিজ শুরু হচ্ছে।',
+        ],
+        [
+            'title' => 'নতুন নাটকের শুটিং শুরু হলো',
+            'link' => 'https://www.prothomalo.com/entertainment/new-drama',
+            'category' => 'বিনোদন',
+            'date' => $now,
+            'description' => 'শুটিং শুরু।',
+        ],
+        [
+            'title' => 'জাতিসংঘে নতুন প্রস্তাব পাস হলো',
+            'link' => 'https://www.prothomalo.com/international/un-resolution',
+            'category' => 'আন্তর্জাতিক',
+            'date' => $now,
+            'description' => 'প্রস্তাব পাস।',
+        ],
+        [
+            'title' => 'সংসদে নতুন আইন পাস হলো',
+            'link' => 'https://www.prothomalo.com/politics/new-law',
+            'category' => 'রাজনীতি',
+            'date' => $now,
+            'description' => 'আইন পাস।',
+        ],
+        [
+            'title' => 'জেলায় নতুন সড়ক উদ্বোধন হলো',
+            'link' => 'https://www.prothomalo.com/country/new-road',
+            'category' => 'জেলা',
+            'date' => $now,
+            'description' => 'সড়ক উদ্বোধন।',
+        ],
+    ]);
+
+    $items = FeedReader::parse('prothomalo', $source, $xml, $config, [], 10, (array) $config['groups']['sports']);
+
+    expect(array_column($items, 'title'))->toBe([
+        'বাংলাদেশের ক্রিকেট দলের নতুন সিরিজ',
+        'নতুন নাটকের শুটিং শুরু হলো',
+        'জাতিসংঘে নতুন প্রস্তাব পাস হলো',
+    ]);
+});
+
+test('খুলনা বিভাগের দলে কেবল খুলনা বিভাগের জেলার সংবাদ আসে', function () {
+    \App\Support\LocationImporter::import();
+    LocationMatcher::reset();
+
+    $config = (array) config('news_import');
+    $config['text']['og_lookup'] = false;
+    $config['text']['full_article'] = false;
+    $config['images']['og_lookup'] = false;
+    $source = $config['sources']['prothomalo'];
+    $now = gmdate('D, d M Y H:i:s').' GMT';
+
+    $xml = importFeedXml([
+        [
+            'title' => 'খুলনায় নতুন সড়ক উদ্বোধন হলো',
+            'link' => 'https://www.prothomalo.com/country/khulna-road',
+            'category' => 'জেলা',
+            'date' => $now,
+            'description' => 'সড়ক উদ্বোধন।',
+        ],
+        [
+            'title' => 'ঢাকায় নতুন সড়ক উদ্বোধন হলো',
+            'link' => 'https://www.prothomalo.com/country/dhaka-road',
+            'category' => 'জেলা',
+            'date' => $now,
+            'description' => 'সড়ক উদ্বোধন।',
+        ],
+        [
+            'title' => 'কুষ্টিয়ায় নতুন সেতু চালু হলো',
+            'link' => 'https://www.prothomalo.com/country/kushtia-bridge',
+            'category' => 'জেলা',
+            'date' => $now,
+            'description' => 'সেতু চালু।',
+        ],
+    ]);
+
+    $items = FeedReader::parse('prothomalo', $source, $xml, $config, [], 10, (array) $config['groups']['khulna']);
+
+    expect(array_column($items, 'title'))->toBe([
+        'খুলনায় নতুন সড়ক উদ্বোধন হলো',
+        'কুষ্টিয়ায় নতুন সেতু চালু হলো',
+    ]);
+
+    $all = FeedReader::parse('prothomalo', $source, $xml, $config, [], 10, (array) $config['groups']['saradesh']);
+
+    expect(array_column($all, 'title'))->toBe([
+        'খুলনায় নতুন সড়ক উদ্বোধন হলো',
+        'ঢাকায় নতুন সড়ক উদ্বোধন হলো',
+        'কুষ্টিয়ায় নতুন সেতু চালু হলো',
+    ]);
+});
+
+test('আইন-আদালত, কৃষি, স্বাস্থ্য ও ভিডিও গ্যালারির সংবাদও ফিড থেকে আসে', function () {
+    $sources = (array) config('news_import.sources');
+
+    expect(FeedReader::categoriesFor($sources['prothomalo'], ['কৃষি'], 'https://www.prothomalo.com/agriculture/a'))
+        ->toBe(['agriculture'])
+        ->and(FeedReader::categoriesFor($sources['khulnagazette'], ['টপ নিউজ', 'কৃষি'], 'https://khulnagazette.com/a'))
+        ->toBe(['others', 'agriculture'])
+        ->and(FeedReader::categoriesFor($sources['jagonews24'], ['law-courts'], 'https://www.jagonews24.com/law-courts/a'))
+        ->toBe(['law-court'])
+        ->and(FeedReader::categoriesFor($sources['samakal'], [], 'https://samakal.com/law-court/a'))
+        ->toBe(['law-court'])
+        ->and(FeedReader::categoriesFor($sources['gramerkagoj'], [], 'https://www.gramerkagoj.com/court-law/a'))
+        ->toBe(['law-court'])
+        ->and(FeedReader::categoriesFor($sources['banglanews24'], [], 'https://www.banglanews24.com/law-court/news/bd/1.details'))
+        ->toBe(['law-court'])
+        ->and(FeedReader::categoriesFor($sources['samakal'], [], 'https://samakal.com/doctorbari/a'))
+        ->toBe(['health'])
+        ->and(FeedReader::categoriesFor($sources['gramerkagoj'], [], 'https://www.gramerkagoj.com/health-story/a'))
+        ->toBe(['health'])
+        ->and(FeedReader::categoriesFor($sources['bdnews24'], [], 'https://bangla.bdnews24.com/tube/a'))
+        ->toBe(['video-gallery']);
 });
 
 test('শিক্ষা ট্যাগ বা সেকশন শিক্ষা ক্যাটাগরিতেই মাপে', function () {
@@ -514,8 +709,14 @@ test('সংবাদ সংরক্ষণে সব ক্যাটাগর�
     expect($slugs)->toHaveCount(2)->toContain('jatiyo')->toContain('others');
 });
 
-test('ছবি না থাকলে সংবাদ আমদানি হয় না', function () {
-    config(['news_import.images.required' => true]);
+test('ছবি না থাকলে ছবি ছাড়াই সংবাদ আমদানি হয়', function () {
+    // গ্যালারিতে ছবি থাকলেও নিজে থেকে বসানো হয় না; সম্পাদক পরে হাতে যোগ করবেন।
+    Media::create([
+        'filename' => 'gallery-default.jpg',
+        'original_name' => 'gallery-default.jpg',
+        'mime' => 'image/jpeg',
+        'size' => 2048,
+    ]);
 
     $result = NewsImporter::save([
         'source' => 'prothomalo',
@@ -530,9 +731,11 @@ test('ছবি না থাকলে সংবাদ আমদানি হয
         'reason' => '',
     ]);
 
-    expect($result['state'])->toBe('skipped');
-    expect($result['reason'])->toBe('ছবি নেই');
-    expect(News::count())->toBe(0);
+    expect($result['state'])->toBe('imported');
+
+    $news = News::firstOrFail();
+    expect($news->image)->toBeNull()
+        ->and($news->image_credit)->toBeNull();
 });
 
 test('সারাদেশ সংবাদে জেলা বা উপজেলা শনাক্ত না হলে আমদানি হয় না', function () {

@@ -2,6 +2,7 @@
 
 namespace App\Support\NewsImport;
 
+use App\Models\Location;
 use App\Models\News;
 use App\Support\HtmlSanitizer;
 use DOMDocument;
@@ -26,9 +27,10 @@ final class FeedReader
 
     /**
      * @param  list<string>  $only  source keys to read; empty = every enabled source
+     * @param  array<string, mixed>|null  $group  category group from config; null = every category
      * @return array<string, array{name: string, feed: string, error: ?string, items: list<array<string, mixed>>}>
      */
-    public static function collect(array $only = [], ?int $limit = null): array
+    public static function collect(array $only = [], ?int $limit = null, ?array $group = null): array
     {
         $config = (array) config('news_import', []);
 
@@ -69,7 +71,10 @@ final class FeedReader
             $fairShare = (int) ceil($budget / $remainingSources);
             $cap = $limit !== null
                 ? max(1, $limit)
-                : min($perSource, max($isPriority ? $priorityCap : $otherCap, $fairShare));
+                : ($group !== null
+                    // A group holds one or two sections; the run budget (20) is the real cap.
+                    ? min($perSource, $budget)
+                    : min($perSource, max($isPriority ? $priorityCap : $otherCap, $fairShare)));
 
             $block = [
                 'name' => (string) ($source['name'] ?? $key),
@@ -80,7 +85,7 @@ final class FeedReader
 
             try {
                 $xml = self::fetchUrl($block['feed'], $config, (int) ($config['request']['max_bytes'] ?? 6_000_000));
-                $items = self::parse($key, $source, $xml, $config, $titles, min($cap, $budget));
+                $items = self::parse($key, $source, $xml, $config, $titles, min($cap, $budget), $group);
 
                 if ($isPriority) {
                     // সারাদেশ (খুলনা বিভাগ) সংবাদ আগে, বাকিগুলো পরে।
@@ -102,16 +107,19 @@ final class FeedReader
     /** Priority sources list their district reports first. */
     private static function localRank(array $item): int
     {
-        return ($item['state'] ?? '') === 'new' && ($item['category'] ?? '') === 'saradesh' ? 0 : 1;
+        $categories = (array) ($item['categories'] ?? [$item['category'] ?? '']);
+
+        return ($item['state'] ?? '') === 'new' && in_array('saradesh', $categories, true) ? 0 : 1;
     }
 
     /**
      * Parse one feed body. Public so the preview tests can run without the network.
      *
      * @param  array<string, true>  $titles  normalized titles already in the database
+     * @param  array<string, mixed>|null  $group  category group from config; other entries are left out
      * @return list<array<string, mixed>>
      */
-    public static function parse(string $key, array $source, string $xml, array $config, array $titles = [], ?int $limit = null): array
+    public static function parse(string $key, array $source, string $xml, array $config, array $titles = [], ?int $limit = null, ?array $group = null): array
     {
         $doc = @simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA | LIBXML_NONET | LIBXML_NOERROR);
 
@@ -124,10 +132,13 @@ final class FeedReader
         $max = $limit ?? (int) ($config['collect']['per_source_limit'] ?? 8);
         $maxAge = (int) ($config['collect']['max_age_hours'] ?? 36);
         $minTitle = (int) ($config['collect']['min_title_chars'] ?? 12);
-        $scanLimit = max($max, $max * (int) ($config['collect']['scan_factor'] ?? 4));
+        $scanFactor = (int) ($config['collect'][$group !== null ? 'group_scan_factor' : 'scan_factor'] ?? 4);
+        $scanLimit = max($max, $max * max(1, $scanFactor));
         $excerptChars = (int) ($config['text']['excerpt_chars'] ?? 500);
         $ogImages = ($config['images']['og_lookup'] ?? true) !== false;
         $ogText = ($config['text']['og_lookup'] ?? true) !== false;
+        $fullArticle = ($config['text']['full_article'] ?? true) !== false;
+        $minSummary = (int) ($config['collect']['min_summary_chars'] ?? 300);
         $allowedHosts = array_map('strtolower', (array) ($source['allowed_hosts'] ?? []));
         $skipCategories = (array) ($source['skip_categories'] ?? []);
 
@@ -184,10 +195,16 @@ final class FeedReader
 
             $content = '';
 
+            // Another group's news is dropped before any page is downloaded, so a group run
+            // keeps looking through the whole feed for its own (often rarer) sections.
+            if ($state === 'new' && $group !== null && ! self::matchesGroup($group, $categories, $title, $excerpt)) {
+                continue;
+            }
+
             if ($state === 'new') {
                 $needsText = $excerpt === '' || $excerpt === $title;
                 $needsImage = $image === null && ! empty($source['image']['og']) && $ogImages;
-                $needsBody = ($config['text']['full_article'] ?? true) !== false
+                $needsBody = $fullArticle
                     && trim((string) ($source['content']['class'] ?? '')) !== '';
 
                 // A feed sometimes repeats the headline as the summary, and Banglanews24 always does.
@@ -207,11 +224,20 @@ final class FeedReader
 
                         $content = (string) ($meta['content'] ?? '');
                     } catch (Throwable) {
-                        // An unreachable article page leaves the title-only summary; the import still works.
+                        // A blocked article page leaves no report; the check below decides.
                     }
                 }
 
-                $accepted++;
+                // পূর্ণ প্রতিবেদন আনা না গেলে ফিডের দুই লাইনের সারাংশই ভরসা। এমন অসম্পূর্ণ
+                // খসড়া সম্পাদকের কাজে আসে না, তাই বডি নেই এবং সারাংশও যথেষ্ট বড় না হলে
+                // সংবাদটি বাদ দেওয়া হয় (পরের চালে আবার চেষ্টা হবে)।
+                if ($fullArticle && $content === '' && mb_strlen(trim(strip_tags($excerpt))) < $minSummary) {
+                    [$state, $reason] = ['skipped', 'পূর্ণ প্রতিবেদন পাওয়া যায়নি'];
+                }
+
+                if ($state === 'new') {
+                    $accepted++;
+                }
             }
 
             $items[] = [
@@ -387,6 +413,44 @@ final class FeedReader
         }
 
         return array_values(array_unique($slugs));
+    }
+
+    /**
+     * True when an entry belongs to the chosen group: one of its local categories is in the
+     * group and, for a division group, the headline or summary names a district/upazila
+     * inside that division. An unknown place is left for the normal import checks.
+     */
+    private static function matchesGroup(array $group, array $categories, string $title, string $excerpt): bool
+    {
+        $wanted = array_map('strval', (array) ($group['categories'] ?? []));
+
+        if ($wanted !== [] && array_intersect($categories, $wanted) === []) {
+            return false;
+        }
+
+        $division = mb_strtolower(trim((string) ($group['division'] ?? '')));
+
+        if ($division === '') {
+            return true;
+        }
+
+        $location = LocationMatcher::detect($title, $excerpt);
+
+        if (! $location || (! $location->isDistrict() && ! $location->isUpazila())) {
+            return false;
+        }
+
+        $node = $location;
+
+        for ($depth = 0; $depth < 3 && $node !== null; $depth++) {
+            if ($node->isDivision()) {
+                return mb_strtolower((string) $node->slug) === $division;
+            }
+
+            $node = $node->parent_id ? Location::find($node->parent_id) : null;
+        }
+
+        return false;
     }
 
     /** Bengali-friendly title comparison key: case, punctuation, symbols and spaces are ignored. */

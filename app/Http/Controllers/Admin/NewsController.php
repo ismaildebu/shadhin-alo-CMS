@@ -335,8 +335,10 @@ class NewsController extends Controller
     {
         Gate::authorize('delete', $news);
 
-        // Soft delete: keep the article and its image for restoration.
         $news->delete();
+
+        // খসড়ার ছবি অপ্রয়োজনীয় জমা না রাখতে সাথে মোছে (অন্য সংবাদ ব্যবহার করলে থাকবে)।
+        $this->deleteDraftImage($news);
 
         Activity::record('article.deleted', $news);
 
@@ -380,6 +382,8 @@ class NewsController extends Controller
             }
 
             $news->delete();
+
+            $this->deleteDraftImage($news);
 
             Activity::record('article.deleted', $news);
 
@@ -612,6 +616,19 @@ class NewsController extends Controller
         Media::removeFiles($name);
 
         Media::where('filename', $name)->delete();
+    }
+
+    /**
+     * খসড়া ট্র্যাশে পাঠানোর সময় তার ছবিও মোছে।
+     * অন্য কোনো সংবাদ (ট্র্যাশে থাকা সহ) একই ছবি ব্যবহার করলে ছবিটি থাকে।
+     */
+    private function deleteDraftImage(News $news): void
+    {
+        if ($news->status !== News::STATUS_DRAFT || ! $news->image) {
+            return;
+        }
+
+        $this->deleteImageIfUnused($news->image, $news);
     }
 
     /**

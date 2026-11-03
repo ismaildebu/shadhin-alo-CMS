@@ -95,6 +95,16 @@ class Permissions
                 'implied_by' => ['news_review'],
             ],
 
+            'news_import' => [
+                'group' => 'news',
+                'label' => 'স্বয়ংক্রিয় সংবাদ সংগ্রহ',
+                'short' => 'সংগ্রহ',
+                'help' => 'সাইডবারের "নতুন সংবাদ আনুন" বাটনগুলো দেখায় এবং ফিড থেকে নতুন সংবাদ খসড়া হিসেবে আনতে দেয়। "সংবাদ ম্যানেজমেন্ট" থেকে আলাদা, তাই চাইলে রিপোর্টারকেও দেওয়া যায়।',
+                'danger' => false,
+                'defaults' => [$admin, $editor, $deputy, $newsEditor, $jointEditor],
+                'locked' => [],
+            ],
+
             'categories_manage' => [
                 'group' => 'content',
                 'label' => 'ক্যাটাগরি ম্যানেজমেন্ট',
@@ -159,7 +169,7 @@ class Permissions
                 'group' => 'design',
                 'label' => 'সাইট লেআউট ও ডিজাইন',
                 'short' => 'ডিজাইন',
-                'help' => 'হোমপেজ সাজানো, মেনু, সাইডবার, সংবাদ পেজ ডিজাইন, ডেটা ভিজ্যুয়াল বিল্ডার ও গ্রাফ-চার্ট।',
+                'help' => 'হোমপেজ সাজানো, মেনু ও ফুটারের ডিজাইন, সাইডবার, সংবাদ পেজ ডিজাইন, ডেটা ভিজ্যুয়াল বিল্ডার ও গ্রাফ-চার্ট।',
                 'danger' => false,
                 'defaults' => [$admin, $editor, $deputy, $newsEditor, $designer],
                 'locked' => [],

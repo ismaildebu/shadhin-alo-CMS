@@ -30,14 +30,15 @@ final class NewsImporter
      * Read every enabled feed and, unless this is a preview, save new entries.
      *
      * @param  list<string>  $only
+     * @param  array<string, mixed>|null  $group  category group from config; null = every category
      * @return array<string, array{name: string, feed: string, error: ?string, items: list<array<string, mixed>>}>
      */
-    public static function run(array $only = [], ?int $limit = null, bool $dryRun = false): array
+    public static function run(array $only = [], ?int $limit = null, bool $dryRun = false, ?array $group = null): array
     {
         self::resetMemo();
 
         $config = (array) config('news_import', []);
-        $blocks = FeedReader::collect($only, $limit);
+        $blocks = FeedReader::collect($only, $limit, $group);
 
         if ($dryRun) {
             return $blocks;
@@ -139,10 +140,6 @@ final class NewsImporter
         $reporter = $nationwide && $location ? self::reporterFor($location) : null;
 
         $image = self::importImage($item['image'] ?? null, $author, $config);
-
-        if ($image === null && ($config['images']['required'] ?? true)) {
-            return self::skipped('ছবি নেই');
-        }
 
         $description = self::body($content, $excerpt !== '' ? $excerpt : $title)
             .self::sourceLine($link, $sourceName);

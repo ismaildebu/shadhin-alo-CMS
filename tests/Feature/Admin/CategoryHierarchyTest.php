@@ -241,9 +241,11 @@ it('renders the category tree with sub-categories under their parent', function 
     Category::create(['name' => 'রাজনীতি', 'slug' => 'rajniti', 'serial' => 9]);
 
     $html = $this->actingAs($this->admin)->get('/admin/categories')->assertOk()->getContent();
+    // The sidebar now names category groups too, so order is checked inside the page body only.
+    $body = substr($html, (int) strpos($html, 'class="ad-main"'));
 
-    expect(strpos($html, 'জাতীয়'))->toBeLessThan(strpos($html, 'ঢাকা'))
-        ->and(strpos($html, 'ঢাকা'))->toBeLessThan(strpos($html, 'রাজনীতি'));
+    expect(strpos($body, 'জাতীয়'))->toBeLessThan(strpos($body, 'ঢাকা'))
+        ->and(strpos($body, 'ঢাকা'))->toBeLessThan(strpos($body, 'রাজনীতি'));
     expect($html)->toContain('↳')->toContain('/admin/categories/'.$this->parent->id.'/edit');
 });
 

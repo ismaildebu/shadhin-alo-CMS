@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Category;
+use App\Models\Media;
 use App\Models\News;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -318,6 +319,85 @@ it('moves the selected articles to the trash in one request', function () {
 
     $this->assertSoftDeleted('news', ['id' => $a->id]);
     $this->assertSoftDeleted('news', ['id' => $b->id]);
+});
+
+it('deletes a draft image together with the article', function () {
+    $image = 'draft-photo.jpg';
+    File::ensureDirectoryExists($this->publicDir.'/uploads/news');
+    File::put($this->publicDir.'/uploads/news/'.$image, 'image-bytes');
+    Media::create(['filename' => $image]);
+
+    $news = News::create([
+        'category_id' => $this->category->id, 'title' => 'ছবিসহ খসড়া', 'slug' => 'draft-with-image',
+        'description' => '<p>d</p>', 'image' => $image,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->delete(route('news.destroy', $news))
+        ->assertRedirect(route('news.index'));
+
+    $this->assertSoftDeleted('news', ['id' => $news->id]);
+
+    expect(File::exists($this->publicDir.'/uploads/news/'.$image))->toBeFalse()
+        ->and(Media::where('filename', $image)->exists())->toBeFalse();
+});
+
+it('keeps a draft image that another article still uses', function () {
+    $image = 'shared-photo.jpg';
+    File::ensureDirectoryExists($this->publicDir.'/uploads/news');
+    File::put($this->publicDir.'/uploads/news/'.$image, 'image-bytes');
+
+    $draft = News::create([
+        'category_id' => $this->category->id, 'title' => 'প্রথম খসড়া', 'slug' => 'shared-one',
+        'description' => '<p>d</p>', 'image' => $image,
+    ]);
+    News::create([
+        'category_id' => $this->category->id, 'title' => 'দ্বিতীয় খসড়া', 'slug' => 'shared-two',
+        'description' => '<p>d</p>', 'image' => $image,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->delete(route('news.destroy', $draft))
+        ->assertRedirect(route('news.index'));
+
+    expect(File::exists($this->publicDir.'/uploads/news/'.$image))->toBeTrue();
+});
+
+it('keeps a published image when the article is moved to the trash', function () {
+    $image = 'published-photo.jpg';
+    File::ensureDirectoryExists($this->publicDir.'/uploads/news');
+    File::put($this->publicDir.'/uploads/news/'.$image, 'image-bytes');
+
+    $news = News::create([
+        'category_id' => $this->category->id, 'title' => 'প্রকাশিত সংবাদ', 'slug' => 'published-image',
+        'description' => '<p>d</p>', 'image' => $image, 'status' => News::STATUS_PUBLISHED,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->delete(route('news.destroy', $news))
+        ->assertRedirect(route('news.index'));
+
+    expect(File::exists($this->publicDir.'/uploads/news/'.$image))->toBeTrue();
+});
+
+it('deletes draft images during a bulk trash action', function () {
+    $image = 'bulk-draft.jpg';
+    File::ensureDirectoryExists($this->publicDir.'/uploads/news');
+    File::put($this->publicDir.'/uploads/news/'.$image, 'image-bytes');
+
+    $news = News::create([
+        'category_id' => $this->category->id, 'title' => 'বাল্ক খসড়া', 'slug' => 'bulk-draft',
+        'description' => '<p>d</p>', 'image' => $image,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->post(route('news.bulk-destroy'), ['ids' => [$news->id]])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $this->assertSoftDeleted('news', ['id' => $news->id]);
+
+    expect(File::exists($this->publicDir.'/uploads/news/'.$image))->toBeFalse();
 });
 
 it('refuses more than 100 articles in one bulk action', function () {

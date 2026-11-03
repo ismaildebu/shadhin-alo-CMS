@@ -19,7 +19,10 @@
 
         <div class="ad-pagehead">
             <h1>মেনু সাজান</h1>
-            <a href="{{ route('home') }}" target="_blank" rel="noopener" class="ad-tab">সাইট দেখুন</a>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="{{ route('menu-footer-design.edit') }}" class="ad-tab">মেনু ও ফুটার ডিজাইন</a>
+                <a href="{{ route('home') }}" target="_blank" rel="noopener" class="ad-tab">সাইট দেখুন</a>
+            </div>
         </div>
 
         <p class="ad-note">

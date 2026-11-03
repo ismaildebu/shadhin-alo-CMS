@@ -26,6 +26,32 @@
 
     $mainEntries = array_values(array_filter($menuEntries, fn ($e) => ! $e['more']));
     $moreEntries = array_values(array_filter($menuEntries, fn ($e) => $e['more']));
+
+    // মেনুর সক্রিয় আইটেম: বিভাগের পেজে সেই বিভাগ, সংবাদ পেজে সংবাদের বিভাগ।
+    $activeNews = isset($news) && $news instanceof \App\Models\News ? $news : null;
+    $activeSlug = request()->routeIs('frontend.category.show')
+        ? (string) request()->route('slug')
+        : (string) ($activeNews?->category?->slug ?? '');
+    $activeUrl = url()->current();
+
+    $categoryActive = fn ($category) => $activeSlug !== '' && (
+        $category->slug === $activeSlug
+        || $category->children->contains(fn ($child) => $child->slug === $activeSlug)
+    );
+
+    $linkActive = function (string $href) use ($activeUrl) {
+        if ($href === '' || str_starts_with($href, '#')) {
+            return false;
+        }
+
+        $target = str_starts_with($href, 'http://') || str_starts_with($href, 'https://') ? $href : url($href);
+
+        return rtrim($target, '/') === rtrim($activeUrl, '/');
+    };
+
+    $moreActive = collect($moreEntries)->contains(fn ($entry) => $entry['item']
+        ? $linkActive($entry['item']->href())
+        : $categoryActive($entry['category']));
 @endphp
 
 <div class="topbar">
@@ -82,7 +108,7 @@
 
                         @php $item = $entry['item']; @endphp
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ $item->href() }}" @if($item->new_tab) target="_blank" rel="noopener" @endif>{{ $item->label }}</a>
+                            <a @class(['nav-link', 'active' => $linkActive($item->href())]) href="{{ $item->href() }}" @if($item->new_tab) target="_blank" rel="noopener" @endif>{{ $item->label }}</a>
                         </li>
 
                     @else
@@ -91,28 +117,28 @@
 
                         @if($category->slug === \App\Models\Category::NATIONWIDE_SLUG && $divisions->isNotEmpty())
                             <li class="nav-item dropdown">
-                                <a class="nav-link" href="{{ route('frontend.category.show', $category->slug) }}">{{ $category->name }}</a>
+                                <a @class(['nav-link', 'active' => $categoryActive($category)]) href="{{ route('frontend.category.show', $category->slug) }}">{{ $category->name }}</a>
                                 <ul class="dropdown-menu">
                                     @foreach($divisions as $division)
                                         <li><a class="dropdown-item" href="{{ $division->url() }}">{{ $division->name_bn }}</a></li>
                                     @endforeach
                                     @foreach($category->children as $child)
-                                        <li><a class="dropdown-item" href="{{ route('frontend.category.show', $child->slug) }}">{{ $child->name }}</a></li>
+                                        <li><a @class(['dropdown-item', 'is-current' => $child->slug === $activeSlug]) href="{{ route('frontend.category.show', $child->slug) }}">{{ $child->name }}</a></li>
                                     @endforeach
                                 </ul>
                             </li>
                         @elseif($category->children->isNotEmpty())
                             <li class="nav-item dropdown">
-                                <a class="nav-link" href="{{ route('frontend.category.show', $category->slug) }}">{{ $category->name }}</a>
+                                <a @class(['nav-link', 'active' => $categoryActive($category)]) href="{{ route('frontend.category.show', $category->slug) }}">{{ $category->name }}</a>
                                 <ul class="dropdown-menu">
                                     @foreach($category->children as $child)
-                                        <li><a class="dropdown-item" href="{{ route('frontend.category.show', $child->slug) }}">{{ $child->name }}</a></li>
+                                        <li><a @class(['dropdown-item', 'is-current' => $child->slug === $activeSlug]) href="{{ route('frontend.category.show', $child->slug) }}">{{ $child->name }}</a></li>
                                     @endforeach
                                 </ul>
                             </li>
                         @else
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ route('frontend.category.show', $category->slug) }}">{{ $category->name }}</a>
+                                <a @class(['nav-link', 'active' => $categoryActive($category)]) href="{{ route('frontend.category.show', $category->slug) }}">{{ $category->name }}</a>
                             </li>
                         @endif
 
@@ -122,20 +148,20 @@
 
                 @if(! empty($moreEntries))
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">{{ $site['menu_more_label'] }}</a>
+                        <a @class(['nav-link dropdown-toggle', 'active' => $moreActive]) href="#" data-bs-toggle="dropdown">{{ $site['menu_more_label'] }}</a>
                         <ul class="dropdown-menu">
                             @foreach($moreEntries as $entry)
 
                                 @if($entry['item'])
                                     @php $item = $entry['item']; @endphp
                                     <li>
-                                        <a class="dropdown-item" href="{{ $item->href() }}" @if($item->new_tab) target="_blank" rel="noopener" @endif>{{ $item->label }}</a>
+                                        <a @class(['dropdown-item', 'is-current' => $linkActive($item->href())]) href="{{ $item->href() }}" @if($item->new_tab) target="_blank" rel="noopener" @endif>{{ $item->label }}</a>
                                     </li>
                                 @else
                                     @php $category = $entry['category']; @endphp
-                                    <li><a class="dropdown-item" href="{{ route('frontend.category.show', $category->slug) }}">{{ $category->name }}</a></li>
+                                    <li><a @class(['dropdown-item', 'is-current' => $category->slug === $activeSlug]) href="{{ route('frontend.category.show', $category->slug) }}">{{ $category->name }}</a></li>
                                     @foreach($category->children as $child)
-                                        <li><a class="dropdown-item ps-4" href="{{ route('frontend.category.show', $child->slug) }}">– {{ $child->name }}</a></li>
+                                        <li><a @class(['dropdown-item ps-4', 'is-current' => $child->slug === $activeSlug]) href="{{ route('frontend.category.show', $child->slug) }}">– {{ $child->name }}</a></li>
                                     @endforeach
                                 @endif
 

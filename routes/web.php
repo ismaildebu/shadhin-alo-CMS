@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\VideoChannelController;
 use App\Http\Controllers\Admin\AdController;
 use App\Http\Controllers\Admin\SiteSettingController;
 use App\Http\Controllers\Admin\MenuController;
+use App\Http\Controllers\Admin\MenuFooterDesignController;
 use App\Http\Controllers\Admin\SidebarController;
 use App\Http\Controllers\Admin\NewsCardController;
 use App\Http\Controllers\Admin\ArticleDesignController;
@@ -84,8 +85,8 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
     Route::prefix('admin')->group(function () {
 
         // News: everyone with panel access (non-editors are limited to their own by the policy)
-        Route::post('news/import', [NewsImportController::class, 'store'])
-            ->middleware('throttle:6,1')
+        Route::post('news/import/{group?}', [NewsImportController::class, 'store'])
+            ->middleware('throttle:12,1')
             ->name('news.import');
         Route::resource('news', NewsController::class)->except('show');
         Route::post('news/bulk-destroy', [NewsController::class, 'bulkDestroy'])->name('news.bulk-destroy');
@@ -155,6 +156,9 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
             Route::put('menu', [MenuController::class, 'update'])->name('menu.update');
             Route::post('menu/links', [MenuController::class, 'storeLink'])->name('menu.links.store');
             Route::delete('menu/links/{item}', [MenuController::class, 'destroyLink'])->name('menu.links.destroy');
+
+            Route::get('menu-footer-design', [MenuFooterDesignController::class, 'edit'])->name('menu-footer-design.edit');
+            Route::put('menu-footer-design', [MenuFooterDesignController::class, 'update'])->name('menu-footer-design.update');
 
             Route::get('sidebar', [SidebarController::class, 'edit'])->name('sidebar.edit');
             Route::put('sidebar', [SidebarController::class, 'update'])->name('sidebar.update');

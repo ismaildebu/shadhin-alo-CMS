@@ -25,6 +25,7 @@ class AppServiceProvider extends ServiceProvider
         // edited in the panel (Roles & permissions) and stored in the
         // role_permissions table; defaults are in App\Support\Permissions.
         Gate::define('manage-cms', fn (User $user) => $user->canManageCms());
+        Gate::define('news-import', fn (User $user) => $user->hasPermission('news_import'));
         Gate::define('manage-categories', fn (User $user) => $user->hasPermission('categories_manage'));
         Gate::define('manage-tags', fn (User $user) => $user->hasPermission('tags_manage'));
         Gate::define('manage-videos', fn (User $user) => $user->hasPermission('videos_manage'));
