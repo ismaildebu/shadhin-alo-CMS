@@ -59,7 +59,16 @@ test('প্রতিটি সোর্সের কনফিগে ফিড, 
 
         foreach ($feeds as $feed) {
             expect($feed['feed'])->toStartWith('https://');
-            expect($feed['category'])->toMatch('/^[A-Za-z][A-Za-z0-9-]*$/');
+
+            // 'category' খালি মানে সেই ফিড সোর্সের নিজের বিভাগ-তালিকা ব্যবহার করে
+            // (খুলনা গেজেটের মূল ফিড)। 'district' শুধু জেলা-ফিডেই থাকে।
+            if (($feed['category'] ?? '') !== '') {
+                expect($feed['category'])->toMatch('/^[A-Za-z][A-Za-z0-9-]*$/');
+            }
+
+            if (($feed['district'] ?? '') !== '') {
+                expect($feed['district'])->toMatch('/^[A-Za-z][A-Za-z0-9-]*$/');
+            }
         }
 
         expect($source['allowed_hosts'])->not->toBeEmpty();
@@ -92,7 +101,9 @@ test('ইমপোর্টের সব ক্যাটাগরি slug সি
         $used = array_merge($used, array_values($source['category_map']));
 
         foreach ((array) ($source['feeds'] ?? []) as $feed) {
-            $used[] = (string) $feed['category'];
+            if (($feed['category'] ?? '') !== '') {
+                $used[] = (string) $feed['category'];
+            }
         }
     }
 
@@ -719,6 +730,134 @@ test('খুলনা বিভাগের দলে কেবল খুলন�
         'ঢাকায় নতুন সড়ক উদ্বোধন হলো',
         'কুষ্টিয়ায় নতুন সেতু চালু হলো',
     ]);
+});
+
+test('জেলা-ফিডের ঘোষিত জেলা দিয়ে দল বাছাই হয়', function () {
+    \App\Support\LocationImporter::import();
+    LocationMatcher::reset();
+
+    $config = (array) config('news_import');
+    $config['text']['og_lookup'] = false;
+    $config['text']['full_article'] = false;
+    $config['images']['og_lookup'] = false;
+
+    $khulnagazette = (array) $config['sources']['khulnagazette'];
+    $feeds = (array) $khulnagazette['feeds'];
+    $kushtia = collect($feeds)->firstWhere('district', 'kushtia');
+
+    expect($kushtia)->not->toBeNull()->and($feeds)->toHaveCount(11);
+
+    // collect() প্রতিটি জেলা-ফিডের জন্য সোর্সে সেই জেলা বসিয়ে দেয়।
+    $source = array_merge($khulnagazette, [
+        'category_from' => 'tag',
+        'category_map' => [],
+        'default_category' => $kushtia['category'],
+        'district' => $kushtia['district'],
+    ]);
+
+    $now = gmdate('D, d M Y H:i:s').' GMT';
+    $xml = importFeedXml([
+        ['title' => 'নদী ভাঙনে তিনটি ঘর ধ্বংস হয়েছে', 'link' => 'https://khulnagazette.com/2026-11-04/bhangan', 'date' => $now, 'description' => 'ঘর ধ্বংস।'],
+    ]);
+
+    $items = FeedReader::parse('khulnagazette', $source, $xml, $config, [], 5, (array) $config['groups']['khulna']);
+
+    expect($items)->toHaveCount(1)
+        ->and($items[0]['state'])->toBe('new')
+        ->and($items[0]['district'])->toBe('kushtia')
+        ->and($items[0]['categories'])->toBe(['saradesh']);
+
+    // অন্য বিভাগের জেলা ঘোষণা করলে সেই ফিডের সংবাদ খুলনা দলে ঢোকে না।
+    $source['district'] = 'gazipur';
+    $outside = FeedReader::parse('khulnagazette', $source, $xml, $config, [], 5, (array) $config['groups']['khulna']);
+
+    expect($outside)->toBe([]);
+});
+
+test('জেলা-ফিডে ঘোষিত প্রতিটি জেলা প্রশাসনিক তালিকায় আছে', function () {
+    \App\Support\LocationImporter::import();
+
+    $declared = [];
+
+    foreach ((array) config('news_import.sources') as $source) {
+        foreach ((array) ($source['feeds'] ?? []) as $feed) {
+            if (($feed['district'] ?? '') !== '') {
+                $declared[] = (string) $feed['district'];
+            }
+        }
+    }
+
+    // সাইটের ফিড-পাতার স্লাগ আমাদের জেলার স্লাগ থেকে আলাদা হতে পারে (কুষ্টিয়া kustia,
+    // ঝিনাইদহ jhineidha) — তাই ঘোষণাগুলো প্রশাসনিক তালিকা দিয়েই যাচাই হয়।
+    expect($declared)->toHaveCount(10)
+        ->and(array_values(array_diff($declared, \App\Models\Location::districts()->pluck('slug')->all())))->toBe([]);
+});
+
+test('জেলা-ফিডের সংবাদে ঘোষিত জেলা খসড়ার স্থান হয়', function () {
+    \App\Support\LocationImporter::import();
+    $magura = \App\Models\Location::districts()->where('slug', 'magura')->firstOrFail();
+
+    $result = NewsImporter::save([
+        'source' => 'khulnagazette',
+        'title' => 'নদী ভাঙনে তিনটি ঘর ধ্বংস হয়েছে',
+        'link' => 'https://khulnagazette.com/2026-11-04/bhangan',
+        'category' => 'saradesh',
+        'categories' => ['saradesh'],
+        'category_tag' => 'মাগুরা',
+        'district' => 'magura',
+        'published_at' => now()->toIso8601String(),
+        'excerpt' => 'ঘর তিনটি আজ ভেঙে পড়েছে।',
+        'image' => null,
+        'state' => 'new',
+        'reason' => '',
+    ]);
+
+    $news = News::firstOrFail();
+
+    expect($result['state'])->toBe('imported');
+    expect($news->location_id)->toBe($magura->id);
+    expect($news->reporter)->toBe('সংবাদদাতা, মাগুরা');
+});
+
+test('জেলা-ফিডের সংবাদে শিরোনামের অন্য জেলার নাম ছেড়ে ঘোষিত জেলাই বসে', function () {
+    \App\Support\LocationImporter::import();
+    $khulna = \App\Models\Location::districts()->where('slug', 'khulna')->firstOrFail();
+    $keshabpur = \App\Models\Location::upazilas()->where('slug', 'keshabpur')->firstOrFail();
+
+    // খুলনা-ফিডের সংবাদ, অথচ শিরোনামে লেখা ঢাকায় গ্রেপ্তার—খসড়া ঢাকার হয় না।
+    NewsImporter::save([
+        'source' => 'khulnagazette',
+        'title' => 'হত্যা মামলার আসামি ফায়েক ঢাকায় গ্রেপ্তার হয়েছেন',
+        'link' => 'https://khulnagazette.com/2026-11-04/ayaz',
+        'category' => 'saradesh',
+        'categories' => ['saradesh'],
+        'district' => 'khulna',
+        'published_at' => now()->toIso8601String(),
+        'excerpt' => 'মামলার আসামি গ্রেপ্তার।',
+        'image' => null,
+        'state' => 'new',
+        'reason' => '',
+    ]);
+
+    expect(News::firstOrFail()->location_id)->toBe($khulna->id);
+
+    // একই ফিডের নিজের উপজেলার নাম শিরোনামে থাকলে উপজেলাটাই বসে।
+    NewsImporter::save([
+        'source' => 'khulnagazette',
+        'title' => 'কেশবপুরে দম্পতিকে হত্যা করা হয়েছে',
+        'link' => 'https://khulnagazette.com/2026-11-04/hatya',
+        'category' => 'saradesh',
+        'categories' => ['saradesh'],
+        'district' => 'jashore',
+        'published_at' => now()->toIso8601String(),
+        'excerpt' => 'দম্পতিকে হত্যা।',
+        'image' => null,
+        'state' => 'new',
+        'reason' => '',
+    ]);
+
+    expect(News::orderBy('id')->get()->last()->location_id)->toBe($keshabpur->id)
+        ->and($keshabpur->parent_id)->toBe(\App\Models\Location::districts()->where('slug', 'jashore')->firstOrFail()->id);
 });
 
 test('আইন-আদালত, কৃষি, স্বাস্থ্য ও ভিডিও গ্যালারির সংবাদও ফিড থেকে আসে', function () {

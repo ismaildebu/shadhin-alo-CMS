@@ -300,6 +300,64 @@ it('does not let a reporter change another author\'s categories from the list', 
         ->assertForbidden();
 });
 
+// ------------------------------------------- flags and place from the same row
+
+it('saves the editorial flags and the place from the list row', function () {
+    \App\Support\LocationImporter::import();
+    $khulna = \App\Models\Location::divisions()->where('slug', 'khulna')->firstOrFail();
+    $jashore = \App\Models\Location::districts()->where('slug', 'jashore')->firstOrFail();
+    $keshabpur = \App\Models\Location::upazilas()->where('slug', 'keshabpur')->firstOrFail();
+    $saradesh = Category::create(['name' => 'সারাদেশ', 'slug' => 'saradesh']);
+
+    $news = News::create([
+        'category_id' => $this->category->id, 'title' => 'দাগ ও স্থান', 'slug' => 'flags-place',
+        'description' => '<p>d</p>',
+    ]);
+    $news->categories()->sync([$this->category->id]);
+
+    $this->actingAs($this->admin)
+        ->post(route('news.category', $news), [
+            'category_ids' => [$saradesh->id],
+            'breaking' => '1',
+            'is_lead' => '1',
+            'location_present' => '1',
+            'division_id' => $khulna->id,
+            'district_id' => $jashore->id,
+            'upazila_id' => $keshabpur->id,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $news->refresh();
+
+    expect($news->breaking)->toBeTrue()
+        ->and($news->is_lead)->toBeTrue()
+        ->and($news->featured)->toBeFalse()
+        ->and($news->location_id)->toBe($keshabpur->id)
+        ->and($news->categories->pluck('slug')->all())->toBe(['saradesh']);
+});
+
+it('refuses a সারাদেশ article without a district when saved from the list', function () {
+    \App\Support\LocationImporter::import();
+    $khulna = \App\Models\Location::divisions()->where('slug', 'khulna')->firstOrFail();
+    $saradesh = Category::create(['name' => 'সারাদেশ', 'slug' => 'saradesh']);
+
+    $news = News::create([
+        'category_id' => $this->category->id, 'title' => 'জেলা ছাড়া', 'slug' => 'no-district',
+        'description' => '<p>d</p>',
+    ]);
+    $news->categories()->sync([$this->category->id]);
+
+    $this->actingAs($this->admin)
+        ->post(route('news.category', $news), [
+            'category_ids' => [$saradesh->id],
+            'location_present' => '1',
+            'division_id' => $khulna->id,
+        ])
+        ->assertSessionHasErrors('category_ids');
+
+    expect($news->fresh()->categories->pluck('slug')->all())->toBe(['jatiyo']);
+});
+
 // ------------------------------------------- bulk delete (list and trash)
 
 it('moves the selected articles to the trash in one request', function () {

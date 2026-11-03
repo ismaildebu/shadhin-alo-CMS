@@ -205,12 +205,10 @@ class HomeController extends Controller
                 ->latestPublished()
                 ->first();
 
-        $sideNews = News::published()
+       $sideNews = News::published()
             ->with('category')
-            ->when(
-                $leadNews,
-                fn ($query) => $query->where('id', '!=', $leadNews->id)
-            )
+            ->where('is_lead', true)
+            ->when($leadNews, fn ($query) => $query->where('id', '!=', $leadNews->id))
             ->latestPublished()
             ->take(6)
             ->get();

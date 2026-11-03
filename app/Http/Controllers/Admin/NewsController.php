@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Models\Location;
 use App\Models\Media;
 use App\Models\News;
+use App\Services\LocationResolver;
 use App\Services\NewsWorkflow;
 use App\Support\ArticleDesign;
 use App\Support\HtmlSanitizer;
@@ -41,7 +42,9 @@ class NewsController extends Controller
         $categoryId = (int) $request->query('category');
         $categoryId = $categoryId > 0 ? $categoryId : null;
 
-        $query = News::with(['category', 'author', 'categories'])
+        // location.parent.parent: the list's place picker presets its three selects from the
+        // article's own place, and that walk must not cost a query per row.
+        $query = News::with(['category', 'author', 'categories', 'location.parent.parent'])
             ->visibleTo($user);
 
         if ($trashed) {
@@ -89,7 +92,12 @@ class NewsController extends Controller
             'trashed',
             'trashedCount',
             'categoryId'
-        ) + ['categories' => Category::orderBy('name')->get()]);
+        ) + [
+            'categories' => Category::orderBy('name')->get(),
+            // কেবল সম্পাদক/অ্যাডমিনের দ্রুত-সম্পাদনায় স্থান বদলানোর নির্বাচক থাকে;
+            // প্রতিনিধিরা স্থান বদলাতে পারেন না, তাই তালিকাটি তাদের জন্য বসানো হয় না।
+            'locationTree' => $user->isEditorOrAdmin() ? $this->locationTree() : null,
+        ]);
     }
 
     public function create(Request $request): View
@@ -291,20 +299,30 @@ class NewsController extends Controller
     }
 
     /**
-     * Change an article's categories straight from the management list.
-     * The whole set is replaced, so an article may keep several categories.
+     * Change an article's categories, editorial flags and place straight from the management list.
+     * The whole category set is replaced, so an article may keep several categories. Flags and
+     * place are only ever read from this form by an editor: the panel a correspondent sees
+     * carries neither, and a hand-made request for one is ignored too.
      */
     public function updateCategory(Request $request, News $news): RedirectResponse
     {
         Gate::authorize('update', $news);
 
+        $isEditor = $request->user()->isEditorOrAdmin();
+
         $data = $request->validate([
             'category_ids' => ['required', 'array', 'min:1'],
             'category_ids.*' => ['required', 'integer', 'distinct', 'exists:categories,id'],
+            'division_id' => ['nullable', 'integer', 'exists:locations,id'],
+            'district_id' => ['nullable', 'integer', 'exists:locations,id'],
+            'upazila_id' => ['nullable', 'integer', 'exists:locations,id'],
         ], [
             'category_ids.required' => 'অন্তত একটি ক্যাটাগরি বাছুন।',
             'category_ids.min' => 'অন্তত একটি ক্যাটাগরি বাছুন।',
             'category_ids.*.exists' => 'নির্বাচিত ক্যাটাগরিটি পাওয়া যায়নি।',
+            'division_id.exists' => 'নির্বাচিত বিভাগটি পাওয়া যায়নি।',
+            'district_id.exists' => 'নির্বাচিত জেলাটি পাওয়া যায়নি।',
+            'upazila_id.exists' => 'নির্বাচিত উপজেলাটি পাওয়া যায়নি।',
         ]);
 
         $categoryIds = array_values(array_unique($data['category_ids']));
@@ -313,22 +331,54 @@ class NewsController extends Controller
             ->where('slug', Category::NATIONWIDE_SLUG)
             ->exists();
 
-        if ($needsPlace && (! $news->location || $news->location->isDivision())) {
+        // The picker arrives with a hidden marker, so a panel that never had one leaves the
+        // article's own place alone instead of wiping it.
+        $movesPlace = $isEditor && $request->boolean('location_present');
+        $place = $news->location;
+
+        if ($movesPlace) {
+            $resolved = LocationResolver::resolve(
+                (int) ($data['division_id'] ?? 0) ?: null,
+                (int) ($data['district_id'] ?? 0) ?: null,
+                (int) ($data['upazila_id'] ?? 0) ?: null,
+            );
+
+            if ($resolved['error'] !== null) {
+                return back()->withErrors(['upazila_id' => $resolved['error']]);
+            }
+
+            $place = $resolved['location'];
+        }
+
+        if ($needsPlace && (! $place || $place->isDivision())) {
             return back()->withErrors([
-                'category_ids' => 'সারাদেশ ক্যাটাগরির সংবাদে বিভাগ ও জেলা থাকতে হবে। আগে সম্পাদনা পেজে স্থান ঠিক করুন।',
+                'category_ids' => 'সারাদেশ ক্যাটাগরির সংবাদে জেলা বা উপজেলা লাগবে — নিচে বেছে সেভ করুন।',
             ]);
         }
 
-        DB::transaction(function () use ($news, $categoryIds) {
+        $changes = ['category_id' => $categoryIds[0]];
+
+        if ($isEditor) {
+            // Reporters keep whatever flags an editor already set.
+            $changes['breaking'] = $request->boolean('breaking');
+            $changes['featured'] = $request->boolean('featured');
+            $changes['is_lead'] = $request->boolean('is_lead');
+        }
+
+        if ($movesPlace) {
+            $changes['location_id'] = $place?->id;
+        }
+
+        DB::transaction(function () use ($news, $categoryIds, $changes) {
             // The legacy column keeps the first chosen category.
-            $news->update(['category_id' => $categoryIds[0]]);
+            $news->update($changes);
             $news->categories()->sync($categoryIds);
         });
 
         ArticleRevision::capture($news, $request->user());
-        Activity::record('article.updated', $news, ['category_ids' => $categoryIds], $request->user());
+        Activity::record('article.updated', $news, $changes + ['category_ids' => $categoryIds], $request->user());
 
-        return back()->with('success', 'ক্যাটাগরি আপডেট হয়েছে।');
+        return back()->with('success', $movesPlace || $isEditor ? 'সংবাদ আপডেট হয়েছে।' : 'ক্যাটাগরি আপডেট হয়েছে।');
     }
 
     public function destroy(News $news): RedirectResponse

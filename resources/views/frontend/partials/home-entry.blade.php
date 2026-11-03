@@ -37,13 +37,14 @@
                 @if(isset($heroViews[$heroLayout]))
                     @include($heroViews[$heroLayout], ['limit' => $entry['limit']])
                 @elseif(isset($views[$heroLayout]))
-                    {{-- new block styles: the lead story first, then the latest stories (the "popular" list is the latest ten) --}}
-                    @php
-                        $heroItems = collect([$leadNews])
-                            ->merge(($popularNews ?? collect())->where('id', '!=', $leadNews->id))
-                            ->filter()
-                            ->values();
-                    @endphp
+                    
+                {{-- new block styles: the current lead first, then the previous lead stories --}}
+                        @php
+                            $heroItems = collect([$leadNews])
+                                ->merge($sideNews ?? collect())
+                                ->filter()
+                                ->values();
+                        @endphp
                     @include($views[$heroLayout], [
                         'category'  => new \App\Models\Category(['name' => 'প্রধান সংবাদ', 'slug' => 'lead']),
                         'items'     => $heroItems,

@@ -133,7 +133,19 @@ final class NewsImporter
             ? LocationMatcher::detect($title, trim($excerpt.' '.strip_tags($content)))
             : null;
 
-        if ($nationwide && (! $location || (! $location->isDistrict() && ! $location->isUpazila()))) {
+        $detected = $location && ($location->isDistrict() || $location->isUpazila());
+
+        // জেলা-ফিড নিজের জেলা নিজেই বলে দেয়, তাই শিরোনামে জেলার নাম না থাকলেও সংবাদ আসে।
+        // ঘোষণাই সীমা: সেই জেলার নিজের উপজেলা শিরোনামে থাকলে সেটি রাখা হয়, অন্য জেলার নাম
+        // থাকলেও (খুলনার মামলার আসামি "ঢাকায় গ্রেপ্তার") খসড়া ঢাকার সংবাদ হয়ে যায় না।
+        $declared = $nationwide ? LocationMatcher::district((string) ($item['district'] ?? '')) : null;
+
+        if ($declared !== null) {
+            $ownUpazila = $location?->isUpazila() && $location->parent_id === $declared->id;
+            $location = $ownUpazila ? $location : $declared;
+        }
+
+        if ($nationwide && ! $detected && $declared === null) {
             return self::skipped('সারাদেশ সংবাদে জেলা বা উপজেলা শনাক্ত হয়নি');
         }
 

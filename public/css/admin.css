@@ -919,6 +919,27 @@ tr.ad-cat-row td{
     margin-top:0;
 }
 
+/* একই সারিতে দাগ (লিড/ফিচার্ড/ব্রেকিং) ও স্থান (বিভাগ-জেলা-উপজেলা) */
+.ad-cat-extra{
+    flex-basis:100%;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:8px;
+}
+
+.ad-cat-extra > strong{
+    font-size:.85rem;
+    color:var(--ad-ink);
+}
+
+.ad-loc-pick{ flex-basis:100%; }
+.ad-loc-pick .ad-loc-grid{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+
+@media (max-width:767.98px){
+    .ad-loc-pick .ad-loc-grid{ grid-template-columns:1fr; }
+}
+
 @media (max-width:767.98px){
     .ad-table thead{ display:none; }
     .ad-table,

@@ -223,12 +223,40 @@
                                                             type="checkbox"
                                                             name="category_ids[]"
                                                             value="{{ $category->id }}"
+                                                            data-slug="{{ $category->slug }}"
                                                             @checked($item->categories->contains('id', $category->id))
                                                         >
                                                         <span>{{ $category->name }}</span>
                                                     </label>
                                                 @endforeach
                                             </div>
+
+                                            @if($user->isEditorOrAdmin())
+                                                <div class="ad-cat-extra">
+                                                    <strong>দাগ:</strong>
+                                                    <label class="ad-category-checkbox">
+                                                        <input type="checkbox" name="breaking" value="1" @checked($item->breaking)>
+                                                        <span>ব্রেকিং নিউজ</span>
+                                                    </label>
+                                                    <label class="ad-category-checkbox">
+                                                        <input type="checkbox" name="featured" value="1" @checked($item->featured)>
+                                                        <span>ফিচার্ড</span>
+                                                    </label>
+                                                    <label class="ad-category-checkbox">
+                                                        <input type="checkbox" name="is_lead" value="1" @checked($item->is_lead)>
+                                                        <span>লিড</span>
+                                                    </label>
+                                                </div>
+
+                                                @if($locationTree)
+                                                    <div class="ad-cat-extra">
+                                                        <strong>স্থান:</strong>
+                                                        {{-- নির্বাচকগুলো খোলার সময় বসে (নিচে template) — প্রতিটি সারিতে
+                                                             পুরো জেলা-উপজেলা তালিকা বসালে পাতা অসহ্য হয়ে যায়। --}}
+                                                        <div data-loc-slot="{{ $item->id }}" data-location="{{ $item->location_id }}"></div>
+                                                    </div>
+                                                @endif
+                                            @endif
 
                                             <button type="submit" class="ad-btn-solid">সেভ</button>
                                             <button type="button" class="ad-btn-dark" data-cat-close="{{ $item->id }}">বাতিল</button>
@@ -249,8 +277,46 @@
             @endif
         </div>
 
+        @if($locationTree && $locationTree['divisions']->isNotEmpty())
+            {{-- সারির «ক্যাটাগরি» খোলার সময় এই অংশটি ক্লোন করে ফর্মে বসানো হয়, তাই
+                 পুরো জেলা-উপজেলা তালিকা একবারই পাতায় থাকে। --}}
+            <template id="ad-loc-picker">
+                <div class="ad-loc-pick" data-location-field>
+                    <input type="hidden" name="location_present" value="1">
+
+                    <p class="ad-hint" data-role="location-hint" style="display:none;color:#b45309;">
+                        সারাদেশ ক্যাটাগরি বাছা হয়েছে — বিভাগ ও জেলা বাধ্যতামূলক; উপজেলা শহরের খবর হলে উপজেলাও বেছে নিন।
+                    </p>
+
+                    <div class="ad-loc-grid">
+                        <select name="division_id" data-level="division" class="ad-field">
+                            <option value="">— বিভাগ —</option>
+                            @foreach($locationTree['divisions'] as $place)
+                                <option value="{{ $place->id }}">{{ $place->name_bn }}</option>
+                            @endforeach
+                        </select>
+
+                        <select name="district_id" data-level="district" class="ad-field">
+                            <option value="">— জেলা —</option>
+                            @foreach($locationTree['districts'] as $place)
+                                <option value="{{ $place->id }}" data-parent="{{ $place->parent_id }}">{{ $place->name_bn }}</option>
+                            @endforeach
+                        </select>
+
+                        <select name="upazila_id" data-level="upazila" class="ad-field">
+                            <option value="">— উপজেলা —</option>
+                            @foreach($locationTree['upazilas'] as $place)
+                                <option value="{{ $place->id }}" data-parent="{{ $place->parent_id }}">{{ $place->name_bn }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+            </template>
+        @endif
+
     </div>
 
+    <script src="{{ asset('js/admin-location-select.js') }}?v={{ filemtime(public_path('js/admin-location-select.js')) }}"></script>
     <script>
             (function () {
                 var form = document.getElementById('bulk-form');
@@ -314,6 +380,38 @@
 
             (function () {
                 // একটি সারির «ক্যাটাগরি» চাপলে শুধু সেই সারির নিচে ক্যাটাগরির ফর্ম খোলে; পাতা বদলায় না।
+                function mountPlace(row) {
+                    var slot = row.querySelector('[data-loc-slot]');
+                    var tpl = document.getElementById('ad-loc-picker');
+
+                    // জেলা-উপজেলার পুরো তালিকা প্রতিটি সারিতে নয়, খোলার সময় একবারই বসে।
+                    if (!slot || !tpl || slot.children.length) { return; }
+
+                    slot.appendChild(document.importNode(tpl.content, true));
+
+                    var field = slot.querySelector('[data-location-field]');
+                    var leaf = slot.getAttribute('data-location') || '';
+
+                    function select(level) { return field.querySelector('select[data-level="' + level + '"]'); }
+
+                    function parentOf(list) {
+                        var option = list.options[list.selectedIndex];
+                        return option && option.value ? option.getAttribute('data-parent') : '';
+                    }
+
+                    ['upazila', 'district', 'division'].forEach(function (level) {
+                        var list = select(level);
+                        var hit = Array.prototype.filter.call(list.options, function (o) { return o.value === leaf; })[0];
+                        list.value = hit ? leaf : '';
+                    });
+
+                    // সবচেয়ে নিচের পছন্দ থেকে ওপরের দুটি মেলাানো হয় (JS ছাড়াও সার্ভার আবার যাচাই করে)।
+                    if (select('upazila').value) { select('district').value = parentOf(select('upazila')); }
+                    if (select('district').value) { select('division').value = parentOf(select('district')); }
+
+                    if (window.AdminLocationSelect) { window.AdminLocationSelect.init(field); }
+                }
+
                 document.querySelectorAll('[data-cat-toggle]').forEach(function (button) {
                     button.addEventListener('click', function () {
                         var row = document.getElementById('cat-row-' + button.dataset.catToggle);
@@ -324,7 +422,10 @@
                         document.querySelectorAll('tr.ad-cat-row').forEach(function (other) { other.hidden = true; });
                         row.hidden = !opening;
 
-                        if (opening) { row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+                        if (opening) {
+                            mountPlace(row);
+                            row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                        }
                     });
                 });
 

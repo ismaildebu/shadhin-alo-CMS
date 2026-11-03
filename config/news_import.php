@@ -340,6 +340,22 @@ return [
             'enabled' => true,
             'name' => 'খুলনা গেজেট',
             'feed' => 'https://khulnagazette.com/feed/',
+            // সাইটটি প্রতিটি জেলার আলাদা RSS ফিড ছাপে। ফিড নিজেই তার জেলা জানে, তাই
+            // শিরোনামে জেলার নাম না থাকলেও "খুলনা বিভাগ" দলের ছাঁকনি ও সারাদেশের
+            // অবস্থান-নিয়ম দুটোই এই 'district' স্লাগ থেকে পূরণ হয়।
+            'feeds' => [
+                ['category' => 'saradesh', 'district' => 'khulna', 'feed' => 'https://khulnagazette.com/category/khulnanchal/khulna/feed/'],
+                ['category' => 'saradesh', 'district' => 'jashore', 'feed' => 'https://khulnagazette.com/category/khulnanchal/jashore/feed/'],
+                ['category' => 'saradesh', 'district' => 'kushtia', 'feed' => 'https://khulnagazette.com/category/khulnanchal/kustia/feed/'],
+                ['category' => 'saradesh', 'district' => 'jhenaidah', 'feed' => 'https://khulnagazette.com/category/khulnanchal/jhineidha/feed/'],
+                ['category' => 'saradesh', 'district' => 'magura', 'feed' => 'https://khulnagazette.com/category/khulnanchal/magura/feed/'],
+                ['category' => 'saradesh', 'district' => 'narail', 'feed' => 'https://khulnagazette.com/category/khulnanchal/narail/feed/'],
+                ['category' => 'saradesh', 'district' => 'bagerhat', 'feed' => 'https://khulnagazette.com/category/khulnanchal/bagerhat/feed/'],
+                ['category' => 'saradesh', 'district' => 'chuadanga', 'feed' => 'https://khulnagazette.com/category/khulnanchal/chuadanga/feed/'],
+                ['category' => 'saradesh', 'district' => 'meherpur', 'feed' => 'https://khulnagazette.com/category/khulnanchal/meherpur/feed/'],
+                ['category' => 'saradesh', 'district' => 'satkhira', 'feed' => 'https://khulnagazette.com/category/khulnanchal/satkhira/feed/'],
+                ['feed' => 'https://khulnagazette.com/feed/'],
+            ],
             'allowed_hosts' => ['khulnagazette.com', 'www.khulnagazette.com'],
             'category_from' => 'tag',
             'category_map' => [

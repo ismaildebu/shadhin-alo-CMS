@@ -16,6 +16,9 @@ final class LocationMatcher
     /** @var array<string, list<Location>>|null */
     private static ?array $places = null;
 
+    /** @var array<string, ?Location> */
+    private static array $districts = [];
+
     public static function detect(string $title, string $body = ''): ?Location
     {
         $places = self::places();
@@ -41,6 +44,29 @@ final class LocationMatcher
     public static function reset(): void
     {
         self::$places = null;
+        self::$districts = [];
+    }
+
+    /**
+     * A district named by the source itself — a site with one feed per district knows which
+     * district its reports come from, even when the headline forgets to say so.
+     */
+    public static function district(string $slug): ?Location
+    {
+        $slug = trim($slug);
+
+        if ($slug === '') {
+            return null;
+        }
+
+        if (! array_key_exists($slug, self::$districts)) {
+            self::$districts[$slug] = Location::query()
+                ->where('type', Location::DISTRICT)
+                ->where('slug', $slug)
+                ->first();
+        }
+
+        return self::$districts[$slug];
     }
 
     /**

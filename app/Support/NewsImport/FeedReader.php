@@ -82,17 +82,20 @@ final class FeedReader
 
             // Sites that publish one feed per section and carry no category inside the feed list
             // them as `feeds`: [feed => url] or [category => local slug, feed => url] per entry.
+            // A feed may also name the district all its items come from (`district`), which is
+            // used when the headline itself does not mention a place.
             $feeds = [];
 
             foreach ((array) ($source['feeds'] ?? []) as $slug => $feed) {
                 $feeds[] = [
                     'feed' => trim((string) (is_array($feed) ? ($feed['feed'] ?? '') : $feed)),
                     'category' => is_array($feed) ? trim((string) ($feed['category'] ?? '')) : (is_string($slug) ? trim($slug) : ''),
+                    'district' => is_array($feed) ? trim((string) ($feed['district'] ?? '')) : '',
                 ];
             }
 
             if ($feeds === []) {
-                $feeds[] = ['feed' => trim((string) ($source['feed'] ?? '')), 'category' => ''];
+                $feeds[] = ['feed' => trim((string) ($source['feed'] ?? '')), 'category' => '', 'district' => ''];
             }
 
             $block = [
@@ -121,6 +124,10 @@ final class FeedReader
                         'category_map' => [],
                         'default_category' => $feed['category'],
                     ]);
+
+                if ($feed['district'] !== '') {
+                    $section['district'] = $feed['district'];
+                }
 
                 $feedMax = max(1, (int) ceil(min($budget, $cap - $accepted) / max(1, count($feeds) - $feedIndex)));
 
@@ -250,7 +257,8 @@ final class FeedReader
 
             // Another group's news is dropped before any page is downloaded, so a group run
             // keeps looking through the whole feed for its own (often rarer) sections.
-            if ($state === 'new' && $group !== null && ! self::matchesGroup($group, $categories, $title, $excerpt)) {
+            if ($state === 'new' && $group !== null
+                && ! self::matchesGroup($group, $categories, $title, $excerpt, (string) ($source['district'] ?? ''))) {
                 continue;
             }
 
@@ -301,6 +309,7 @@ final class FeedReader
                 'categories' => $categories,
                 'category_tag' => $tag,
                 'tags' => $tags,
+                'district' => trim((string) ($source['district'] ?? '')),
                 'published_at' => $stamp ? date('c', $stamp) : null,
                 'excerpt' => $excerpt,
                 'content' => $content,
@@ -470,10 +479,12 @@ final class FeedReader
 
     /**
      * True when an entry belongs to the chosen group: one of its local categories is in the
-     * group and, for a division group, the headline or summary names a district/upazila
-     * inside that division. An unknown place is left for the normal import checks.
+     * group and, for a division group, the report is from a district/upazila inside that division.
+     * A site that publishes one feed per district declares that district in the config, which
+     * counts even when the headline itself names no place. An unknown place is left for the
+     * normal import checks.
      */
-    private static function matchesGroup(array $group, array $categories, string $title, string $excerpt): bool
+    private static function matchesGroup(array $group, array $categories, string $title, string $excerpt, string $district = ''): bool
     {
         $wanted = array_map('strval', (array) ($group['categories'] ?? []));
 
@@ -487,7 +498,8 @@ final class FeedReader
             return true;
         }
 
-        $location = LocationMatcher::detect($title, $excerpt);
+        $location = $district === '' ? null : LocationMatcher::district($district);
+        $location = $location ?? LocationMatcher::detect($title, $excerpt);
 
         if (! $location || (! $location->isDistrict() && ! $location->isUpazila())) {
             return false;

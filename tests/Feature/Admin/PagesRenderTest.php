@@ -247,6 +247,33 @@ it('shows the inline category form in the news management list', function () {
         ->toContain('name="category_ids[]"');
 });
 
+it('adds the flags and the place picker to that row for editors only', function () {
+    \App\Support\LocationImporter::import();
+    $savar = \App\Models\Location::upazilas()->where('slug', 'savar')->firstOrFail();
+
+    $news = pgArticle($this->admin, 'draft', ['featured' => true, 'location_id' => $savar->id]);
+    $news->categories()->sync([$this->category->id]);
+
+    $html = $this->actingAs($this->admin)->get('/admin/news')->assertOk()->getContent();
+
+    expect($html)->toContain('name="breaking"')->toContain('name="is_lead"')
+        ->toMatch('/name="featured" value="1" checked/')
+        ->toContain('id="ad-loc-picker"')
+        ->toContain('data-loc-slot="'.$news->id.'" data-location="'.$savar->id.'"')
+        // পুরো জেলা-উপজেলা তালিকা একবারই (template) বসে, প্রতিটি সারিতে নয়
+        ->and(substr_count($html, 'data-level="upazila"'))->toBe(1);
+
+    $mine = pgArticle($this->reporter, 'draft', ['title' => 'প্রতিনিধির সংবাদ']);
+    $mine->categories()->sync([$this->category->id]);
+
+    $theirHtml = $this->actingAs($this->reporter)->get('/admin/news')->assertOk()->getContent();
+
+    // প্রতিনিধির সারিতে শুধু ক্যাটাগরি—দাগ ও স্থান সম্পাদকেরই কাজ
+    expect($theirHtml)->toContain('name="category_ids[]"')
+        ->and($theirHtml)->not->toContain('name="is_lead"')
+        ->and($theirHtml)->not->toContain('id="ad-loc-picker"');
+});
+
 it('filters the management list by category, including secondary categories', function () {
     $sports = Category::create(['name' => 'খেলাধুলা', 'slug' => 'sports']);
 
