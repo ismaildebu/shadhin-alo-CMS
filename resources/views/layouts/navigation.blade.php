@@ -2,7 +2,7 @@
     $navActive = [
         'news' => request()->routeIs('news.*', 'categories.*', 'tags.*'),
         'design' => request()->routeIs('home-layout.*', 'article-design.*', 'visual-builder.*', 'charts.*', 'menu.*', 'menu-footer-design.*', 'sidebar.*', 'admin.polls.*'),
-        'media' => request()->routeIs('photocards.*', 'ads.*', 'media.*', 'videos.*'),
+        'media' => request()->routeIs('photocards.*', 'ads.*', 'media.*', 'videos.*', 'epaper.*'),
         'system' => request()->routeIs('users.*', 'roles.*', 'activity.*', 'site-settings.*'),
         'account' => request()->routeIs('profile.*'),
     ];
@@ -171,6 +171,14 @@
             </button>
 
             <div class="ad-nav-body" x-show="open" x-cloak>
+
+                @can('manage-epaper')
+                    <a href="{{ route('epaper.index') }}"
+                       class="ad-link {{ request()->routeIs('epaper.*') ? 'is-active' : '' }}">
+                        <svg class="ad-ico" viewBox="0 0 24 24"><path d="M4 4h13a2 2 0 012 2v12H6a2 2 0 01-2-2V4z"/><path d="M19 8h1v8a2 2 0 01-2 2M8 8h7M8 12h7M8 16h4"/></svg>
+                        ই-পেপার
+                    </a>
+                @endcan
 
                 @can('manage-photocards')
                     <a href="{{ route('photocards.index') }}"

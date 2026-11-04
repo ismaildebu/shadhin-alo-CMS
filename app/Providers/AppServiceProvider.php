@@ -32,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('manage-photocards', fn (User $user) => $user->hasPermission('photocards_manage'));
         Gate::define('manage-polls', fn (User $user) => $user->hasPermission('polls_manage'));
         Gate::define('manage-ads', fn (User $user) => $user->hasPermission('ads_manage'));
+        Gate::define('manage-epaper', fn (User $user) => $user->hasPermission('epaper_manage'));
         Gate::define('manage-layout', fn (User $user) => $user->hasPermission('layout_manage'));
         Gate::define('manage-users', fn (User $user) => $user->hasPermission('users_manage'));
         // The roles & permissions page: super administrator only.
@@ -42,7 +43,7 @@ class AppServiceProvider extends ServiceProvider
         // running the query for every single Blade file (the old '*' composer).
         // The data itself is cached (see FrontendCache).
         View::composer(
-            ['frontend.layouts.app', 'frontend.home', 'frontend.news', 'frontend.category', 'frontend.tag', 'frontend.location', 'frontend.search', 'frontend.video', 'frontend.videos'],
+            ['frontend.layouts.app', 'frontend.home', 'frontend.news', 'frontend.category', 'frontend.tag', 'frontend.location', 'frontend.search', 'frontend.video', 'frontend.videos', 'frontend.epaper', 'frontend.epaper-archive'],
             fn ($view) => $view->with(FrontendCache::shared())
         );
     }

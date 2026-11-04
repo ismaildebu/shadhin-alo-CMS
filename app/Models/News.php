@@ -136,6 +136,19 @@ class News extends Model
         return $query->orderByDesc($this->qualifyColumn('published_at'))->orderByDesc($this->qualifyColumn('id'));
     }
 
+    /**
+     * Title or summary holds the typed word. "!" is named as the escape character so a
+     * % or _ inside the word stays an ordinary character on every database driver.
+     */
+    public function scopeMatching(Builder $query, string $term): Builder
+    {
+        $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $term).'%';
+
+        return $query->where(fn (Builder $part) => $part
+            ->whereRaw("title LIKE ? ESCAPE '!'", [$like])
+            ->orWhereRaw("summary LIKE ? ESCAPE '!'", [$like]));
+    }
+
     /** Staff without review/edit-all permission only see their own articles. */
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {

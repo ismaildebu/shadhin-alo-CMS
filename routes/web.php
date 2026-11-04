@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VideoController;
 use App\Http\Controllers\Admin\VideoChannelController;
 use App\Http\Controllers\Admin\AdController;
+use App\Http\Controllers\Admin\EpaperController as AdminEpaperController;
 use App\Http\Controllers\Admin\SiteSettingController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\MenuFooterDesignController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\Admin\ArticleDesignController;
 use App\Http\Controllers\Admin\VisualBuilderController;
 use App\Http\Controllers\Frontend\AdClickController;
 use App\Http\Controllers\Frontend\CategoryController as FrontendCategoryController;
+use App\Http\Controllers\Frontend\EpaperController as FrontendEpaperController;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\LocationController;
 use App\Http\Controllers\Frontend\SearchController;
@@ -58,6 +60,13 @@ Route::get('/tag/{slug}', [FrontendTagController::class, 'show'])
     ->name('frontend.tag.show');
 
 Route::get('/search', [SearchController::class, 'index'])->name('frontend.search');
+
+// --- ই-পেপার: আজকের পাতা, পুরোনো সংস্করণ ও তালিকা ---
+Route::get('/e-paper', [FrontendEpaperController::class, 'index'])->name('frontend.epaper.index');
+Route::get('/e-paper/archive', [FrontendEpaperController::class, 'archive'])->name('frontend.epaper.archive');
+Route::get('/e-paper/{date}', [FrontendEpaperController::class, 'show'])
+    ->where('date', '[0-9]{4}-[0-9]{2}-[0-9]{2}')
+    ->name('frontend.epaper.show');
 
 Route::get('/videos', [FrontendVideoController::class, 'index'])->name('frontend.videos');
 
@@ -148,6 +157,16 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
         // Advertisements: permission "ads_manage"
         Route::middleware('can:manage-ads')->group(function () {
             Route::resource('ads', AdController::class)->except('show');
+        });
+
+        // ই-পেপার: permission "epaper_manage"
+        Route::middleware('can:manage-epaper')->group(function () {
+            // সংবাদ বাছাইয়ের JSON — resource-এর {epaper} এর আগে থাকতে হবে
+            Route::get('epaper/news', [AdminEpaperController::class, 'news'])
+                ->middleware('throttle:60,1')
+                ->name('epaper.news');
+
+            Route::resource('epaper', AdminEpaperController::class)->except('show', 'create');
         });
 
         // Home page, menu, sidebar, article design, visual builder: permission "layout_manage"

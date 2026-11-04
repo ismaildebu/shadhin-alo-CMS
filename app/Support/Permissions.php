@@ -155,6 +155,16 @@ class Permissions
                 'locked' => [],
             ],
 
+            'epaper_manage' => [
+                'group' => 'content',
+                'label' => 'ই-পেপার',
+                'short' => 'ই-পেপার',
+                'help' => 'প্রকাশিত সংবাদ দিয়ে দিনের পাতা সাজানো, সংরক্ষণ ও প্রকাশ।',
+                'danger' => false,
+                'defaults' => [$admin, $editor, $deputy, $newsEditor],
+                'locked' => [],
+            ],
+
             'ads_manage' => [
                 'group' => 'content',
                 'label' => 'বিজ্ঞাপন ম্যানেজমেন্ট',
