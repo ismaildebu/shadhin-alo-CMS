@@ -27,12 +27,8 @@ class NewsCardController extends Controller
         'brand' => 'ব্র্যান্ড ফ্রেম, সোশ্যাল হ্যান্ডেল ও ফিতা (পোর্ট্রেটে ভালো)',
         'overlay' => 'ছবির ওপর লেখা',
         'split' => 'ওপরে ছবি, নিচে লেখা',
-        'bar' => 'সাদা ফলকে লেখা',
-        'center' => 'মাঝখানে লেখা (বক্তব্য)',
         'frame' => 'সাদা ফ্রেমে ছবি',
-        'side' => 'পাশে রঙিন প্যানেল',
         'breaking' => 'ব্রেকিং নিউজ',
-        'slant' => 'তেরছা রঙিন ব্যান্ড',
         'text' => 'শুধু লেখা (ছবি ছাড়া)',
     ];
 
@@ -203,8 +199,11 @@ class NewsCardController extends Controller
 
     private function currentDefaults(): array
     {
+        $template = Settings::get('card_template');
+
         return [
-            'template' => Settings::get('card_template'),
+            // বাদ দেওয়া ডিজাইন সেটিংয়ে থাকলে ড্রপডাউন প্রথম অপশন দেখাত, আঁকা হতো overlay — তাই ফেরত।
+            'template' => isset(self::TEMPLATES[$template]) ? $template : 'overlay',
             'size' => Settings::get('card_size'),
             'logo' => Settings::get('card_logo') === '1',
             'category' => Settings::get('card_category') === '1',

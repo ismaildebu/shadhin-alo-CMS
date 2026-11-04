@@ -7,13 +7,12 @@ use App\Models\News;
 use App\Models\Video;
 use App\Support\ArticleDesign;
 use App\Support\FrontendCache;
+use App\Support\SidebarData;
 use App\Support\ViewCounter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Throwable;
 
@@ -86,7 +85,7 @@ class HomeController extends Controller
         $widgetData = [];
 
         if (in_array('tabs', $design['sidebar'], true)) {
-            $widgetData['popularNews'] = $this->popular(15);
+            $widgetData['popularNews'] = SidebarData::popular(15);
         }
 
         if (in_array('videos', $design['sidebar'], true)) {
@@ -214,7 +213,7 @@ class HomeController extends Controller
             ->get();
 
         // গত ৭ দিনে সবচেয়ে বেশি পড়া খবর (পাঠ-সংখ্যা থেকে)
-        $popularNews = $this->popular(15);
+        $popularNews = SidebarData::popular(15);
 
         $categoryNews = [];
 
@@ -248,47 +247,5 @@ class HomeController extends Controller
             'categoryNews',
             'videos'
         );
-    }
-
-    /**
-     * গত ৭ দিনে সবচেয়ে বেশি পড়া খবর; কম হলে সব সময়ের পাঠ ও সাম্প্রতিক খবর দিয়ে ভরা।
-     * হিসাবটি ২ মিনিট ক্যাশ থাকে, যাতে প্রতিটি পেজ খোলায় ডাটাবেস না খাটে।
-     */
-    private function popular(int $limit): Collection
-    {
-        // Cache only the ranking (ids). The articles themselves are read again
-        // on every request, so an unpublished or deleted article disappears
-        // immediately even while its id is still in the short-lived ranking.
-        $ids = Cache::remember('frontend.popular.ids.'.$limit, 120, fn () => DB::table('news_view_stats')
-            ->where('day', '>=', now()->subDays(6)->toDateString())
-            ->selectRaw('news_id, sum(views) as total')
-            ->groupBy('news_id')
-            ->orderByDesc('total')
-            ->limit($limit)
-            ->pluck('news_id')
-            ->all());
-
-        $order = array_flip($ids);
-
-        $news = News::published()
-            ->with('category')
-            ->whereIn('id', $ids)
-            ->get()
-            ->sortBy(fn (News $n) => $order[$n->id] ?? PHP_INT_MAX)
-            ->values();
-
-        if ($news->count() < $limit) {
-            $extra = News::published()
-                ->with('category')
-                ->whereNotIn('id', $news->pluck('id'))
-                ->orderByDesc('view_count')
-                ->latestPublished()
-                ->take($limit - $news->count())
-                ->get();
-
-            $news = $news->concat($extra);
-        }
-
-        return $news;
     }
 }

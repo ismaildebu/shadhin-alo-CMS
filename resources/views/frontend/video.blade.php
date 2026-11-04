@@ -51,7 +51,7 @@
 
     </div>
 
-    <div class="col-lg-4">
+    <aside class="col-lg-4 sa-sidebar">
         @if($related->isNotEmpty())
             <div class="sa-widget">
                 <div class="sa-widget-head">আরও ভিডিও</div>
@@ -71,7 +71,9 @@
                 </div>
             </div>
         @endif
-    </div>
+
+        @include('frontend.partials.sidebar')
+    </aside>
 
 </div>
 

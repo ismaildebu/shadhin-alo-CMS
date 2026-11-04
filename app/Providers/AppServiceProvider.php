@@ -42,7 +42,7 @@ class AppServiceProvider extends ServiceProvider
         // running the query for every single Blade file (the old '*' composer).
         // The data itself is cached (see FrontendCache).
         View::composer(
-            ['frontend.layouts.app', 'frontend.home', 'frontend.news', 'frontend.category', 'frontend.tag', 'frontend.location'],
+            ['frontend.layouts.app', 'frontend.home', 'frontend.news', 'frontend.category', 'frontend.tag', 'frontend.location', 'frontend.search', 'frontend.video', 'frontend.videos'],
             fn ($view) => $view->with(FrontendCache::shared())
         );
     }

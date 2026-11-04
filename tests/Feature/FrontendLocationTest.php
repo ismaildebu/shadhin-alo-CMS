@@ -40,9 +40,11 @@ it('shows a division page with the news of its districts and upazilas, and nothi
     flNews($this->sylhetDist, 'সিলেটের খবর');
     flNews(null, 'লোকেশনহীন খবর');
 
-    $this->get('/location/dhaka')->assertOk()
-        ->assertSee('বিভাগীয় খবর')->assertSee('ঢাকা জেলার খবর')->assertSee('সাভারের খবর')
-        ->assertDontSee('সিলেটের খবর')->assertDontSee('লোকেশনহীন খবর');
+    $list = newsList($this->get('/location/dhaka')->assertOk()->getContent());
+
+    expect($list)
+        ->toContain('বিভাগীয় খবর')->toContain('ঢাকা জেলার খবর')->toContain('সাভারের খবর')
+        ->not->toContain('সিলেটের খবর')->not->toContain('লোকেশনহীন খবর');
 });
 
 it('shows a district page with its upazilas\' news but not the division-level or other districts\' news', function () {
@@ -51,17 +53,20 @@ it('shows a district page with its upazilas\' news but not the division-level or
     flNews($this->savar, 'সাভারের খবর');
     flNews($this->gazipur, 'গাজীপুরের খবর');
 
-    $this->get('/location/dhaka/dhaka')->assertOk()
-        ->assertSee('ঢাকা জেলার খবর')->assertSee('সাভারের খবর')
-        ->assertDontSee('বিভাগীয় খবর')->assertDontSee('গাজীপুরের খবর');
+    $list = newsList($this->get('/location/dhaka/dhaka')->assertOk()->getContent());
+
+    expect($list)
+        ->toContain('ঢাকা জেলার খবর')->toContain('সাভারের খবর')
+        ->not->toContain('বিভাগীয় খবর')->not->toContain('গাজীপুরের খবর');
 });
 
 it('shows an upazila page with only that upazila\'s news', function () {
     flNews($this->dhakaDist, 'ঢাকা জেলার খবর');
     flNews($this->savar, 'সাভারের খবর');
 
-    $this->get('/location/dhaka/dhaka/savar')->assertOk()
-        ->assertSee('সাভারের খবর')->assertDontSee('ঢাকা জেলার খবর');
+    $list = newsList($this->get('/location/dhaka/dhaka/savar')->assertOk()->getContent());
+
+    expect($list)->toContain('সাভারের খবর')->not->toContain('ঢাকা জেলার খবর');
 });
 
 it('lists only published, live articles', function () {
@@ -116,9 +121,11 @@ it('paginates, newest first', function () {
         flNews($this->dhakaDist, "পেজ-লোকেশন খবর {$i}", 'published', ['published_at' => now()->subHours(20 - $i)]);
     }
 
-    $this->get('/location/dhaka/dhaka')->assertOk()
-        ->assertSee('পেজ-লোকেশন খবর 13')->assertSee('page=2', false)->assertDontSee('পেজ-লোকেশন খবর 1<', false);
-    $this->get('/location/dhaka/dhaka?page=2')->assertOk()->assertSee('পেজ-লোকেশন খবর 1')->assertDontSee('পেজ-লোকেশন খবর 13');
+    expect(newsList($this->get('/location/dhaka/dhaka')->assertOk()->getContent()))
+        ->toContain('পেজ-লোকেশন খবর 13')->toContain('page=2')->not->toContain('পেজ-লোকেশন খবর 1<');
+
+    expect(newsList($this->get('/location/dhaka/dhaka?page=2')->assertOk()->getContent()))
+        ->toContain('পেজ-লোকেশন খবর 1')->not->toContain('পেজ-লোকেশন খবর 13');
 });
 
 it('says so when a place has no news yet, instead of a 404', function () {

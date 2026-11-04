@@ -30,10 +30,11 @@ it('shows a category page with its own articles', function () {
     fcNews($this->other, 'রাজনীতির খবর');
     fcNews($this->parent, 'জাতীয় খবর');
 
-    $this->get('/category/rajniti')
-        ->assertOk()
-        ->assertSee('রাজনীতির খবর')
-        ->assertDontSee('জাতীয় খবর');
+    $page = $this->get('/category/rajniti')->assertOk();
+
+    expect(newsList($page->getContent()))
+        ->toContain('রাজনীতির খবর')
+        ->not->toContain('জাতীয় খবর');
 });
 
 it('puts articles of a sub-category on the parent page too, labelled with their own category', function () {
@@ -43,7 +44,9 @@ it('puts articles of a sub-category on the parent page too, labelled with their 
     $parentPage = $this->get('/category/jatiyo')->assertOk();
     $parentPage->assertSee('জাতীয় খবর')->assertSee('ঢাকার খবর');
 
-    $this->get('/category/dhaka')->assertOk()->assertSee('ঢাকার খবর')->assertDontSee('জাতীয় খবর');
+    expect(newsList($this->get('/category/dhaka')->assertOk()->getContent()))
+        ->toContain('ঢাকার খবর')
+        ->not->toContain('জাতীয় খবর');
 });
 
 it('lists only published articles', function () {
@@ -70,7 +73,9 @@ it('leaves out articles of an inactive sub-category', function () {
     fcNews($hidden, 'লুকানো খবর');
     fcNews($this->parent, 'দৃশ্যমান খবর');
 
-    $this->get('/category/jatiyo')->assertOk()->assertSee('দৃশ্যমান খবর')->assertDontSee('লুকানো খবর');
+    expect(newsList($this->get('/category/jatiyo')->assertOk()->getContent()))
+        ->toContain('দৃশ্যমান খবর')
+        ->not->toContain('লুকানো খবর');
 });
 
 it('returns 404 for unknown, inactive and orphaned categories', function () {
@@ -89,10 +94,11 @@ it('paginates, newest first', function () {
         fcNews($this->other, "পেজিনেশন খবর {$i}", 'published', ['published_at' => now()->subHours(20 - $i)]);
     }
 
-    $first = $this->get('/category/rajniti')->assertOk();
-    $first->assertSee('পেজিনেশন খবর 13')->assertSee('page=2', false)->assertDontSee('পেজিনেশন খবর 1<', false);
+    $first = newsList($this->get('/category/rajniti')->assertOk()->getContent());
+    expect($first)->toContain('পেজিনেশন খবর 13')->toContain('page=2')->not->toContain('পেজিনেশন খবর 1<');
 
-    $this->get('/category/rajniti?page=2')->assertOk()->assertSee('পেজিনেশন খবর 1')->assertDontSee('পেজিনেশন খবর 13');
+    $second = newsList($this->get('/category/rajniti?page=2')->assertOk()->getContent());
+    expect($second)->toContain('পেজিনেশন খবর 1')->not->toContain('পেজিনেশন খবর 13');
 });
 
 it('shows sub-category chips on a parent page and a breadcrumb on the child page', function () {

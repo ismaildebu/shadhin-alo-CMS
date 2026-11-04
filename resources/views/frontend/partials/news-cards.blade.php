@@ -1,6 +1,9 @@
+{{-- সাইডবারসহ পেজে কলাম সরু হয়, তাই কার্ডের প্রস্থ ঠিক করা যায়। --}}
+@php $cardCol = $cardCol ?? 'col-lg-4 col-md-6'; @endphp
+
 <div class="row g-4">
     @forelse($news as $item)
-        <div class="col-lg-4 col-md-6">
+        <div class="{{ $cardCol }}">
             <a href="{{ route('frontend.news.show', $item->slug) }}" class="sa-card">
                 @if($item->image)
 <img src="{{ \App\Models\Media::thumbUrl($item->image, 400) }}"

@@ -29,6 +29,7 @@ use App\Http\Controllers\Frontend\AdClickController;
 use App\Http\Controllers\Frontend\CategoryController as FrontendCategoryController;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\LocationController;
+use App\Http\Controllers\Frontend\SearchController;
 use App\Http\Controllers\Frontend\TagController as FrontendTagController;
 use App\Http\Controllers\Frontend\VideoController as FrontendVideoController;
 use App\Http\Controllers\ProfileController;
@@ -55,6 +56,8 @@ Route::get('/category/{slug}', [FrontendCategoryController::class, 'show'])
 
 Route::get('/tag/{slug}', [FrontendTagController::class, 'show'])
     ->name('frontend.tag.show');
+
+Route::get('/search', [SearchController::class, 'index'])->name('frontend.search');
 
 Route::get('/videos', [FrontendVideoController::class, 'index'])->name('frontend.videos');
 
@@ -159,6 +162,7 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
 
             Route::get('menu-footer-design', [MenuFooterDesignController::class, 'edit'])->name('menu-footer-design.edit');
             Route::put('menu-footer-design', [MenuFooterDesignController::class, 'update'])->name('menu-footer-design.update');
+            Route::put('menu-footer-design/reset', [MenuFooterDesignController::class, 'reset'])->name('menu-footer-design.reset');
 
             Route::get('sidebar', [SidebarController::class, 'edit'])->name('sidebar.edit');
             Route::put('sidebar', [SidebarController::class, 'update'])->name('sidebar.update');

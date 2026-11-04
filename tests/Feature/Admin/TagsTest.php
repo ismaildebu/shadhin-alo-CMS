@@ -236,12 +236,15 @@ it('shows a tag page with its published articles only', function () {
     $draft->syncTagNames(['বাংলাদেশ']);
     $other->syncTagNames(['আন্তর্জাতিক']);
 
-    $this->get(route('frontend.tag.show', 'বাংলাদেশ'))
-        ->assertOk()
-        ->assertSee('প্রকাশিত ট্যাগ-সংবাদ')
-        ->assertDontSee('খসড়া ট্যাগ-সংবাদ')
-        ->assertDontSee('অন্য ট্যাগের সংবাদ')
-        ->assertSee('<title>ট্যাগ: বাংলাদেশ | স্বাধীন আলো</title>', false);
+    $tagPage = $this->get(route('frontend.tag.show', 'বাংলাদেশ'))->assertOk();
+
+    $tagPage->assertSee('<title>ট্যাগ: বাংলাদেশ | স্বাধীন আলো</title>', false);
+
+    // সাইডবারে অন্য খবরও থাকে, তাই তালিকাটি আলাদা করে দেখা
+    expect(newsList($tagPage->getContent()))
+        ->toContain('প্রকাশিত ট্যাগ-সংবাদ')
+        ->not->toContain('খসড়া ট্যাগ-সংবাদ')
+        ->not->toContain('অন্য ট্যাগের সংবাদ');
 });
 
 it('finds a tag whichever way the Bengali letters are spelled in the URL', function () {

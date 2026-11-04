@@ -44,7 +44,20 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * তালিকার পেজের মূল অংশ (সাইডবার বাদে)।
+ *
+ * সাইডবার সারা সাইটের সর্বশেষ ও জনপ্রিয় খবর দেখায়, তাই "এই খবরটি পেজে নেই"
+ * ধরনের দাবি পুরো HTML নিয়ে করলে ভুল ফেল করে — শুধু তালিকাটি দেখতে হয়।
+ */
+function newsList(string $html): string
 {
-    // ..
+    $from = strpos($html, 'sa-list-main');
+    $to = $from === false ? false : strpos($html, 'sa-sidebar', $from);
+
+    if ($from === false || $to === false) {
+        throw new RuntimeException('তালিকার পেজে sa-list-main / sa-sidebar চিহ্ন নেই।');
+    }
+
+    return substr($html, $from, $to - $from);
 }

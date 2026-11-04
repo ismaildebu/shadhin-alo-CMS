@@ -2044,3 +2044,130 @@ img.sa-author-mark{
     .sa-thumb-legend,
     .sa-thumb-key{ display:none; }
 }
+
+/* ---------- হেডার মেনু: তীরচিহ্ন, বিভাজক রেখা, বড় (মেগা) ড্রপডাউন ---------- */
+.navbar-custom .navbar-nav > .nav-item{position:relative}
+
+.sa-nav-caret{
+    display:inline-block;
+    width:0;
+    height:0;
+    margin-left:8px;
+    vertical-align:2px;
+    border-left:4px solid transparent;
+    border-right:4px solid transparent;
+    border-top:5px solid currentColor;
+    opacity:.7;
+    transition:transform .18s ease,opacity .18s ease;
+}
+
+.navbar-custom .nav-item.dropdown:hover .sa-nav-caret,
+.navbar-custom .nav-item.dropdown:focus-within .sa-nav-caret{transform:rotate(180deg);opacity:1}
+
+/* ডেস্কটপ: সাব-মেনু ধীরে নেমে আসে, শেষ আইটেমের প্যানেল বাম দিকে খোলে */
+@media (min-width:992px){
+    .navbar-custom .nav-item.dropdown > .dropdown-menu{
+        display:block;
+        margin:0;
+        opacity:0;
+        visibility:hidden;
+        transform:translateY(10px);
+        transition:opacity .16s ease,transform .16s ease,visibility .16s;
+    }
+
+    .navbar-custom .nav-item.dropdown:hover > .dropdown-menu,
+    .navbar-custom .nav-item.dropdown:focus-within > .dropdown-menu{
+        opacity:1;
+        visibility:visible;
+        transform:none;
+    }
+
+    .navbar-custom .navbar-nav > .nav-item:last-child > .dropdown-menu{left:auto;right:0}
+
+    /* দুই মেনু আইটেমের মাঝে সরু খাড়া রেখা */
+    .navbar-custom .navbar-nav > .nav-item + .nav-item::after{
+        content:'';
+        position:absolute;
+        left:-2px;
+        top:calc(50% - 9px);
+        width:1px;
+        height:18px;
+    }
+}
+
+.navbar-custom .dropdown-item{
+    position:relative;
+    transition:background .16s ease,color .16s ease,transform .16s ease;
+}
+
+.navbar-custom .dropdown-item:hover,.navbar-custom .dropdown-item:focus{transform:translateX(3px)}
+
+/* উপ-বিভাগের ড্রপডাউনের শিরোনাম (সব উপ-বিভাগ) */
+.sa-mega-title{
+    display:block;
+    padding:6px 12px 8px;
+    margin-bottom:4px;
+    border-bottom:1px solid rgba(15,23,42,.10);
+    font-size:.74rem;
+    font-weight:700;
+    letter-spacing:.08em;
+}
+
+@media (max-width:991.98px){
+    .sa-mega-title{font-size:.72rem;padding:6px 12px}
+}
+
+/* ---------- খোঁজ বক্স: গঠন। রং ড্যাশবোর্ডের মেনু ডিজাইন থেকে আসে ---------- */
+.sa-search{display:flex;align-items:center;gap:6px;flex:0 1 auto}
+.sa-search .sa-search-input{min-width:0}
+.sa-search .sa-search-btn{display:inline-flex;align-items:center;gap:5px;cursor:pointer;border:0;line-height:1.2;white-space:nowrap}
+.sa-search .sa-search-open{display:none;align-items:center;justify-content:center;cursor:pointer;border:0;line-height:1.2}
+.sa-search .sa-search-icon{width:15px;height:15px;flex:0 0 auto}
+
+/* মেনু বার: আইটেমের ডানে খোঁজ বক্স, জায়গা কম হলে নিচের লাইনে চলে যায় */
+.navbar-custom .navbar-collapse{flex-wrap:wrap;align-items:center}
+.navbar-custom .sa-nav-list{flex:1 1 100%}
+.navbar-custom .sa-search-bar{margin:5px 0}
+.navbar-custom .sa-search-bar .sa-search-input{width:190px}
+
+@media (min-width:992px){
+    .navbar-custom .sa-nav-list{flex:1 1 auto}
+}
+
+/* ৯৯২–১৩৯৯: মেনু সারিতে খোঁজ বক্সের জায়গা থাকে না, তাই বক্সটি আইকন হয়ে বারের ডান প্রান্তে
+   বসে (বার এক সারিই থাকে) — ক্লিক বা ফোকাস করলে ভেতরেই খুলে যায়। */
+@media (min-width:992px) and (max-width:1399.98px){
+    .navbar-custom > .container{position:relative}
+    .navbar-custom .sa-nav-list{margin-right:52px}
+    .navbar-custom .sa-search-bar{position:absolute;right:12px;top:50%;transform:translateY(-50%);margin:0;gap:0}
+    .navbar-custom .sa-search-bar .sa-search-open{display:inline-flex}
+    .navbar-custom .sa-search-bar .sa-search-input{width:0;padding-block:8px;padding-inline:0;border-width:0;opacity:0;transition:width .16s ease,padding .16s ease,opacity .16s ease}
+    .navbar-custom .sa-search-bar .sa-search-btn{display:none}
+
+    .navbar-custom .sa-search-bar:focus-within,
+    .navbar-custom .sa-search-bar.sa-search-filled{gap:6px}
+
+    .navbar-custom .sa-search-bar:focus-within .sa-search-open,
+    .navbar-custom .sa-search-bar.sa-search-filled .sa-search-open{display:none}
+
+    .navbar-custom .sa-search-bar:focus-within .sa-search-input,
+    .navbar-custom .sa-search-bar.sa-search-filled .sa-search-input{width:170px;padding-inline:13px;border-width:1px;opacity:1;box-shadow:0 2px 8px rgba(0,0,0,.16)}
+
+    .navbar-custom .sa-search-bar:focus-within .sa-search-btn,
+    .navbar-custom .sa-search-bar.sa-search-filled .sa-search-btn{display:inline-flex}
+}
+
+@media (max-width:991.98px){
+    /* খোলা মেনু স্ক্রিনের চেয়ে লম্বা হয়, তাই মোবাইলে খোঁজ বক্স সবার উপরে বসে */
+    .navbar-custom .navbar-collapse{display:flex;flex-direction:column;align-items:stretch}
+    .navbar-custom .sa-nav-list{flex:0 0 auto;order:1}
+    .navbar-custom .sa-search-bar{flex:0 0 auto;order:-1;margin-top:2px}
+    .navbar-custom .sa-search-bar .sa-search-input{flex:1 1 auto;width:auto}
+}
+
+/* ফলাফলের পেজের বক্স (সাদা ব্যাকগ্রাউন্ড) */
+.sa-search-page{max-width:520px}
+.sa-search-page .sa-search-input{flex:1 1 auto;padding:10px 14px;font-size:15px;color:#12233b;background:#fff;border:1px solid #d4dae3;border-radius:10px}
+.sa-search-page .sa-search-input:focus{outline:2px solid var(--sa-accent);outline-offset:1px;border-color:var(--sa-accent)}
+.sa-search-page .sa-search-btn{padding:10px 18px;font-size:15px;font-weight:600;color:#fff;background:var(--sa-primary);border-radius:10px}
+.sa-search-page .sa-search-btn:hover{background:var(--sa-primary-dark)}

@@ -373,59 +373,6 @@
         ctx.textAlign = 'left';
     }
 
-    // মাঝখানে সাজানো ফুটার
-    function drawFooterCenter(ctx, c, y, nameColor, textColor, lineColor) {
-        const size = Math.round(c.W * 0.025);
-        const rest = restText(c);
-        const name = c.d.siteName || '';
-
-        if (lineColor) {
-            drawRule(ctx, c.W * 0.35, c.W * 0.65, y - size * 2.2, lineColor, 1.5);
-        }
-
-        ctx.textBaseline = 'bottom';
-        ctx.textAlign = 'left';
-
-        ctx.font = '700 ' + size + 'px ' + FONT;
-        const nameW = ctx.measureText(name).width;
-
-        ctx.font = '400 ' + size + 'px ' + FONT;
-        const gap = rest ? size * 1.2 : 0;
-        const restW = rest ? ctx.measureText(rest).width : 0;
-        const x = (c.W - (nameW + gap + restW)) / 2;
-
-        ctx.font = '700 ' + size + 'px ' + FONT;
-        ctx.fillStyle = nameColor;
-        ctx.fillText(name, x, y);
-
-        if (rest) {
-            ctx.font = '400 ' + size + 'px ' + FONT;
-            ctx.fillStyle = textColor;
-            ctx.fillText(rest, x + nameW + gap, y);
-        }
-    }
-
-    // সরু প্যানেলের জন্য: নিচে নিচে দুই লাইন (ওপরে সাইটের নাম, নিচে তারিখ ও ঠিকানা)
-    function drawFooterStack(ctx, c, x, y, nameColor, textColor) {
-        const size = Math.round(c.W * 0.024);
-        const rest = restText(c);
-        let yy = y;
-
-        ctx.textBaseline = 'bottom';
-        ctx.textAlign = 'left';
-
-        if (rest) {
-            ctx.font = '400 ' + size + 'px ' + FONT;
-            ctx.fillStyle = textColor;
-            ctx.fillText(rest, x, yy);
-            yy -= size * 1.5;
-        }
-
-        ctx.font = '700 ' + size + 'px ' + FONT;
-        ctx.fillStyle = nameColor;
-        ctx.fillText(c.d.siteName || '', x, yy);
-    }
-
     function drawLines(ctx, fit, x, top, color, align) {
         ctx.fillStyle = color;
         ctx.font = '700 ' + fit.size + 'px ' + FONT;
@@ -553,7 +500,8 @@
             const W = c.W;
             const H = c.H;
             const pad = c.pad;
-            const photoH = Math.round(H * (c.o.size === 'portrait' ? 0.52 : 0.5));
+            // পোর্ট্রেটে ছবি ছোট রেখে নিচে লেখা নামালে মাঝখানে বিশাল কালো ফাঁকা থাকে।
+            const photoH = Math.round(H * (c.o.size === 'portrait' ? 0.62 : 0.5));
 
             const bg = ctx.createLinearGradient(0, 0, 0, H);
             bg.addColorStop(0, '#0d1726');
@@ -589,102 +537,6 @@
 
             drawLines(ctx, fit, pad, top, '#ffffff');
             drawFooter(ctx, c, H - pad, pad, W - pad, '#ffffff', 'rgba(255,255,255,.72)', 'rgba(255,255,255,.22)');
-        },
-
-        // পুরো ছবি, নিচে সাদা কার্ডে গাঢ় শিরোনাম
-        bar: function (ctx, c) {
-            const W = c.W;
-            const H = c.H;
-            const pad = c.pad;
-
-            photoOrBrand(ctx, c, 0, 0, W, H, c.accent);
-
-            let g = ctx.createLinearGradient(0, 0, 0, H * 0.32);
-            g.addColorStop(0, 'rgba(3,8,18,.6)');
-            g.addColorStop(1, 'rgba(3,8,18,0)');
-            ctx.fillStyle = g;
-            ctx.fillRect(0, 0, W, H * 0.32);
-
-            topBar(ctx, c, { glass: true });
-
-            const inner = Math.round(W * 0.032);
-            const fh = footerHeight(c);
-            const cardX = pad;
-            const cardW = W - pad * 2;
-            const fit = fitHeadline(ctx, c.d.title, cardW - inner * 2 - 20, H * 0.3,
-                Math.round(W * 0.052), Math.round(W * 0.03), 5);
-            const cardH = inner * 2 + fit.lines.length * fit.lh + fh + 10;
-            const cardY = H - pad - cardH;
-            const radius = Math.round(W * 0.026);
-
-            ctx.save();
-            softShadow(ctx, W * 0.035, W * 0.012, 0.4);
-            ctx.fillStyle = '#ffffff';
-            roundRect(ctx, cardX, cardY, cardW, cardH, radius);
-            ctx.fill();
-            ctx.restore();
-
-            ctx.save();
-            roundRect(ctx, cardX, cardY, cardW, cardH, radius);
-            ctx.clip();
-            ctx.fillStyle = accentGradient(ctx, cardX, 0, cardX + cardW, 0, c.accent);
-            ctx.fillRect(cardX, cardY, cardW, Math.max(6, Math.round(H * 0.011)));
-            ctx.restore();
-
-            drawLines(ctx, fit, cardX + inner, cardY + inner + Math.round(H * 0.012), '#111827');
-            drawFooter(ctx, c, cardY + cardH - inner * 0.7, cardX + inner, cardX + cardW - inner,
-                c.accent, '#64748b', 'rgba(15,23,42,.1)');
-        },
-
-        // ছবি গাঢ় করে মাঝখানে বড় লেখা (বক্তব্য, উদ্ধৃতির জন্য)
-        center: function (ctx, c) {
-            const W = c.W;
-            const H = c.H;
-            const pad = c.pad;
-
-            photoOrBrand(ctx, c, 0, 0, W, H, c.accent);
-
-            const g = ctx.createLinearGradient(0, 0, 0, H);
-            g.addColorStop(0, 'rgba(4,9,20,.7)');
-            g.addColorStop(0.5, 'rgba(4,9,20,.58)');
-            g.addColorStop(1, 'rgba(4,9,20,.82)');
-            ctx.fillStyle = g;
-            ctx.fillRect(0, 0, W, H);
-
-            const glow = ctx.createRadialGradient(W / 2, H * 0.42, 0, W / 2, H * 0.42, W * 0.55);
-            glow.addColorStop(0, rgba(c.accent, 0.28));
-            glow.addColorStop(1, rgba(c.accent, 0));
-            ctx.fillStyle = glow;
-            ctx.fillRect(0, 0, W, H);
-
-            topBar(ctx, c, { glass: true });
-
-            const fh = footerHeight(c);
-            const topLimit = pad + Math.round(W * 0.08) + 26;
-            const bottomLimit = H - pad - fh - 28;
-            const areaH = bottomLimit - topLimit;
-            const fit = fitHeadline(ctx, c.d.title, W - pad * 3, areaH - 34,
-                Math.round(W * 0.06), Math.round(W * 0.034), 6);
-            const total = fit.lines.length * fit.lh;
-            const top = topLimit + Math.max(0, (areaH - total) / 2) + 18;
-
-            ctx.save();
-            ctx.globalAlpha = 0.22;
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '700 ' + Math.round(W * 0.22) + 'px Georgia, "Times New Roman", serif';
-            ctx.textBaseline = 'top';
-            ctx.textAlign = 'center';
-            ctx.fillText('\u201C', W / 2, topLimit - W * 0.1);
-            ctx.restore();
-
-            ctx.save();
-            ctx.fillStyle = accentGradient(ctx, W / 2 - 60, 0, W / 2 + 60, 0, c.accent);
-            roundRect(ctx, W / 2 - Math.round(W * 0.05), top - 24, Math.round(W * 0.1), Math.max(5, Math.round(W * 0.006)), Math.round(W * 0.003));
-            ctx.fill();
-            ctx.restore();
-
-            drawLines(ctx, fit, W / 2, top, '#ffffff', 'center');
-            drawFooterCenter(ctx, c, H - pad, '#ffffff', 'rgba(255,255,255,.8)', 'rgba(255,255,255,.24)');
         },
 
         // হালকা ক্রিম পটভূমিতে গোল কোণার ছবি, নিচে গাঢ় লেখা
@@ -738,51 +590,6 @@
 
             drawFooter(ctx, c, H - m - 8, m + 12, W - m - 12,
                 textOn(c.accent) === '#111827' ? c.accent : '#111827', '#64748b', 'rgba(15,23,42,.12)');
-        },
-
-        // বামে তেরছা কোণের রঙিন প্যানেলে লেখা, ডানে ছবি
-        side: function (ctx, c) {
-            const W = c.W;
-            const H = c.H;
-            const pad = c.pad;
-            const panelW = Math.round(W * (c.o.size === 'landscape' ? 0.55 : 0.61));
-            const slant = Math.round(W * 0.04);
-            const ink = textOn(c.accent);
-
-            photoOrBrand(ctx, c, 0, 0, W, H, '#334155');
-
-            ctx.save();
-            softShadow(ctx, W * 0.04, 0, 0.45);
-            ctx.fillStyle = accentGradient(ctx, 0, 0, panelW, H, c.accent);
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(panelW + slant, 0);
-            ctx.lineTo(panelW - slant, H);
-            ctx.lineTo(0, H);
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
-
-            ctx.save();
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(panelW + slant, 0);
-            ctx.lineTo(panelW - slant, H);
-            ctx.lineTo(0, H);
-            ctx.closePath();
-            ctx.clip();
-            dotGrid(ctx, 0, 0, panelW + slant, H, Math.round(W * 0.045), 'rgba(255,255,255,.5)', 0.16);
-            ctx.restore();
-
-            topBar(ctx, c, { glass: true });
-
-            const top = pad + chipSize(c) * 2.05 + 30;
-            const bottom = H - pad - Math.round(c.W * 0.024) * 3.4;
-            const fit = fitHeadline(ctx, c.d.title, panelW - slant - pad - Math.round(W * 0.035), bottom - top,
-                Math.round(W * 0.05), Math.round(W * 0.028), 9);
-
-            drawLines(ctx, fit, pad, top, ink);
-            drawFooterStack(ctx, c, pad, H - pad, ink, ink);
         },
 
         // ছবির ওপর রঙিন "ব্রেকিং" ফিতা, নিচে বড় লেখা
@@ -859,55 +666,6 @@
             drawFooter(ctx, c, H - pad, pad, W - pad, '#ffffff', 'rgba(255,255,255,.8)', 'rgba(255,255,255,.26)');
         },
 
-        // নিচে তেরছা রঙিন ব্যান্ডে লেখা
-        slant: function (ctx, c) {
-            const W = c.W;
-            const H = c.H;
-            const pad = c.pad;
-            const ink = textOn(c.accent);
-            const yLeft = Math.round(H * (c.o.size === 'landscape' ? 0.55 : 0.61));
-            const yRight = yLeft - Math.round(H * 0.075);
-
-            photoOrBrand(ctx, c, 0, 0, W, H, c.accent);
-
-            const t = ctx.createLinearGradient(0, 0, 0, H * 0.26);
-
-            t.addColorStop(0, 'rgba(3,8,18,.58)');
-            t.addColorStop(1, 'rgba(3,8,18,0)');
-            ctx.fillStyle = t;
-            ctx.fillRect(0, 0, W, H * 0.26);
-
-            topBar(ctx, c, { glass: true });
-
-            ctx.save();
-            softShadow(ctx, W * 0.035, -W * 0.01, 0.35);
-            ctx.fillStyle = accentGradient(ctx, 0, yLeft, 0, H, c.accent);
-            ctx.beginPath();
-            ctx.moveTo(0, yLeft);
-            ctx.lineTo(W, yRight);
-            ctx.lineTo(W, H);
-            ctx.lineTo(0, H);
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
-
-            ctx.strokeStyle = 'rgba(255,255,255,.55)';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(0, yLeft - 6);
-            ctx.lineTo(W, yRight - 6);
-            ctx.stroke();
-
-            const fh = footerHeight(c);
-            const top = yLeft + Math.round(pad * 0.55);
-            const bottom = H - pad - fh - 18;
-            const fit = fitHeadline(ctx, c.d.title, W - pad * 2, bottom - top,
-                Math.round(W * 0.052), Math.round(W * 0.03), 5);
-
-            drawLines(ctx, fit, pad, top, ink);
-            drawFooter(ctx, c, H - pad, pad, W - pad, ink, ink, rgba(ink === '#ffffff' ? '#ffffff' : '#111827', 0.18));
-        },
-
         // ছবি ছাড়া: গাঢ় গ্রেডিয়েন্টে বড় উদ্ধৃতি-চিহ্ন ও লেখা
         text: function (ctx, c) {
             const W = c.W;
@@ -936,11 +694,18 @@
             topBar(ctx, c, { glass: true });
 
             const fh = footerHeight(c);
-            const top = pad + chipSize(c) * 2.05 + 40;
+            const areaTop = pad + chipSize(c) * 2.05 + 40;
             const bottom = H - pad - fh - 30;
-            const fit = fitHeadline(ctx, c.d.title, W - pad * 2, bottom - top,
+            const hasEx = !!(c.o.excerpt && c.d.excerpt);
+            const fit = fitHeadline(ctx, c.d.title, W - pad * 2, (bottom - areaTop) * (hasEx ? 0.55 : 0.7),
                 Math.round(W * 0.068), Math.round(W * 0.036), 8);
             const total = fit.lines.length * fit.lh;
+            const gap = hasEx ? Math.round(H * 0.03) : 0;
+            const para = hasEx
+                ? fitParagraph(ctx, c.d.excerpt, W - pad * 2.4, bottom - areaTop - total - gap, Math.round(W * 0.028), 400)
+                : { lines: [], lh: 0, size: 0 };
+            // শিরোনাম + সারাংশ একসাথে মাঝখানে — নাহলে লম্বা কার্ডে নিচের অর্ধেক খালি থাকে।
+            const top = areaTop + Math.max(0, (bottom - areaTop - total - gap - para.lines.length * para.lh) / 2);
 
             ctx.save();
             ctx.fillStyle = accentGradient(ctx, pad, 0, pad + W * 0.1, 0, c.accent);
@@ -948,7 +713,12 @@
             ctx.fill();
             ctx.restore();
 
-            drawLines(ctx, fit, pad, top + Math.max(0, (bottom - top - total) / 2), '#ffffff');
+            drawLines(ctx, fit, pad, top, '#ffffff');
+
+            if (para.lines.length) {
+                drawParagraph(ctx, para, pad, top + total + gap, 'rgba(255,255,255,.8)');
+            }
+
             drawFooter(ctx, c, H - pad, pad, W - pad, '#ffffff', 'rgba(255,255,255,.8)', 'rgba(255,255,255,.22)');
         }
     };

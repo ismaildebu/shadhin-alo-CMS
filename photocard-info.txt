@@ -22,6 +22,7 @@ use App\Support\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Support\FrontendCache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -40,12 +41,8 @@ class NewsCardController extends Controller
         'brand' => 'ব্র্যান্ড ফ্রেম, সোশ্যাল হ্যান্ডেল ও ফিতা (পোর্ট্রেটে ভালো)',
         'overlay' => 'ছবির ওপর লেখা',
         'split' => 'ওপরে ছবি, নিচে লেখা',
-        'bar' => 'সাদা ফলকে লেখা',
-        'center' => 'মাঝখানে লেখা (বক্তব্য)',
         'frame' => 'সাদা ফ্রেমে ছবি',
-        'side' => 'পাশে রঙিন প্যানেল',
         'breaking' => 'ব্রেকিং নিউজ',
-        'slant' => 'তেরছা রঙিন ব্যান্ড',
         'text' => 'শুধু লেখা (ছবি ছাড়া)',
     ];
 
@@ -87,6 +84,9 @@ class NewsCardController extends Controller
         // সরাসরি কোয়েরি: খবরের updated_at বা অন্য ইভেন্ট ছোঁয়া হয় না।
         News::whereKey($news->id)->update(['card_image' => $name]);
 
+        // সরাসরি আপডেটে মডেল ইভেন্ট চলে না, তাই ফ্রন্টএন্ড ক্যাশ নিজে পরিষ্কার করতে হয়।
+        FrontendCache::flush();
+
         $this->deleteFile($old);
 
         if ($request->expectsJson()) {
@@ -103,6 +103,8 @@ class NewsCardController extends Controller
         $old = $news->card_image;
 
         News::whereKey($news->id)->update(['card_image' => null]);
+
+        FrontendCache::flush();
 
         $this->deleteFile($old);
 
@@ -211,8 +213,11 @@ class NewsCardController extends Controller
 
     private function currentDefaults(): array
     {
+        $template = Settings::get('card_template');
+
         return [
-            'template' => Settings::get('card_template'),
+            // বাদ দেওয়া ডিজাইন সেটিংয়ে থাকলে ড্রপডাউন প্রথম অপশন দেখাত, আঁকা হতো overlay — তাই ফেরত।
+            'template' => isset(self::TEMPLATES[$template]) ? $template : 'overlay',
             'size' => Settings::get('card_size'),
             'logo' => Settings::get('card_logo') === '1',
             'category' => Settings::get('card_category') === '1',
@@ -299,7 +304,6 @@ class NewsCardController extends Controller
         }
     }
 }
-
 --- \app\Support\ArticleDesign.php
 <?php
 
@@ -1879,6 +1883,7 @@ use App\Support\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Support\FrontendCache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -1897,12 +1902,8 @@ class NewsCardController extends Controller
         'brand' => 'ব্র্যান্ড ফ্রেম, সোশ্যাল হ্যান্ডেল ও ফিতা (পোর্ট্রেটে ভালো)',
         'overlay' => 'ছবির ওপর লেখা',
         'split' => 'ওপরে ছবি, নিচে লেখা',
-        'bar' => 'সাদা ফলকে লেখা',
-        'center' => 'মাঝখানে লেখা (বক্তব্য)',
         'frame' => 'সাদা ফ্রেমে ছবি',
-        'side' => 'পাশে রঙিন প্যানেল',
         'breaking' => 'ব্রেকিং নিউজ',
-        'slant' => 'তেরছা রঙিন ব্যান্ড',
         'text' => 'শুধু লেখা (ছবি ছাড়া)',
     ];
 
@@ -1944,6 +1945,9 @@ class NewsCardController extends Controller
         // সরাসরি কোয়েরি: খবরের updated_at বা অন্য ইভেন্ট ছোঁয়া হয় না।
         News::whereKey($news->id)->update(['card_image' => $name]);
 
+        // সরাসরি আপডেটে মডেল ইভেন্ট চলে না, তাই ফ্রন্টএন্ড ক্যাশ নিজে পরিষ্কার করতে হয়।
+        FrontendCache::flush();
+
         $this->deleteFile($old);
 
         if ($request->expectsJson()) {
@@ -1960,6 +1964,8 @@ class NewsCardController extends Controller
         $old = $news->card_image;
 
         News::whereKey($news->id)->update(['card_image' => null]);
+
+        FrontendCache::flush();
 
         $this->deleteFile($old);
 
@@ -2068,8 +2074,11 @@ class NewsCardController extends Controller
 
     private function currentDefaults(): array
     {
+        $template = Settings::get('card_template');
+
         return [
-            'template' => Settings::get('card_template'),
+            // বাদ দেওয়া ডিজাইন সেটিংয়ে থাকলে ড্রপডাউন প্রথম অপশন দেখাত, আঁকা হতো overlay — তাই ফেরত।
+            'template' => isset(self::TEMPLATES[$template]) ? $template : 'overlay',
             'size' => Settings::get('card_size'),
             'logo' => Settings::get('card_logo') === '1',
             'category' => Settings::get('card_category') === '1',
@@ -2156,7 +2165,6 @@ class NewsCardController extends Controller
         }
     }
 }
-
 --- \app\Http\Controllers\Admin\NewsController.php
 <?php
 

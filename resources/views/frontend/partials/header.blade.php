@@ -52,6 +52,9 @@
     $moreActive = collect($moreEntries)->contains(fn ($entry) => $entry['item']
         ? $linkActive($entry['item']->href())
         : $categoryActive($entry['category']));
+
+    // ফলাফলের পেজে বক্সে আগের শব্দটা থেকে যায়।
+    $searchTerm = is_string(request()->query('q')) ? request()->query('q') : '';
 @endphp
 
 <div class="topbar">
@@ -100,7 +103,7 @@
 
         <div class="navbar-collapse collapse visible" id="mainMenu">
 
-            <ul class="navbar-nav flex-wrap justify-content-center w-100">
+            <ul class="navbar-nav flex-wrap justify-content-center sa-nav-list">
 
                 @foreach($mainEntries as $entry)
 
@@ -117,10 +120,12 @@
 
                         @if($category->slug === \App\Models\Category::NATIONWIDE_SLUG && $divisions->isNotEmpty())
                             <li class="nav-item dropdown">
-                                <a @class(['nav-link', 'active' => $categoryActive($category)]) href="{{ route('frontend.category.show', $category->slug) }}">{{ $category->name }}</a>
+                                <a @class(['nav-link', 'active' => $categoryActive($category)]) href="{{ route('frontend.category.show', $category->slug) }}">
+                                    {{ $category->name }}<span class="sa-nav-caret" aria-hidden="true"></span>
+                                </a>
                                 <ul class="dropdown-menu">
                                     @foreach($divisions as $division)
-                                        <li><a class="dropdown-item" href="{{ $division->url() }}">{{ $division->name_bn }}</a></li>
+                                        <li><a @class(['dropdown-item', 'is-current' => $division->url() === $activeUrl]) href="{{ $division->url() }}">{{ $division->name_bn }}</a></li>
                                     @endforeach
                                     @foreach($category->children as $child)
                                         <li><a @class(['dropdown-item', 'is-current' => $child->slug === $activeSlug]) href="{{ route('frontend.category.show', $child->slug) }}">{{ $child->name }}</a></li>
@@ -129,8 +134,11 @@
                             </li>
                         @elseif($category->children->isNotEmpty())
                             <li class="nav-item dropdown">
-                                <a @class(['nav-link', 'active' => $categoryActive($category)]) href="{{ route('frontend.category.show', $category->slug) }}">{{ $category->name }}</a>
+                                <a @class(['nav-link', 'active' => $categoryActive($category)]) href="{{ route('frontend.category.show', $category->slug) }}">
+                                    {{ $category->name }}<span class="sa-nav-caret" aria-hidden="true"></span>
+                                </a>
                                 <ul class="dropdown-menu">
+                                    <li><span class="sa-mega-title">সব উপ-বিভাগ</span></li>
                                     @foreach($category->children as $child)
                                         <li><a @class(['dropdown-item', 'is-current' => $child->slug === $activeSlug]) href="{{ route('frontend.category.show', $child->slug) }}">{{ $child->name }}</a></li>
                                     @endforeach
@@ -171,6 +179,32 @@
                 @endif
 
             </ul>
+
+            <form @class(['sa-search', 'sa-search-bar', 'sa-search-filled' => $searchTerm !== ''])
+                  action="{{ route('frontend.search') }}"
+                  method="get"
+                  role="search">
+                <label class="sa-search-open" for="saSiteSearch">
+                    <span class="visually-hidden">খুঁজুন</span>
+                    <svg class="sa-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+                    </svg>
+                </label>
+                <input class="sa-search-input"
+                       id="saSiteSearch"
+                       type="search"
+                       name="q"
+                       value="{{ $searchTerm }}"
+                       placeholder="খুঁজুন...">
+                <button class="sa-search-btn" type="submit">
+                    <svg class="sa-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+                    </svg>
+                    <span>খুঁজুন</span>
+                </button>
+            </form>
 
         </div>
     </div>

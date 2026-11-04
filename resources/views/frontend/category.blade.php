@@ -32,10 +32,22 @@
     </div>
 @endif
 
-@include('frontend.partials.news-cards', ['news' => $news, 'currentCategoryId' => $category->id])
+<div class="row g-4">
+    <div class="col-lg-8 sa-list-main">
+        @include('frontend.partials.news-cards', [
+            'news' => $news,
+            'currentCategoryId' => $category->id,
+            'cardCol' => 'col-lg-6 col-md-6',
+        ])
 
-<div class="d-flex justify-content-center my-4">
-    {{ $news->links('pagination::bootstrap-5') }}
+        <div class="d-flex justify-content-center my-4">
+            {{ $news->links('pagination::bootstrap-5') }}
+        </div>
+    </div>
+
+    <aside class="col-lg-4 sa-sidebar">
+        @include('frontend.partials.sidebar')
+    </aside>
 </div>
 
 @endsection

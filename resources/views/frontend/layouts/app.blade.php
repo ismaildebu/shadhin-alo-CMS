@@ -57,7 +57,6 @@ body{
 }
 
 .navbar-custom .navbar-nav{
-    width:100%;
     row-gap:2px;
 }
 
@@ -145,7 +144,7 @@ body{
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ asset('css/frontend.css') }}">
+<link rel="stylesheet" href="{{ asset('css/frontend.css') }}?v={{ filemtime(public_path('css/frontend.css')) }}">
 <link rel="stylesheet" href="{{ asset('css/news-fallback.css') }}">
     @include('frontend.partials.menu-footer-css')
     @include('frontend.partials.focus-css')
