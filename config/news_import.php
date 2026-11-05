@@ -27,6 +27,57 @@
  |
  */
 
+/*
+ |--------------------------------------------------------------------------
+ | খুলনা বিভাগের জেলাভিত্তিক স্থানীয় পোর্টাল (৫ নভেম্বর ২০২৬ যাচাই করা)
+ |--------------------------------------------------------------------------
+ |
+ | খুলনা গেজেটে খুলনার খবর বেশি, অন্য জেলার বিভাগ-ফিড প্রায় খালি থাকে। তাই পুরো
+ | বিভাগের দশটি জেলা ও তাদের উপজেলার খবরের জন্য আলাদা আলাদা জেলা-পোর্টাল যোগ করা
+ | হয়েছে। সবগুলো WordPress সাইট: নিজের ফিড দেয়, সংবাদ পেজ সাধারণ cURL-এ খোলে,
+ | og:image আছে, আর 'content' কনটেইনারটি মাপে ঠিক করে বসানো হয়েছে।
+ |
+ | প্রতিটি ফিড নিজের জেলা 'district' দিয়ে ঘোষণা করে, তাই শিরোনামে জেলার নাম না
+ | থাকলেও "খুলনা বিভাগ" দলের ছাঁকনি ও সারাদেশের অবস্থান-নিয়ম দুটোই পূরণ হয়। ঘোষণা
+ | কেবল ভরসা: শিরোনামে নিজের উপজেলার বা অন্য জেলার নাম থাকলে সেটিই বসে (শিরোনামে
+ | ঘোষিত জেলার নামও থাকলে সেই জেলাই), আর বিদেশের খবরে কোনো জেলা বসে না। সাইটের
+ | মূল ফিড (জেলাভেদে আলাদা নয়) কোনো জেলা ঘোষণা করে না।
+ */
+$khulnaTagMap = [
+    'বাংলাদেশ' => 'jatiyo',
+    'জাতীয়' => 'jatiyo',
+    'জেলার খবর' => 'saradesh',
+    'সারাদেশ' => 'saradesh',
+    'রাজনীতি' => 'rajniti',
+    'খেলা' => 'sports',
+    'ক্রিকেট' => 'sports',
+    'বিনোদন' => 'entertainment',
+    'শিক্ষা' => 'education',
+    'স্বাস্থ্য' => 'health',
+    'কৃষি' => 'agriculture',
+    'আন্তর্জাতিক' => 'international',
+    'প্রযুক্তি' => 'technology',
+    'মতামত' => 'opinion',
+    'সাহিত্য' => 'literature',
+    'ধর্ম' => 'others',
+];
+
+/** One local portal: same rules everywhere, only name/hosts/feeds/body class differ. */
+$localPortal = function (string $name, array $hosts, array $feeds, string $class, array $blocks = []) use ($khulnaTagMap): array {
+    return [
+        'enabled' => true,
+        'name' => $name,
+        'feeds' => $feeds,
+        'allowed_hosts' => $hosts,
+        'category_from' => 'tag',
+        'category_map' => $khulnaTagMap,
+        // স্থানীয় পোর্টালের বাকি সব সংবাদই জেলার খবর
+        'default_category' => 'saradesh',
+        'content' => ['class' => $class, 'blocks' => $blocks, 'exclude' => []],
+        'image' => ['from' => ['media_content', 'enclosure'], 'og' => true],
+    ];
+};
+
 return [
 
     // মাস্টার সুইচ: false করলে কোনো ফিডই পড়া হবে না।
@@ -63,6 +114,8 @@ return [
      | (খুলনা দলে saradesh/padmar-epar হলেও ঢাকা বা রাজশাহীর সংবাদ আসে না; বাকি
      | বিভাগের সারাদেশ সংবাদ "সারাদেশ" দল থেকে আসে)।
      | পরিবেশের আলাদা ক্যাটাগরি নেই; সেগুলো "জাতীয়" দলের সাথে আসে।
+     | একটি দল `sources` দিলে শুধু সেই সোর্সগুলোই পড়ে, আর `max_per_run` দিলে চলতি
+     | চালের সীমাটি ঐ দলের জন্য বদলায় (খুলনা দল: ৩০)।
      */
     'groups' => [
         'sports' => [
@@ -81,6 +134,40 @@ return [
             'label' => 'খুলনা বিভাগ',
             'categories' => ['saradesh', 'padmar-epar'],
             'division' => 'khulna',
+            // এই দলটি কেবল এই সোর্সগুলো পড়ে — আগে খুলনা গেজেট ও গ্রামের কাগজ (প্রায়োরিটি),
+            // তারপর জেলাভিত্তিক পোর্টাল, শেষে জাতীয় সাইট। খুলনা গেজেটে খুলনার খবরই বেশি
+            // আসে, অন্য জেলার বিভাগ-ফিড প্রায় খালি থাকে; তাই প্রতিটি জেলার নিজের সাইট
+            // আলাদা করে যোগ করা হয়েছে। পোর্টালগুলোর ক্রম ঘণ্টা অনুযায়ী ঘোরে (৬ ঘণ্টায়
+            // একবার পুরো তালিকা), তাই শেষের সাইটগুলো কখনো চিরকাল বাদ পড়ে না।
+            'max_per_run' => 30,
+            'sources' => [
+                'khulnagazette',
+                'channelkhulna',
+                'dainikjessore',
+                'onenewsbd',
+                'patradoot',
+                'satkhiranews24',
+                'voiceofsatkhira',
+                'satnadee',
+                'satkhirarsakal',
+                'kushtiarkagoj',
+                'kushtiaprotidin',
+                'dainikkushtia',
+                'jhenedarkagoj',
+                'dainikjhenaidah',
+                'ajkermagura',
+                'maguraprotidin',
+                'narailerkagoj',
+                'dainiknarail',
+                'radiochuadanga',
+                'meherpurnews',
+                'meherpurpratidin',
+                'gramerkagoj',
+                'samakal',
+                'prothomalo',
+                'bdnews24',
+                'shomoyeralo',
+            ],
         ],
         'education' => [
             'label' => 'শিক্ষা · স্বাস্থ্য · কৃষি',
@@ -354,6 +441,9 @@ return [
                 ['category' => 'saradesh', 'district' => 'chuadanga', 'feed' => 'https://khulnagazette.com/category/khulnanchal/chuadanga/feed/'],
                 ['category' => 'saradesh', 'district' => 'meherpur', 'feed' => 'https://khulnagazette.com/category/khulnanchal/meherpur/feed/'],
                 ['category' => 'saradesh', 'district' => 'satkhira', 'feed' => 'https://khulnagazette.com/category/khulnanchal/satkhira/feed/'],
+                // প্যারেন্ট ফিড সব জেলার ক্যাটাগরি একসাথে দেয়, তাই শিরোনামে জেলার নাম
+                // না থাকলেও খুলনারই সংবাদ; জেলার নাম থাকলে সেটিই বসে।
+                ['category' => 'saradesh', 'feed' => 'https://khulnagazette.com/category/khulnanchal/feed/'],
                 ['feed' => 'https://khulnagazette.com/feed/'],
             ],
             'allowed_hosts' => ['khulnagazette.com', 'www.khulnagazette.com'],
@@ -495,6 +585,196 @@ return [
                 'og' => true,            // না থাকলে সংবাদ পেজের og:image
             ],
         ],
+
+        // ---- মেহেরপুর ----
+        'meherpurnews' => $localPortal(
+            'মেহেরপুর নিউজ',
+            ['www.meherpurnews.com', 'meherpurnews.com'],
+            [['district' => 'meherpur', 'feed' => 'https://www.meherpurnews.com/feed/']],
+            'entry-content',
+        ),
+
+        'meherpurpratidin' => $localPortal(
+            'মেহেরপুর প্রতিদিন',
+            ['www.meherpurpratidin.com', 'meherpurpratidin.com'],
+            [
+                ['district' => 'meherpur', 'feed' => 'https://www.meherpurpratidin.com/feed/'],
+                // গাংনী উপজেলার আলাদা ক্যাটাগরি ফিড
+                ['district' => 'meherpur', 'feed' => 'https://www.meherpurpratidin.com/category/%e0%a6%97%e0%a6%be%e0%a6%82%e0%a6%a8%e0%a7%80/feed/'],
+            ],
+            'post-entry',
+        ),
+
+        // ---- কুষ্টিয়া ----
+        'kushtiarkagoj' => $localPortal(
+            'কুষ্টিয়ার কাগজ',
+            ['kushtiarkagoj.com', 'www.kushtiarkagoj.com'],
+            [
+                ['district' => 'kushtia', 'feed' => 'https://kushtiarkagoj.com/feed/'],
+                // দৌলতপুর ও কুষ্টিয়া-সদর উপজেলার নিজস্ব ফিড
+                ['district' => 'kushtia', 'feed' => 'https://kushtiarkagoj.com/category/%e0%a6%95%e0%a7%81%e0%a6%b7%e0%a7%8d%e0%a6%9f%e0%a6%bf%e0%a7%9f%e0%a6%be%e0%a6%b0-%e0%a6%b8%e0%a6%82%e0%a6%ac%e0%a6%be%e0%a6%a6/%e0%a6%a6%e0%a7%8c%e0%a6%b2%e0%a6%a4%e0%a6%aa%e0%a7%81%e0%a6%b0/feed/'],
+                ['district' => 'kushtia', 'feed' => 'https://kushtiarkagoj.com/category/%e0%a6%95%e0%a7%81%e0%a6%b7%e0%a7%8d%e0%a6%9f%e0%a6%bf%e0%a7%9f%e0%a6%be-%e0%a6%b8%e0%a6%a6%e0%a6%b0/feed/'],
+            ],
+            'single_dtails',
+            ['div'],
+        ),
+
+        'kushtiaprotidin' => $localPortal(
+            'কুষ্টিয়া প্রতিদিন',
+            ['kushtiaprotidin.com', 'www.kushtiaprotidin.com'],
+            [['district' => 'kushtia', 'feed' => 'https://kushtiaprotidin.com/feed/']],
+            'post-content',
+        ),
+
+        'dainikkushtia' => $localPortal(
+            'দৈনিক কুষ্টিয়া',
+            ['dainikkushtia.net', 'www.dainikkushtia.net'],
+            [['district' => 'kushtia', 'feed' => 'https://dainikkushtia.net/feed/']],
+            'single-ditails',
+        ),
+
+        // ---- ঝিনাইদহ ----
+        'jhenedarkagoj' => $localPortal(
+            'ঝিনাইদার কাগজ',
+            ['www.jhenedarkagoj.com', 'jhenedarkagoj.com'],
+            [['district' => 'jhenaidah', 'feed' => 'https://www.jhenedarkagoj.com/feed/']],
+            'elementor-widget-theme-post-content',
+        ),
+
+        'dainikjhenaidah' => $localPortal(
+            'দৈনিক ঝিনাইদহ',
+            ['dainikjhenaidah.com', 'www.dainikjhenaidah.com'],
+            [
+                ['district' => 'jhenaidah', 'feed' => 'https://dainikjhenaidah.com/feed/'],
+                // শৈলকুপা উপজেলার নিজস্ব ফিড
+                ['district' => 'jhenaidah', 'feed' => 'https://dainikjhenaidah.com/%e0%a6%9d%e0%a6%bf%e0%a6%a8%e0%a6%be%e0%a6%87%e0%a6%a6%e0%a6%b9/%e0%a6%b6%e0%a7%88%e0%a6%b2%e0%a6%95%e0%a7%81%e0%a6%aa%e0%a6%be/feed/'],
+            ],
+            'elementor-widget-theme-post-content',
+        ),
+
+        // ---- মাগুরা ----
+        'ajkermagura' => $localPortal(
+            'আজকের মাগুরা',
+            ['www.ajkermagura.com', 'ajkermagura.com'],
+            [['district' => 'magura', 'feed' => 'https://www.ajkermagura.com/feed/']],
+            'single-dtls',
+            ['div'],
+        ),
+
+        'maguraprotidin' => $localPortal(
+            'মাগুরা প্রতিদিন',
+            ['maguraprotidin.com', 'www.maguraprotidin.com'],
+            [['district' => 'magura', 'feed' => 'https://maguraprotidin.com/feed/']],
+            'single-ditails',
+        ),
+
+        // ---- নড়াইল ----
+        'narailerkagoj' => $localPortal(
+            'নড়াইলের কাগজ',
+            ['www.narailerkagoj.com', 'narailerkagoj.com'],
+            [['district' => 'narail', 'feed' => 'https://www.narailerkagoj.com/feed/']],
+            'single-dtls',
+            ['div'],
+        ),
+
+        'dainiknarail' => $localPortal(
+            'দৈনিক নড়াইল',
+            ['www.dainiknarail.com', 'dainiknarail.com'],
+            [['district' => 'narail', 'feed' => 'https://www.dainiknarail.com/feed/']],
+            'single-ditails',
+        ),
+
+        // ---- চুয়াডাঙ্গা ----
+        'radiochuadanga' => $localPortal(
+            'রেডিও চুয়াডাঙ্গা',
+            ['radiochuadanga.com', 'www.radiochuadanga.com'],
+            [
+                ['district' => 'chuadanga', 'feed' => 'https://radiochuadanga.com/feed/'],
+                ['district' => 'chuadanga', 'feed' => 'https://radiochuadanga.com/category/chuadanga-sadar/feed/'],
+                ['district' => 'chuadanga', 'feed' => 'https://radiochuadanga.com/category/alamdanga/feed/'],
+                ['district' => 'chuadanga', 'feed' => 'https://radiochuadanga.com/category/jibonnagor/feed/'],
+                ['district' => 'chuadanga', 'feed' => 'https://radiochuadanga.com/category/damurhuda/feed/'],
+            ],
+            'single-content2',
+        ),
+
+        // ---- যশোর ----
+        'dainikjessore' => $localPortal(
+            'দৈনিক যশোর',
+            ['dainikjessore.com', 'www.dainikjessore.com'],
+            [['district' => 'jashore', 'feed' => 'https://dainikjessore.com/feed/']],
+            'td-post-content',
+        ),
+
+        // সাভারের ও আমেরিকার খবর যশোরের হয়ে যাচ্ছিল (সম্পাদকের অভিযোগ, ৫ নভেম্বর): সাইটের
+        // মূল ফিডটি পুরো সাইটের খবর — জাতীয় ও আন্তর্জাতিকসহ — আর সেটি যশোর জেলা ঘোষণা
+        // করত। মূল ফিডটি আর পড়া হয় না; এর বদলে দশটি জেলারই আলাদা ফিড, প্রত্যেকটি নিজের
+        // জেলা ঘোষণা করে।
+        'onenewsbd' => $localPortal(
+            '১নিউজ (যশোর)',
+            ['www.onenewsbd.com', 'onenewsbd.com'],
+            [
+                ['district' => 'khulna', 'feed' => 'https://www.onenewsbd.com/districts/khulna/feed'],
+                ['district' => 'jashore', 'feed' => 'https://www.onenewsbd.com/districts/jessore/feed'],
+                ['district' => 'kushtia', 'feed' => 'https://www.onenewsbd.com/districts/kushtia/feed'],
+                ['district' => 'satkhira', 'feed' => 'https://www.onenewsbd.com/districts/satkhira/feed'],
+                ['district' => 'bagerhat', 'feed' => 'https://www.onenewsbd.com/districts/bagerhat/feed'],
+                ['district' => 'chuadanga', 'feed' => 'https://www.onenewsbd.com/districts/chuadanga/feed'],
+                ['district' => 'jhenaidah', 'feed' => 'https://www.onenewsbd.com/districts/jhenaidah/feed'],
+                ['district' => 'narail', 'feed' => 'https://www.onenewsbd.com/districts/narail/feed'],
+                ['district' => 'magura', 'feed' => 'https://www.onenewsbd.com/districts/magura/feed'],
+                ['district' => 'meherpur', 'feed' => 'https://www.onenewsbd.com/districts/meherpur/feed'],
+            ],
+            'td-post-content',
+        ),
+
+        // ---- সাতক্ষীরা ----
+        'patradoot' => $localPortal(
+            'পত্রদূত (সাতক্ষীরা)',
+            ['patradoot.net', 'www.patradoot.net'],
+            [
+                ['district' => 'satkhira', 'feed' => 'https://patradoot.net/category/satkhira/feed/'],
+                ['district' => 'khulna', 'feed' => 'https://patradoot.net/category/khulna/feed/'],
+            ],
+            'main-content',
+        ),
+
+        'satkhiranews24' => $localPortal(
+            'সাতক্ষীরা নিউজ ২৪',
+            ['satkhiranews24.com', 'www.satkhiranews24.com'],
+            [['district' => 'satkhira', 'feed' => 'https://satkhiranews24.com/feed/']],
+            'single-content2',
+        ),
+
+        'voiceofsatkhira' => $localPortal(
+            'ভয়েস অফ সাতক্ষীরা',
+            ['voiceofsatkhira.com', 'www.voiceofsatkhira.com'],
+            [['district' => 'satkhira', 'feed' => 'https://voiceofsatkhira.com/feed/']],
+            'entry-content',
+        ),
+
+        'satnadee' => $localPortal(
+            'সাতনদী',
+            ['satnadee.com', 'www.satnadee.com'],
+            [['district' => 'satkhira', 'feed' => 'https://satnadee.com/feed/']],
+            'entry-content',
+        ),
+
+        'satkhirarsakal' => $localPortal(
+            'সাতক্ষীরার সকল',
+            ['satkhirarsakal.com', 'www.satkhirarsakal.com'],
+            [['district' => 'satkhira', 'feed' => 'https://satkhirarsakal.com/feed/']],
+            'single_post_content',
+        ),
+
+        // ---- খুলনা (গেজেট ছাড়া দ্বিতীয় উৎস) ----
+        'channelkhulna' => $localPortal(
+            'চ্যানেল খুলনা',
+            ['channelkhulna.tv', 'www.channelkhulna.tv'],
+            [['district' => 'khulna', 'feed' => 'https://channelkhulna.tv/feed/']],
+            'pagemaker',
+            ['div'],
+        ),
 
     ],
 ];

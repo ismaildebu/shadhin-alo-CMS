@@ -3,8 +3,11 @@
 use App\Models\ArticleRevision;
 use App\Models\Category;
 use App\Models\Chart;
+use App\Models\Location;
 use App\Models\News;
 use App\Models\User;
+use App\Support\BanglaTime;
+use App\Support\LocationImporter;
 
 beforeEach(function () {
     $this->category = Category::create(['name' => 'জাতীয়', 'slug' => 'jatiyo']);
@@ -138,27 +141,35 @@ it('renders the dashboard with real numbers', function () {
     $response = $this->actingAs($this->admin)->get('/dashboard')->assertOk();
     $html = $response->getContent();
 
-// published count 2 appears inside the "প্রকাশিত" card
-expect($html)->toMatch(
-    '/<div class="ad-stat-value">\s*2\s*<\/div>\s*<div class="ad-stat-label">প্রকাশিত<\/div>/u'
-)->and($html)->toMatch(
-    '/<div class="ad-stat-value">\s*4\s*<\/div>\s*<div class="ad-stat-label">মোট সংবাদ<\/div>/u'
-);
+    // published count 2 appears inside the "প্রকাশিত" card
+    expect($html)->toMatch(
+        '/<div class="ad-stat-value">\s*2\s*<\/div>\s*<div class="ad-stat-label">প্রকাশিত<\/div>/u'
+    )->and($html)->toMatch(
+        '/<div class="ad-stat-value">\s*4\s*<\/div>\s*<div class="ad-stat-label">মোট সংবাদ<\/div>/u'
+    );
 
     // a reporter only counts their own
     pgArticle($this->reporter, 'draft');
     $reporterHtml = $this->actingAs($this->reporter)->get('/dashboard')->getContent();
     expect($reporterHtml)->toMatch(
-    '/<div class="ad-stat-value">\s*1\s*<\/div>\s*<div class="ad-stat-label">আমার সংবাদ<\/div>/u'
-);
+        '/<div class="ad-stat-value">\s*1\s*<\/div>\s*<div class="ad-stat-label">আমার সংবাদ<\/div>/u'
+    );
 });
 
 it('renders the public site with a scheduled-then-published article date', function () {
     $news = pgArticle($this->editor, 'published', ['title' => 'তারিখের সংবাদ', 'published_at' => now()->subDays(3)]);
 
-    $this->get(route('frontend.news.show', $news->slug))
+    $html = $this->get(route('frontend.news.show', $news->slug))
         ->assertOk()
-        ->assertSee($news->published_at->format('d M Y'));
+        ->getContent();
+
+    expect($html)->toContain('প্রকাশ: '.BanglaTime::date($news->display_date));
+
+    // পুরো পাতায় ইংরেজি তারিখ খোঁজা চলে না: ফটোকার্ডের JSON ও সাইডবারের কার্ডে
+    // 'd M Y' থাকে — এখানে খবরের নিজের তারিখের ট্যাগটিই বাংলা কি না সেটাই দেখা হয়।
+    preg_match('#<time\b[^>]*>\s*প্রকাশ:\s*([^<]*)<#u', $html, $shown);
+
+    expect($shown[1] ?? '')->not->toMatch('/[0-9A-Za-z]/');
 });
 
 it('puts the chart in the main-image slot when the article has no photo', function () {
@@ -248,8 +259,8 @@ it('shows the inline category form in the news management list', function () {
 });
 
 it('adds the flags and the place picker to that row for editors only', function () {
-    \App\Support\LocationImporter::import();
-    $savar = \App\Models\Location::upazilas()->where('slug', 'savar')->firstOrFail();
+    LocationImporter::import();
+    $savar = Location::upazilas()->where('slug', 'savar')->firstOrFail();
 
     $news = pgArticle($this->admin, 'draft', ['featured' => true, 'location_id' => $savar->id]);
     $news->categories()->sync([$this->category->id]);

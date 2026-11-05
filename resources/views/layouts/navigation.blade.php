@@ -62,6 +62,14 @@
                     </div>
                 @endcan
 
+                @can('manage-trends')
+                    <a href="{{ route('trends.index') }}"
+                       class="ad-link {{ request()->routeIs('trends.*') ? 'is-active' : '' }}">
+                        <svg class="ad-ico" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/><path d="M7 11l2-3 2 2 2-3"/></svg>
+                        আলোচিত সার্চ
+                    </a>
+                @endcan
+
                 @can('manage-categories')
                     <a href="{{ route('categories.index') }}"
                        class="ad-link {{ request()->routeIs('categories.*') ? 'is-active' : '' }}">

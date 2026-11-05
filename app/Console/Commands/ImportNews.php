@@ -12,6 +12,7 @@ class ImportNews extends Command
         {--refresh : আগে আনা সংবাদগুলোর পূর্ণ প্রতিবেদন আবার এনে বসাও}
         {--force : --refresh-এর সাথে; বডি আগেই পূর্ণ হলেও আবার আনো}
         {--source=* : নির্দিষ্ট সোর্স (যেমন prothomalo); না দিলে সব সোর্স}
+        {--group= : শুধু একটি দলের ক্যাটাগরি (যেমন khulna); সাইটবারের বাটনের মতো}
         {--limit= : প্রতি সোর্সে সর্বোচ্চ কতটি নতুন সংবাদ}';
 
     protected $description = 'কনফিগ করা ফিড/Google News সাইটম্যাপ থেকে সংবাদ ও ছবি এনে খসড়া হিসেবে রাখে';
@@ -39,6 +40,23 @@ class ImportNews extends Command
         $limit = $this->option('limit') !== null ? max(1, (int) $this->option('limit')) : null;
         $dryRun = (bool) $this->option('dry-run');
 
+        $groupKey = is_string($this->option('group')) ? trim($this->option('group')) : '';
+        $group = null;
+
+        if ($groupKey !== '') {
+            $groups = (array) config('news_import.groups', []);
+
+            if (! isset($groups[$groupKey])) {
+                $this->error('এমন দল নেই: '.$groupKey.' (config/news_import.php → groups)');
+
+                return self::FAILURE;
+            }
+
+            $group = (array) $groups[$groupKey];
+            $this->line('দল: '.($group['label'] ?? $groupKey));
+            $this->newLine();
+        }
+
         if ($this->option('refresh')) {
             return $this->refresh($only, (bool) $this->option('force'));
         }
@@ -48,7 +66,7 @@ class ImportNews extends Command
             : 'নতুন সংবাদ খসড়া হিসেবে সংরক্ষণ করা হচ্ছে...');
         $this->newLine();
 
-        $blocks = NewsImporter::run($only, $limit, $dryRun);
+        $blocks = NewsImporter::run($only, $limit, $dryRun, $group);
 
         $counts = ['new' => 0, 'imported' => 0, 'duplicate' => 0, 'old' => 0, 'skipped' => 0, 'failed' => 0];
         $samples = [];

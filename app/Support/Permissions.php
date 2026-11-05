@@ -105,6 +105,16 @@ class Permissions
                 'locked' => [],
             ],
 
+            'trends_manage' => [
+                'group' => 'news',
+                'label' => 'আলোচিত সার্চ থেকে সংবাদ',
+                'short' => 'আলোচিত সার্চ',
+                'help' => 'বাংলাদেশে এখন কোন শব্দ বেশি খোঁজা হচ্ছে (Google Trends) তা দেখে, যাচাই করা খবর খসড়া হিসেবে আনে। খবর না মিললে সম্ভাব্য শিরোনাম পরামর্শ দেয়। আলাদা ছাঁকনি ও চাল-সীমা; "স্বয়ংক্রিয় সংবাদ সংগ্রহ"-এর নিয়ম বদলায় না।',
+                'danger' => false,
+                'defaults' => [$admin, $editor, $deputy, $newsEditor, $jointEditor],
+                'locked' => [],
+            ],
+
             'categories_manage' => [
                 'group' => 'content',
                 'label' => 'ক্যাটাগরি ম্যানেজমেন্ট',

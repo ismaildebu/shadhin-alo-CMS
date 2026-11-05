@@ -11,7 +11,7 @@ class Tag extends Model
 {
     public const MAX_NAME = 50;
 
-    public const MAX_PER_ARTICLE = 10;
+    public const MAX_PER_ARTICLE = 20;
 
     protected $fillable = ['name', 'slug'];
 

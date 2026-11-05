@@ -50,26 +50,14 @@
         ctx.closePath();
     }
 
-    // ছবির ওপরের কোণা সোজা, নিচের কোণা গোল — আধুনিক ম্যাগাজিন ধাঁচ।
-    function roundBottomRect(ctx, x, y, w, h, r) {
-        const rr = Math.min(r, w / 2, h / 2);
-
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + w, y);
-        ctx.lineTo(x + w, y + h - rr);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
-        ctx.lineTo(x + rr, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
-        ctx.closePath();
-    }
-
-    function drawCover(ctx, img, x, y, w, h) {
+    // focusY = 0 হলে ওপরের অংশ থেকে কাটা শুরু, ০.৫ = মাঝখান থেকে (ডিফল্ট)
+    function drawCover(ctx, img, x, y, w, h, focusY) {
         const scale = Math.max(w / img.width, h / img.height);
         const sw = w / scale;
         const sh = h / scale;
+        const fy = focusY === undefined ? 0.5 : focusY;
 
-        ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, w, h);
+        ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) * fy, sw, sh, x, y, w, h);
     }
 
     // রংটি হালকা হলে গাঢ় লেখা, গাঢ় হলে সাদা লেখা
@@ -333,10 +321,6 @@
         }
     }
 
-    function restText(c) {
-        return [c.o.date ? c.d.date : '', c.d.footer].filter(Boolean).join('   ·   ');
-    }
-
     function drawRule(ctx, x1, x2, y, color, width) {
         ctx.save();
         ctx.strokeStyle = color || 'rgba(255,255,255,.22)';
@@ -348,29 +332,72 @@
         ctx.restore();
     }
 
-    // বামে সাইটের নাম, ডানে তারিখ ও ঠিকানা
-    function drawFooter(ctx, c, y, left, right, nameColor, textColor, lineColor) {
-        const size = Math.round(c.W * 0.025);
-        const rest = restText(c);
+    // বামে সাইটের নাম, ডানে তারিখ ও ঠিকানা — মাঝের দাগটি আঁকা, ফন্টের '·' প্রায় দেখাই যায় না
+    function drawFooter(ctx, c, y, left, right, nameColor, textColor, size, lineColor) {
+        const fs = size || Math.round(c.W * 0.025);
+        const name = c.d.siteName || '';
+        const items = [];
+
+        if (c.o.date) {
+            const when = c.d.dateBn || c.d.date;
+
+            if (when) { items.push(String(when)); }
+        }
+
+        if (c.d.footer) { items.push(String(c.d.footer)); }
 
         if (lineColor) {
-            drawRule(ctx, left, right, y - size * 2.2, lineColor, 1.5);
+            drawRule(ctx, left, right, y - fs * 2.2, lineColor, 1.5);
         }
 
         ctx.textBaseline = 'bottom';
         ctx.textAlign = 'left';
         ctx.fillStyle = nameColor;
-        ctx.font = '700 ' + size + 'px ' + FONT;
-        ctx.fillText(c.d.siteName || '', left, y);
+        ctx.font = '700 ' + fs + 'px ' + FONT;
+        ctx.fillText(name, left, y);
 
-        if (rest) {
-            ctx.textAlign = 'right';
-            ctx.fillStyle = textColor;
-            ctx.font = '400 ' + size + 'px ' + FONT;
-            ctx.fillText(rest, right, y);
+        if (!items.length) { return; }
+
+        ctx.font = '400 ' + fs + 'px ' + FONT;
+
+        const gap = fs * 0.8;
+        const dot = Math.max(2.5, fs * 0.13);
+        const total = function () {
+            return items.reduce(function (sum, t) { return sum + ctx.measureText(t).width; }, 0)
+                + (items.length - 1) * (gap * 2 + dot * 2);
+        };
+
+        // সরু কলামে দুই লেখা ধাক্কা খায় — জায়গা কম হলে শেষের লেখা কেটে দিতে হয়।
+        const room = right - left - ctx.measureText(name).width - fs * 2.4;
+        let cut = false;
+
+        while (total() > room && items[items.length - 1].length > 1) {
+            items[items.length - 1] = items[items.length - 1].slice(0, -1);
+            cut = true;
         }
 
-        ctx.textAlign = 'left';
+        if (cut) {
+            items[items.length - 1] = items[items.length - 1].replace(/\s+$/, '') + '…';
+        }
+
+        let x = right - total();
+
+        ctx.fillStyle = textColor;
+
+        items.forEach(function (text, i) {
+            if (i) {
+                x += gap;
+
+                ctx.beginPath();
+                ctx.arc(x + dot, y - fs * 0.38, dot, 0, Math.PI * 2);
+                ctx.fill();
+
+                x += dot * 2 + gap;
+            }
+
+            ctx.fillText(text, x, y);
+            x += ctx.measureText(text).width;
+        });
     }
 
     function drawLines(ctx, fit, x, top, color, align) {
@@ -386,55 +413,90 @@
         ctx.textAlign = 'left';
     }
 
-    function photoOrBrand(ctx, c, x, y, w, h, accent) {
-        if (c.photo) {
-            drawCover(ctx, c.photo, x, y, w, h);
-        } else {
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(x, y, w, h);
-            ctx.clip();
-            brandBackground(ctx, x + w, y + h, accent);
-            ctx.restore();
+    // থালায় বসার মার্ক: ফেভিকন, না থাকলে লোগো, না থাকলে সাইটের নামের প্রথম অক্ষর
+    function drawMark(ctx, c, cx, cy, r) {
+        const img = c.emblem || c.logo;
+
+        if (img) {
+            const s = Math.min(r * 1.7 / img.width, r * 1.7 / img.height);
+
+            ctx.drawImage(img, cx - (img.width * s) / 2, cy - (img.height * s) / 2, img.width * s, img.height * s);
+
+            return;
         }
+
+        const name = String(c.d.siteName || '').trim();
+
+        if (!name) { return; }
+
+        ctx.fillStyle = c.accent;
+        ctx.font = '700 ' + Math.round(r * 1.2) + 'px ' + FONT;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.fillText(name.charAt(0), cx, cy + 2);
+        ctx.textAlign = 'left';
     }
 
-    // গোল কোণার ছবি, নরম ছায়া ও হালকা বর্ডারসহ
-    function drawPhotoPanel(ctx, c, x, y, w, h, r) {
-        ctx.save();
-        softShadow(ctx, c.W * 0.032, c.W * 0.012, 0.38);
-        ctx.fillStyle = INK;
-        roundRect(ctx, x, y, w, h, r);
-        ctx.fill();
-        ctx.restore();
+    // রঙে সাদা মিশিয়ে কার্ডের হালকা পটভূমি
+    function tint(hex, amount) {
+        const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
 
-        ctx.save();
-        roundRect(ctx, x, y, w, h, r);
-        ctx.clip();
-        photoOrBrand(ctx, c, x, y, w, h, c.accent);
-        ctx.restore();
+        if (!m) { return '#f2f3f5'; }
 
-        ctx.save();
-        ctx.strokeStyle = 'rgba(255,255,255,.16)';
-        ctx.lineWidth = Math.max(2, c.W * 0.0022);
-        roundRect(ctx, x, y, w, h, r);
-        ctx.stroke();
-        ctx.restore();
+        const n = parseInt(m[1], 16);
+        const part = function (shift) {
+            const channel = (n >> shift) & 255;
+
+            return Math.round(channel + (255 - channel) * amount);
+        };
+
+        return 'rgb(' + part(16) + ',' + part(8) + ',' + part(0) + ')';
     }
 
-    // হালকা ডট-গ্রিড: আধুনিক সম্পাদকীয় ব্যাকগ্রাউন্ড
-    function dotGrid(ctx, x, y, w, h, step, color, alpha) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(x, y, w, h);
-        ctx.clip();
-        ctx.fillStyle = color || 'rgba(255,255,255,.16)';
-        ctx.globalAlpha = alpha === undefined ? 0.35 : alpha;
+    // লোগো বাক্স ছাড়া সরাসরি ডানে সেট করা
+    function drawLogoPlain(ctx, logo, rightX, y, maxH) {
+        let w = logo.width * (maxH / logo.height);
+        let h = maxH;
+        const maxW = rightX * 0.42;
 
-        for (let yy = y; yy < y + h; yy += step) {
-            for (let xx = x; xx < x + w; xx += step) {
+        if (w > maxW) {
+            h = h * (maxW / w);
+            w = maxW;
+        }
+
+        ctx.drawImage(logo, rightX - w, y, w, h);
+
+        return { w: w, h: h };
+    }
+
+    // উপরের মেটা লাইন: বিভাগ | তারিখ
+    function drawMetaLine(ctx, c, x, y, color, size) {
+        const parts = [];
+
+        if (c.o.category && c.d.category) { parts.push(c.d.category); }
+        if (c.o.date) { parts.push(c.d.dateBn || c.d.date); }
+
+        const text = parts.join('  |  ');
+
+        if (!text) { return 0; }
+
+        ctx.font = '400 ' + size + 'px ' + FONT;
+        ctx.fillStyle = color;
+        ctx.textBaseline = 'top';
+        ctx.fillText(text, x, y);
+
+        return Math.round(size * 1.4);
+    }
+
+    // পটভূমিতে বিন্দুর জাল
+    function dotGrid(ctx, x, y, w, h, step, r, color) {
+        ctx.save();
+        ctx.fillStyle = color;
+
+        for (let gy = y + step / 2; gy < y + h; gy += step) {
+            for (let gx = x + step / 2; gx < x + w; gx += step) {
                 ctx.beginPath();
-                ctx.arc(xx, yy, Math.max(1, step * 0.055), 0, Math.PI * 2);
+                ctx.arc(gx, gy, r, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
@@ -442,7 +504,127 @@
         ctx.restore();
     }
 
+    // ছবি বসানো: বক্স ভরে ক্রপ, ওপরের দিকে ঝুঁকে — মাঝখান থেকে কাটলে সবার মাথা কেটে যায়
+    function photoOrBrand(ctx, c, x, y, w, h, accent) {
+        if (!c.photo) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(x, y, w, h);
+            ctx.clip();
+            brandBackground(ctx, x + w, y + h, accent);
+            ctx.restore();
+
+            return;
+        }
+
+        drawCover(ctx, c.photo, x, y, w, h, 0.3);
+    }
+
     const TEMPLATES = {
+
+        // ওপরে ছবি, জোড়ে সাদা থালায় মার্ক, নিচে হালকা প্যানেলে কেন্দ্র করা শিরোনাম (প্রথম লাইন লাল)
+        paper: function (ctx, c) {
+            const W = c.W;
+            const H = c.H;
+            const land = c.o.size === 'landscape';
+            const NAVY = '#16294a';
+            const GRAY = '#64748b';
+            const disc = Math.round(W * 0.07);
+            const pad = Math.round(W * (land ? 0.045 : 0.06));
+            const photoW = land ? Math.round(W * 0.46) : W;
+            const hasEx = !!(c.o.excerpt && c.d.excerpt);
+            const photoH = land ? H : Math.round(H * (hasEx ? (c.o.size === 'square' ? 0.44 : 0.48) : (c.o.size === 'square' ? 0.5 : 0.54)));
+            const x0 = land ? photoW + Math.round(W * 0.05) : pad;
+            const x1 = land ? W - Math.round(W * 0.05) : W - pad;
+            const footSize = Math.round(W * (land ? 0.019 : 0.025));
+            const footY = H - pad;
+            const areaBottom = footY - footSize * 2.2 - 26;
+
+            ctx.fillStyle = '#f3f4f6';
+            ctx.fillRect(0, 0, W, H);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, 0, photoW, photoH);
+            ctx.clip();
+            photoOrBrand(ctx, c, 0, 0, photoW, photoH, c.accent);
+            ctx.restore();
+
+            const cs = Math.round(chipSize(c) * (land ? 0.9 : 1));
+            const hasMark = c.o.logo && (c.emblem || c.logo || c.d.siteName);
+            let top;
+
+            if (land) {
+                const markH = Math.round(logoHeight(c) * 0.8);
+                let markBox = 0;
+
+                if (c.o.category && c.d.category) {
+                    drawChip(ctx, c.d.category, x0, pad, c.accent, cs);
+
+                    markBox = Math.round(cs * 2.05);
+                }
+
+                if (c.o.logo && c.logo) {
+                    drawLogoPill(ctx, c.logo, x1, pad, markH);
+
+                    markBox = Math.max(markBox, Math.round(markH * 1.4));
+                }
+
+                top = pad + markBox + 30;
+            } else {
+                if (hasMark) {
+                    ctx.save();
+                    softShadow(ctx, disc * 0.45, disc * 0.1, 0.14);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(W / 2, photoH, disc, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+
+                    drawMark(ctx, c, W / 2, photoH, Math.round(disc * 0.56));
+                }
+
+                top = photoH + (hasMark ? disc : 0) + 18;
+
+                if (c.o.category && c.d.category) {
+                    ctx.font = '700 ' + cs + 'px ' + FONT;
+
+                    const cw = ctx.measureText(c.d.category).width + cs * 1.8;
+
+                    drawChip(ctx, c.d.category, W / 2 - cw / 2, top, c.accent, cs);
+
+                    top += Math.round(cs * 2.05) + 22;
+                }
+            }
+
+            // সারাংশ থাকলে শিরোনাম আর গাথনি মিলে পুরো প্যানেল ভরে রাখে — নাহলে নিচের অর্ধেক ফাঁকা থাকে।
+            const exSize = Math.round(W * (land ? 0.024 : 0.033));
+            const headH = Math.max(80, (areaBottom - top) * (hasEx ? (land ? 0.5 : 0.42) : 1));
+            const fit = fitHeadline(ctx, c.d.title, x1 - x0, headH,
+                Math.round(W * (land ? 0.042 : 0.062)), Math.round(W * 0.026), land ? 5 : 3);
+            const startY = top + Math.max(0, (headH - fit.lines.length * fit.lh) * (hasEx ? 0.08 : (land ? 0.5 : 0.34)));
+
+            ctx.font = '700 ' + fit.size + 'px ' + FONT;
+            ctx.textBaseline = 'top';
+            ctx.textAlign = land ? 'left' : 'center';
+
+            fit.lines.forEach(function (line, i) {
+                ctx.fillStyle = i === 0 ? c.accent : NAVY;
+                ctx.fillText(line, land ? x0 : W / 2, startY + i * fit.lh);
+            });
+
+            ctx.textAlign = 'left';
+
+            if (hasEx) {
+                const gap = Math.round(fit.size * 0.75);
+                const paraTop = startY + fit.lines.length * fit.lh + gap;
+                const para = fitParagraph(ctx, c.d.excerpt, x1 - x0, areaBottom - paraTop, exSize, 400);
+
+                drawParagraph(ctx, para, land ? x0 : W / 2, paraTop, '#1f2937', land ? 'left' : 'center');
+            }
+
+            drawFooter(ctx, c, footY, x0, x1, NAVY, GRAY, footSize, 'rgba(15,23,42,.14)');
+        },
 
         // ছবির ওপর গাঢ় গ্রেডিয়েন্ট ও বড় সাদা শিরোনাম
         overlay: function (ctx, c) {
@@ -492,240 +674,154 @@
             drawLines(ctx, fit, pad + 26, top, '#ffffff');
             ctx.restore();
 
-            drawFooter(ctx, c, H - pad, pad, W - pad, '#ffffff', 'rgba(255,255,255,.78)', 'rgba(255,255,255,.26)');
+            drawFooter(ctx, c, H - pad, pad, W - pad, '#ffffff', 'rgba(255,255,255,.78)', Math.round(W * 0.025), 'rgba(255,255,255,.26)');
         },
 
-        // ওপরে গোল কোণার ছবি, নিচে গাঢ় প্যানেলে শিরোনাম
+        // হালকা রঙের পটভূমি, ওপরে মেটা লাইন ও লোগো, মাঝখানে উদ্ধৃতি-শিরোনাম, নিচে গোল কোণার ছবি
         split: function (ctx, c) {
             const W = c.W;
             const H = c.H;
-            const pad = c.pad;
-            // পোর্ট্রেটে ছবি ছোট রেখে নিচে লেখা নামালে মাঝখানে বিশাল কালো ফাঁকা থাকে।
-            const photoH = Math.round(H * (c.o.size === 'portrait' ? 0.62 : 0.5));
-
-            const bg = ctx.createLinearGradient(0, 0, 0, H);
-            bg.addColorStop(0, '#0d1726');
-            bg.addColorStop(1, '#060c16');
-            ctx.fillStyle = bg;
-            ctx.fillRect(0, 0, W, H);
-
-            ctx.save();
-            roundBottomRect(ctx, 0, 0, W, photoH, Math.round(W * 0.045));
-            ctx.clip();
-            photoOrBrand(ctx, c, 0, 0, W, photoH, c.accent);
-            ctx.restore();
-
-            const shade = ctx.createLinearGradient(0, photoH * 0.55, 0, photoH);
-            shade.addColorStop(0, 'rgba(3,8,18,0)');
-            shade.addColorStop(1, 'rgba(3,8,18,.5)');
-            ctx.fillStyle = shade;
-            ctx.fillRect(0, photoH * 0.55, W, photoH * 0.45);
-
-            topBar(ctx, c, { glass: true });
-
-            ctx.save();
-            ctx.fillStyle = accentGradient(ctx, pad, 0, pad + W * 0.09, 0, c.accent);
-            roundRect(ctx, pad, photoH + Math.round(H * 0.03), Math.round(W * 0.09), Math.max(5, Math.round(H * 0.009)), Math.round(H * 0.0045));
-            ctx.fill();
-            ctx.restore();
-
-            const fh = footerHeight(c);
-            const top = photoH + Math.round(H * 0.065);
-            const bottom = H - pad - fh - 26;
-            const fit = fitHeadline(ctx, c.d.title, W - pad * 2, bottom - top,
-                Math.round(W * 0.054), Math.round(W * 0.03), 4);
-
-            drawLines(ctx, fit, pad, top, '#ffffff');
-            drawFooter(ctx, c, H - pad, pad, W - pad, '#ffffff', 'rgba(255,255,255,.72)', 'rgba(255,255,255,.22)');
-        },
-
-        // হালকা ক্রিম পটভূমিতে গোল কোণার ছবি, নিচে গাঢ় লেখা
-        frame: function (ctx, c) {
-            const W = c.W;
-            const H = c.H;
-            const m = Math.round(W * 0.035);
-            const photoH = Math.round(H * (c.o.size === 'portrait' ? 0.58 : c.o.size === 'square' ? 0.5 : 0.46));
-            const cs = chipSize(c);
-
-            const bg = ctx.createLinearGradient(0, 0, 0, H);
-            bg.addColorStop(0, '#fbf8f2');
-            bg.addColorStop(1, '#efe8db');
-            ctx.fillStyle = bg;
-            ctx.fillRect(0, 0, W, H);
-
-            drawPhotoPanel(ctx, c, m, m, W - m * 2, photoH, Math.round(W * 0.026));
-
-            if (c.o.logo && c.logo) {
-                drawLogoPill(ctx, c.logo, W - m - 18, m + 18, logoHeight(c));
-            }
-
-            let chipH = 0;
-
-            if (c.o.category && c.d.category) {
-                chipH = Math.round(cs * 2.05);
-                drawChip(ctx, c.d.category, m + 24, m + photoH - chipH / 2, c.accent, cs);
-            }
-
-            const fh = footerHeight(c);
-            const top = m + photoH + chipH / 2 + 24;
-            const bottom = H - m - fh - 30;
-            const textW = W - m * 2 - 24;
-            const gap = Math.round(H * 0.018);
+            const land = c.o.size === 'landscape';
+            const INK = '#1f2937';
+            const GRAY = '#5b6472';
+            const pad = Math.round(W * (land ? 0.05 : 0.056));
+            const metaSize = Math.round(W * 0.026);
+            const photoW = land ? Math.round(W * 0.44) : W - pad * 2;
+            const photoX = land ? W - pad - photoW : pad;
+            const photoH = land ? H - pad * 2 : Math.round(H * 0.44);
+            const photoY = land ? pad : H - pad - photoH;
             const hasEx = !!(c.o.excerpt && c.d.excerpt);
-            const exSpace = hasEx ? Math.round((bottom - top) * 0.34) : 0;
-            const fit = fitHeadline(ctx, c.d.title, textW, Math.max(60, bottom - top - exSpace - gap),
-                Math.round(W * 0.05), Math.round(W * 0.03), 5);
-            const ex = hasEx
-                ? fitParagraph(ctx, c.d.excerpt, textW, exSpace, Math.round(W * 0.025), 400)
-                : null;
-            const exH = ex && ex.lines.length ? ex.lines.length * ex.lh : 0;
-            const contentH = fit.lines.length * fit.lh + (exH ? gap + exH : 0);
-            const start = top + Math.max(0, (bottom - top - contentH) / 2);
+            const title = String(c.d.title || '').trim();
+            const quoted = /^[‘“"]/.test(title) ? title : '‘' + title + '’';
 
-            drawLines(ctx, fit, m + 12, start, '#111827');
-
-            if (exH) {
-                drawParagraph(ctx, ex, m + 12, start + fit.lines.length * fit.lh + gap, '#4a5568', 'left', 400);
-            }
-
-            drawFooter(ctx, c, H - m - 8, m + 12, W - m - 12,
-                textOn(c.accent) === '#111827' ? c.accent : '#111827', '#64748b', 'rgba(15,23,42,.12)');
-        },
-
-        // ছবির ওপর রঙিন "ব্রেকিং" ফিতা, নিচে বড় লেখা
-        breaking: function (ctx, c) {
-            const W = c.W;
-            const H = c.H;
-            const pad = c.pad;
-            const label = c.o.badge || 'ব্রেকিং নিউজ';
-            const red = c.accent || '#d60000';
-
-            photoOrBrand(ctx, c, 0, 0, W, H, '#7f1d1d');
-
-            let g = ctx.createLinearGradient(0, H * 0.18, 0, H);
-            g.addColorStop(0, 'rgba(3,8,18,0)');
-            g.addColorStop(0.5, 'rgba(3,8,18,.76)');
-            g.addColorStop(1, 'rgba(3,8,18,.97)');
-            ctx.fillStyle = g;
+            ctx.fillStyle = tint(c.accent, 0.9);
             ctx.fillRect(0, 0, W, H);
 
-            ctx.save();
-            ctx.fillStyle = accentGradient(ctx, 0, 0, W, 0, red);
-            ctx.fillRect(0, 0, W, Math.max(6, Math.round(H * 0.012)));
-            ctx.restore();
-
-            const size = Math.round(W * 0.032);
-            const dot = size * 0.55;
-
-            ctx.font = '700 ' + size + 'px ' + FONT;
-
-            const bw = ctx.measureText(label).width + size * 1.9 + dot;
-            const bh = Math.round(size * 2.05);
-
-            ctx.save();
-            softShadow(ctx, size, size * 0.3, 0.35);
-            ctx.fillStyle = accentGradient(ctx, pad, pad, pad + bw, pad + bh, red);
-            roundRect(ctx, pad, pad, bw, bh, bh / 2);
-            ctx.fill();
-            ctx.restore();
-
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.arc(pad + size * 0.8 + dot / 2, pad + bh / 2, dot / 2, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.textBaseline = 'middle';
-            ctx.textAlign = 'left';
-            ctx.fillText(label, pad + size * 0.8 + dot + size * 0.4, pad + bh / 2 + 1);
-
-            if (c.o.category && c.d.category) {
-                const cs = chipSize(c);
-
-                drawGlassPill(ctx, c.d.category, pad + bw + 14, pad + (bh - cs * 2.05) / 2, cs);
-            }
-
-            if (c.o.logo && c.logo) {
-                drawLogoPill(ctx, c.logo, W - pad, pad, logoHeight(c));
-            }
-
-            const fh = footerHeight(c);
-            const fit = fitHeadline(ctx, c.d.title, W - pad * 2 - 30,
-                H * (c.o.size === 'landscape' ? 0.42 : 0.36),
-                Math.round(W * 0.062), Math.round(W * 0.036), 6);
-            const bottom = H - pad - fh - 24;
-            const top = bottom - fit.lines.length * fit.lh;
-
-            ctx.save();
-            softShadow(ctx, W * 0.008, W * 0.003, 0.3);
-            ctx.fillStyle = accentGradient(ctx, 0, top, 0, top + fit.lines.length * fit.lh, red);
-            roundRect(ctx, pad, top + 4, Math.max(5, Math.round(W * 0.006)), fit.lines.length * fit.lh - 10, Math.round(W * 0.003));
-            ctx.fill();
-            ctx.restore();
-
-            drawLines(ctx, fit, pad + 26, top, '#ffffff');
-            drawFooter(ctx, c, H - pad, pad, W - pad, '#ffffff', 'rgba(255,255,255,.8)', 'rgba(255,255,255,.26)');
-        },
-
-        // ছবি ছাড়া: গাঢ় গ্রেডিয়েন্টে বড় উদ্ধৃতি-চিহ্ন ও লেখা
-        text: function (ctx, c) {
-            const W = c.W;
-            const H = c.H;
-            const pad = c.pad;
-
-            brandBackground(ctx, W, H, c.accent);
-
-            const glow = ctx.createRadialGradient(W * 0.82, H * 0.16, 0, W * 0.82, H * 0.16, W * 0.7);
-            glow.addColorStop(0, rgba(c.accent, 0.5));
+            const glow = ctx.createRadialGradient(W * 0.92, 0, 0, W * 0.92, 0, W * 0.75);
+            glow.addColorStop(0, rgba(c.accent, 0.1));
             glow.addColorStop(1, rgba(c.accent, 0));
             ctx.fillStyle = glow;
             ctx.fillRect(0, 0, W, H);
 
-            dotGrid(ctx, 0, 0, W, H, Math.round(W * 0.05), 'rgba(255,255,255,.4)', 0.2);
+            drawMetaLine(ctx, c, pad, pad, INK, metaSize);
+
+            if (c.o.logo && c.logo) {
+                drawLogoPlain(ctx, c.logo, W - pad, pad, Math.round(logoHeight(c) * 0.85));
+            }
+
+            const x0 = pad;
+            const x1 = land ? photoX - Math.round(W * 0.05) : W - pad;
+            const top = pad + Math.round(metaSize * 1.4) + Math.round(H * (land ? 0.06 : 0.075));
+            const areaBottom = (land ? H - pad : photoY) - Math.round(H * 0.03);
+            const headH = Math.max(80, (areaBottom - top) * (hasEx ? 0.6 : 0.92));
+            const fit = fitHeadline(ctx, quoted, x1 - x0, headH,
+                Math.round(W * (land ? 0.048 : 0.062)), Math.round(W * 0.028), land ? 5 : 4);
+            const startY = top + Math.max(0, (headH - fit.lines.length * fit.lh) * 0.12);
+
+            ctx.font = '700 ' + fit.size + 'px ' + FONT;
+            ctx.textBaseline = 'top';
+            ctx.textAlign = land ? 'left' : 'center';
+            ctx.fillStyle = darken(c.accent, 0.12);
+
+            fit.lines.forEach(function (line, i) {
+                ctx.fillText(line, land ? x0 : W / 2, startY + i * fit.lh);
+            });
+
+            if (hasEx) {
+                const paraTop = startY + fit.lines.length * fit.lh + Math.round(fit.size * 0.7);
+                const para = fitParagraph(ctx, c.d.excerpt, x1 - x0, areaBottom - paraTop,
+                    Math.round(W * (land ? 0.023 : 0.03)), 400);
+
+                drawParagraph(ctx, para, land ? x0 : W / 2, paraTop, GRAY, land ? 'left' : 'center');
+            }
+
+            ctx.textAlign = 'left';
 
             ctx.save();
-            ctx.globalAlpha = 0.12;
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '700 ' + Math.round(W * 0.55) + 'px Georgia, "Times New Roman", serif';
-            ctx.textBaseline = 'top';
-            ctx.textAlign = 'left';
-            ctx.fillText('\u201C', W * 0.03, -H * 0.12);
+            softShadow(ctx, W * 0.02, W * 0.008, 0.22);
+            roundRect(ctx, photoX, photoY, photoW, photoH, Math.round(W * 0.032));
+            ctx.clip();
+            photoOrBrand(ctx, c, photoX, photoY, photoW, photoH, c.accent);
             ctx.restore();
+        },
+
+        // লেখার কার্ড: অ্যাকসেন্ট রঙের গাঢ় পট ও বিন্দুর জালে শিরোনাম ও সারাংশ
+        text: function (ctx, c) {
+            const W = c.W;
+            const H = c.H;
+            const land = c.o.size === 'landscape';
+            const pad = Math.round(W * (land ? 0.045 : 0.055));
+            const footSize = Math.round(W * (land ? 0.02 : 0.025));
+            const footY = H - pad;
+            const ruleY = footY - footSize * 2.2;
+            const hasEx = !!(c.o.excerpt && c.d.excerpt);
+
+            const g = ctx.createLinearGradient(0, 0, W, H);
+
+            g.addColorStop(0, darken(c.accent, 0.22));
+            g.addColorStop(0.55, darken(c.accent, 0.62));
+            g.addColorStop(1, darken(c.accent, 0.88));
+
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, W, H);
+
+            dotGrid(ctx, 0, 0, W, H, Math.round(W * 0.045), Math.max(1.5, W * 0.0035), 'rgba(255,255,255,.055)');
+
+            ctx.fillStyle = 'rgba(255,255,255,.05)';
+
+            [0.085, 0.05].forEach(function (r, i) {
+                ctx.beginPath();
+                ctx.arc(Math.round(W * (i ? 0.33 : 0.2)), Math.round(H * 0.02), Math.round(W * r), 0, Math.PI * 2);
+                ctx.fill();
+            });
 
             topBar(ctx, c, { glass: true });
 
-            const fh = footerHeight(c);
-            const areaTop = pad + chipSize(c) * 2.05 + 40;
-            const bottom = H - pad - fh - 30;
-            const hasEx = !!(c.o.excerpt && c.d.excerpt);
-            const fit = fitHeadline(ctx, c.d.title, W - pad * 2, (bottom - areaTop) * (hasEx ? 0.55 : 0.7),
-                Math.round(W * 0.068), Math.round(W * 0.036), 8);
-            const total = fit.lines.length * fit.lh;
-            const gap = hasEx ? Math.round(H * 0.03) : 0;
-            const para = hasEx
-                ? fitParagraph(ctx, c.d.excerpt, W - pad * 2.4, bottom - areaTop - total - gap, Math.round(W * 0.028), 400)
-                : { lines: [], lh: 0, size: 0 };
-            // শিরোনাম + সারাংশ একসাথে মাঝখানে — নাহলে লম্বা কার্ডে নিচের অর্ধেক খালি থাকে।
-            const top = areaTop + Math.max(0, (bottom - areaTop - total - gap - para.lines.length * para.lh) / 2);
+            const barW = Math.round(W * 0.075);
+            const barH = Math.max(4, Math.round(W * 0.009));
+            const bodyTop = pad + Math.round(chipSize(c) * 2.05) + Math.round(W * 0.07);
+
+            drawRule(ctx, pad, pad + barW, bodyTop + barH / 2, darken(c.accent, 0.55), barH);
+
+            const headTop = bodyTop + barH + Math.round(W * 0.035);
+            const colW = land ? Math.round(W * 0.5) : W - pad * 2;
+            const exX = land ? pad + colW + Math.round(W * 0.06) : pad;
+            // লম্বা কার্ডে লেখা ছোট রাখলে নিচের এক-তৃতীয়াংশ ফাঁকা থাকে
+            const tall = c.o.size === 'portrait';
+            const fit = fitHeadline(ctx, c.d.title, colW,
+                land ? ruleY - headTop : (ruleY - headTop) * (hasEx ? (tall ? 0.42 : 0.5) : 0.8),
+                Math.round(W * (land ? 0.05 : (tall ? 0.084 : 0.072))), Math.round(W * 0.03),
+                land ? 4 : (hasEx ? (tall ? 5 : 4) : 6));
 
             ctx.save();
-            ctx.fillStyle = accentGradient(ctx, pad, 0, pad + W * 0.1, 0, c.accent);
-            roundRect(ctx, pad, top - 24, Math.round(W * 0.1), Math.max(5, Math.round(W * 0.006)), Math.round(W * 0.003));
-            ctx.fill();
+            softShadow(ctx, W * 0.012, W * 0.004, 0.3);
+            ctx.font = '700 ' + fit.size + 'px ' + FONT;
+            ctx.textBaseline = 'top';
+
+            // দুই লাইনে প্রথম লাইন রঙের হালকা ছায়া, বাকি সাদা — paper-এর নিয়মটাই এখানেও
+            fit.lines.forEach(function (line, i) {
+                ctx.fillStyle = i === 0 && fit.lines.length > 1 ? tint(c.accent, 0.42) : '#ffffff';
+                ctx.fillText(line, pad, headTop + i * fit.lh);
+            });
+
             ctx.restore();
 
-            drawLines(ctx, fit, pad, top, '#ffffff');
+            if (hasEx) {
+                const paraTop = land ? headTop : headTop + fit.lines.length * fit.lh + Math.round(W * 0.05);
+                const para = fitParagraph(ctx, c.d.excerpt, W - pad - exX,
+                    land ? ruleY - headTop : ruleY - paraTop - Math.round(W * 0.04),
+                    Math.round(W * (land ? 0.021 : (tall ? 0.037 : 0.031))), 400);
 
-            if (para.lines.length) {
-                drawParagraph(ctx, para, pad, top + total + gap, 'rgba(255,255,255,.8)');
+                drawParagraph(ctx, para, exX, paraTop, 'rgba(255,255,255,.82)');
             }
 
-            drawFooter(ctx, c, H - pad, pad, W - pad, '#ffffff', 'rgba(255,255,255,.8)', 'rgba(255,255,255,.22)');
+            drawFooter(ctx, c, footY, pad, W - pad, '#ffffff', 'rgba(255,255,255,.72)', footSize, 'rgba(255,255,255,.2)');
         }
     };
 
     /**
-     * data: { title, category, date, image, logo, siteName, footer }
-     * options: { template, size, logo, category, date, accent, badge }
+     * data: { title, category, date, dateBn, image, logo, emblem, siteName, footer, excerpt }
+     * options: { template, size, logo, category, date, accent, excerpt }
      */
     async function render(canvas, data, options) {
         await fontsReady();
@@ -741,7 +837,6 @@
         const photo = await loadImage(data.image);
         const logo = options.logo ? await loadImage(data.logo) : null;
         const emblem = await loadImage(data.emblem);
-        const avatar = await loadImage(data.avatar);
 
         const c = {
             W: W,
@@ -750,7 +845,6 @@
             photo: photo,
             logo: logo,
             emblem: emblem,
-            avatar: avatar,
             accent: options.accent || '#d60000',
             d: data,
             o: options
@@ -759,7 +853,7 @@
         ctx.clearRect(0, 0, W, H);
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        (TEMPLATES[options.template] || TEMPLATES.overlay)(ctx, c);
+        (TEMPLATES[options.template] || TEMPLATES.paper)(ctx, c);
 
         return canvas;
     }
@@ -778,11 +872,11 @@
         templates: TEMPLATES,
         h: {
             roundRect: roundRect,
-            roundBottomRect: roundBottomRect,
             drawCover: drawCover,
             textOn: textOn,
             darken: darken,
             rgba: rgba,
+            tint: tint,
             accentGradient: accentGradient,
             softShadow: softShadow,
             clearShadow: clearShadow,
@@ -791,9 +885,7 @@
             fitHeadline: fitHeadline,
             fitParagraph: fitParagraph,
             drawParagraph: drawParagraph,
-            dotGrid: dotGrid,
-            drawRule: drawRule,
-            drawPhotoPanel: drawPhotoPanel
+            drawRule: drawRule
         }
     };
 })(window);

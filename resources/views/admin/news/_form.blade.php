@@ -144,11 +144,19 @@
         <div class="ad-panel">
             <div class="ad-panel-head">
                 <h2>বিস্তারিত <span class="ad-req">*</span></h2>
-                <button
-                    type="button"
-                    id="editor-gallery-btn"
-                    class="ad-act act-edit"
-                >গ্যালারি থেকে ছবি যোগ করুন</button>
+                <div class="ad-picker-actions" style="margin:0;">
+                    <button
+                        type="button"
+                        id="editor-gallery-btn"
+                        class="ad-act act-edit"
+                    >গ্যালারি থেকে ছবি যোগ করুন</button>
+
+                    <button
+                        type="button"
+                        id="related-open"
+                        class="ad-act act-edit"
+                    >সম্পর্কিত সংবাদের লিংক</button>
+                </div>
             </div>
 
             <div class="ad-panel-body">
@@ -158,6 +166,10 @@
                     rows="10"
                     class="ad-field"
                 >{{ $val('description') }}</textarea>
+
+                <p class="ad-hint">
+                    সম্পর্কিত খবরের লিংক বডির ভেতরেই বসান — ছোট সংবাদে ১টি, বিস্তারিত সংবাদে ২-৩টি।
+                </p>
             </div>
         </div>
 
@@ -390,6 +402,12 @@
                             class="ad-act act-edit"
                         >গ্যালারি থেকে বাছুন</button>
 
+                        <button
+                            type="button"
+                            id="crop-open"
+                            class="ad-act act-edit"
+                        >ছবি ছেঁটে নিন</button>
+
                         <span class="ad-hint" style="margin:0;">
                             অথবা নতুন ছবি আপলোড করুন:
                         </span>
@@ -416,7 +434,10 @@
                         >বাতিল করুন</button>
                     </p>
 
-                    <p class="ad-hint">jpg, png, webp; সর্বোচ্চ ২ MB</p>
+                    <p class="ad-hint">
+                        jpg, png, webp; সর্বোচ্চ ২ MB।
+                        ছবি ছেঁটা সম্পূর্ণ হাতে — "ছবি ছেঁটে নিন" না টানলে সিস্টেম নিজে থেকে ছবি ছাঁটে না।
+                    </p>
                 </div>
 
                 <div class="ad-fgroup">
@@ -437,6 +458,7 @@
                         value="{{ $val('image_credit') }}"
                         class="ad-field"
                     >
+                    <p class="ad-hint">ফাঁকা রাখুন; ছবির উৎস দেখানোর প্রয়োজন হলে তবেই দিন।</p>
                 </div>
 
                 <div class="ad-fgroup">
@@ -639,7 +661,93 @@
     </div>
 </div>
 
+{{-- Hand cropping of the article photo --}}
+<div
+    id="crop-modal"
+    class="ad-modal"
+    hidden
+    role="dialog"
+    aria-modal="true"
+    aria-label="ছবি ছেঁটে নিন"
+>
+    <div class="ad-modal-box">
+        <div class="ad-modal-head">
+            <h2>ছবি ছেঁটে নিন</h2>
+
+            <button
+                type="button"
+                id="crop-close"
+                class="ad-modal-close"
+                aria-label="বন্ধ করুন"
+            >&times;</button>
+        </div>
+
+        <div class="ad-modal-body">
+            <p class="ad-hint" style="margin:0 0 12px;">
+                বাক্সটি টেনে সরান, কোণার গোল বিন্দু ধরে বড়-ছোট করুন। যা থাকবে তাই ছবি হিসেবে বসবে।
+            </p>
+
+            <div id="crop-stage" class="ad-crop-stage">
+                <img id="crop-image" alt="">
+
+                <div id="crop-box" class="ad-crop-box">
+                    <span id="crop-handle" class="ad-crop-handle"></span>
+                </div>
+            </div>
+
+            <div id="crop-info" class="ad-modal-status"></div>
+
+            <div class="ad-form-actions">
+                <button type="button" id="crop-apply" class="ad-btn-solid">ছেঁটা ছবি বসান</button>
+                <button type="button" id="crop-reset" class="ad-act">পুরো ছবি</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Links to previously published articles, inserted into the body --}}
+<div
+    id="related-modal"
+    class="ad-modal"
+    data-search-url="{{ route('news.related-search') }}"
+    data-news="{{ $isEdit ? $news->id : 0 }}"
+    hidden
+    role="dialog"
+    aria-modal="true"
+    aria-label="সম্পর্কিত সংবাদের লিংক"
+>
+    <div class="ad-modal-box">
+        <div class="ad-modal-head">
+            <h2>সম্পর্কিত সংবাদের লিংক</h2>
+
+            <button
+                type="button"
+                id="related-close"
+                class="ad-modal-close"
+                aria-label="বন্ধ করুন"
+            >&times;</button>
+        </div>
+
+        <div class="ad-modal-tools">
+            <input
+                type="text"
+                id="related-search"
+                class="ad-field"
+                placeholder="শিরোনাম দিয়ে খুঁজুন…"
+                autocomplete="off"
+            >
+        </div>
+
+        <div class="ad-modal-body">
+            <div id="related-list" class="ad-rel-list"></div>
+            <div id="related-status" class="ad-modal-status"></div>
+        </div>
+    </div>
+</div>
+
 <script src="{{ asset('js/admin-tag-input.js') }}"></script>
+<script src="{{ asset('js/admin-image-crop.js') }}?v={{ filemtime(public_path('js/admin-image-crop.js')) }}"></script>
+<script src="{{ asset('js/admin-related-links.js') }}?v={{ filemtime(public_path('js/admin-related-links.js')) }}"></script>
 <script src="{{ asset('js/admin-location-select.js') }}?v={{ filemtime(public_path('js/admin-location-select.js')) }}"></script>
 <script src="{{ asset('js/admin-media-picker.js') }}"></script>
 <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>

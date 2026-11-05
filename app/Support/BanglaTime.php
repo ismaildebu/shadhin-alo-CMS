@@ -11,10 +11,30 @@ final class BanglaTime
 
     private const MONTHS = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
 
+    private const WEEKDAYS = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+
     /** "২৬ অক্টোবর ২০২৬" */
     public static function date(DateTimeInterface $date): string
     {
         return self::digits((int) $date->format('j')).' '.self::MONTHS[(int) $date->format('n') - 1].' '.self::digits($date->format('Y'));
+    }
+
+    /** "বুধবার" */
+    public static function weekday(DateTimeInterface $date): string
+    {
+        return self::WEEKDAYS[(int) $date->format('w')];
+    }
+
+    /** "৩:৪৫ অপরাহ্ণ" */
+    public static function time(DateTimeInterface $date): string
+    {
+        return self::digits($date->format('g:i')).' '.((int) $date->format('G') < 12 ? 'পূর্বাহ্ণ' : 'অপরাহ্ণ');
+    }
+
+    /** "৫ নভেম্বর ২০২৬, ৩:৪৫ অপরাহ্ণ" */
+    public static function dateTime(DateTimeInterface $date): string
+    {
+        return self::date($date).', '.self::time($date);
     }
 
     public static function digits(int|string $number): string

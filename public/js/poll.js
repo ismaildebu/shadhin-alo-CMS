@@ -18,6 +18,9 @@
     function show(root, data) {
         var selected = data.selected === null || data.selected === undefined ? '' : String(data.selected);
 
+        // ভোট দেওয়া মানেই ফলাফল দেখানো: লুকানো অবস্থার ক্লাসটি তুলে দিলে বারগুলো বেড়ে যায়
+        root.classList.remove('sa-poll--blind');
+
         Array.prototype.forEach.call(root.querySelectorAll('[data-option]'), function (row) {
             var id = row.getAttribute('data-option');
             var item = null;
@@ -27,7 +30,10 @@
             if (item) {
                 row.style.setProperty('--pct', item.pct + '%');
                 var pct = row.querySelector('[data-pct]');
-                if (pct) { pct.textContent = item.pct_text; }
+                if (pct) {
+                    pct.textContent = item.pct_text;
+                    pct.hidden = false;
+                }
             }
 
             var input = row.querySelector('input');
@@ -38,6 +44,9 @@
 
         var total = root.querySelector('[data-total]');
         if (total) { total.textContent = data.total_text; }
+
+        var hint = root.querySelector('[data-hint]');
+        if (hint) { hint.remove(); }
 
         root.classList.add('is-voted');
         message(root, data.already ? 'already' : 'ok');

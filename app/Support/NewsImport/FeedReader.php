@@ -47,17 +47,22 @@ final class FeedReader
         $result = [];
 
         $sources = (array) ($config['sources'] ?? []);
-        $budget = max(1, (int) ($config['collect']['max_per_run'] ?? 20));
+        $budget = self::runBudget($group, $config);
         $priority = array_map('strval', (array) ($config['collect']['priority_sources'] ?? []));
         $priorityCap = max(1, (int) ($config['collect']['priority_per_source'] ?? 6));
         $otherCap = max(1, (int) ($config['collect']['other_per_source'] ?? 2));
         $perSource = max(1, (int) ($config['collect']['per_source_limit'] ?? 8));
+        $groupKeys = self::groupKeys($group);
 
         // খুলনা বিভাগের সোর্স আগে পড়া হয়, তাই ২০টি স্লটে স্থানীয় সংবাদ বেশি থাকে।
-        $keys = array_merge(
-            array_values(array_intersect($priority, array_keys($sources))),
-            array_values(array_diff(array_keys($sources), $priority))
-        );
+        // দল নিজের সোর্স তালিকা দিলে সেটিই চলবে — তবে প্রায়োরিটি সোর্স সবসময় আগে,
+        // বাকিগুলো ঘণ্টা অনুযায়ী ঘোরে।
+        $keys = $groupKeys !== []
+            ? array_merge(array_intersect($priority, $groupKeys), array_diff($groupKeys, $priority))
+            : array_merge(
+                array_values(array_intersect($priority, array_keys($sources))),
+                array_values(array_diff(array_keys($sources), $priority))
+            );
         $keys = array_values(array_filter($keys, function (string $key) use ($sources, $only) {
             return ! empty($sources[$key]['enabled'])
                 && ($only === [] || in_array($key, $only, true));
@@ -75,9 +80,11 @@ final class FeedReader
             $fairShare = (int) ceil($budget / $remainingSources);
             $cap = $limit !== null
                 ? max(1, $limit)
-                : ($group !== null
-                    // A group holds one or two sections; the run budget (20) is the real cap.
+                : ($group !== null && $groupKeys === []
+                    // A group holds one or two sections; the run budget is the real cap.
                     ? min($perSource, $budget)
+                    // A group that lists its own sources shares its budget between them, so a
+                    // twenty-portal district list is not read as one source with the whole budget.
                     : min($perSource, max($isPriority ? $priorityCap : $otherCap, $fairShare)));
 
             // Sites that publish one feed per section and carry no category inside the feed list
@@ -158,6 +165,46 @@ final class FeedReader
         }
 
         return $result;
+    }
+
+    /**
+     * How many new reports one run may take. A group can raise the global figure because it
+     * reads a narrower slice of the site (the খুলনা দল covers ten districts).
+     *
+     * @param  array<string, mixed>|null  $group
+     * @param  array<string, mixed>  $config
+     */
+    public static function runBudget(?array $group, array $config): int
+    {
+        $global = (int) ($config['collect']['max_per_run'] ?? 20);
+        $forGroup = $group === null ? null : ($group['max_per_run'] ?? null);
+
+        return max(1, (int) ($forGroup ?? $global));
+    }
+
+    /**
+     * The sources a group reads, in the order the group lists them.
+     *
+     * The order is turned a little each hour (a full cycle in six) so a district portal near
+     * the end still reaches the head inside the freshness window: with a fixed order and a
+     * modest budget the tail would never be read at all. The caller puts the priority sources
+     * back at the front, so only the district portals move.
+     *
+     * @param  array<string, mixed>|null  $group
+     * @return list<string>
+     */
+    private static function groupKeys(?array $group): array
+    {
+        $wanted = array_values(array_filter(array_map('strval', (array) ($group['sources'] ?? []))));
+        $count = count($wanted);
+
+        if ($count === 0) {
+            return [];
+        }
+
+        $offset = (int) (((int) date('G') * $count) / 6) % $count;
+
+        return array_merge(array_slice($wanted, $offset), array_slice($wanted, 0, $offset));
     }
 
     /** Priority sources list their district reports first. */
@@ -498,8 +545,8 @@ final class FeedReader
             return true;
         }
 
-        $location = $district === '' ? null : LocationMatcher::district($district);
-        $location = $location ?? LocationMatcher::detect($title, $excerpt);
+        $declared = LocationMatcher::district($district);
+        $location = LocationMatcher::resolve($title, $excerpt, $declared);
 
         if (! $location || (! $location->isDistrict() && ! $location->isUpazila())) {
             return false;
@@ -582,7 +629,7 @@ final class FeedReader
         }
 
         $previous = libxml_use_internal_errors(true);
-        $doc = new DOMDocument();
+        $doc = new DOMDocument;
         $loaded = $doc->loadHTML('<?xml encoding="utf-8" ?>'.$html);
         libxml_clear_errors();
         libxml_use_internal_errors($previous);

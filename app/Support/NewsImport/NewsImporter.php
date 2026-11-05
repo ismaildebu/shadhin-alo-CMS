@@ -44,7 +44,7 @@ final class NewsImporter
             return $blocks;
         }
 
-        $maxPerRun = max(1, (int) ($config['collect']['max_per_run'] ?? 20));
+        $maxPerRun = FeedReader::runBudget($group, $config);
         $imported = 0;
 
         foreach ($blocks as &$block) {
@@ -129,23 +129,18 @@ final class NewsImporter
         $summary = mb_substr($excerpt !== '' ? $excerpt : $title, 0, 1000);
 
         // সারাদেশ সংবাদে বিভাগ, জেলা ও উপজেলা — তিনটিই শিরোনাম/সারাংশ/বডি থেকে শনাক্ত হতে হবে।
-        $location = $nationwide
-            ? LocationMatcher::detect($title, trim($excerpt.' '.strip_tags($content)))
-            : null;
-
-        $detected = $location && ($location->isDistrict() || $location->isUpazila());
-
-        // জেলা-ফিড নিজের জেলা নিজেই বলে দেয়, তাই শিরোনামে জেলার নাম না থাকলেও সংবাদ আসে।
-        // ঘোষণাই সীমা: সেই জেলার নিজের উপজেলা শিরোনামে থাকলে সেটি রাখা হয়, অন্য জেলার নাম
-        // থাকলেও (খুলনার মামলার আসামি "ঢাকায় গ্রেপ্তার") খসড়া ঢাকার সংবাদ হয়ে যায় না।
+        // জেলা-ফিড নিজের জেলা ঘোষণা করে (district), কিন্তু সেটি কেবল ভরসা না পাওয়া গেলেই চলে:
+        // লেখায় অন্য জেলার নাম থাকলে সেটিই, খুলনার মামলার আসামি "ঢাকায় গ্রেপ্তার" হলে খুলনা-ই
+        // থাকে, আর ঘোষিত জেলার নিজের উপজেলা পাওয়া গেলে উপজেলাটিই বসে।
         $declared = $nationwide ? LocationMatcher::district((string) ($item['district'] ?? '')) : null;
 
-        if ($declared !== null) {
-            $ownUpazila = $location?->isUpazila() && $location->parent_id === $declared->id;
-            $location = $ownUpazila ? $location : $declared;
-        }
+        $location = $nationwide
+            ? LocationMatcher::resolve($title, trim($excerpt.' '.strip_tags($content)), $declared)
+            : null;
 
-        if ($nationwide && ! $detected && $declared === null) {
+        $detected = $location !== null && ($location->isDistrict() || $location->isUpazila());
+
+        if ($nationwide && ! $detected) {
             return self::skipped('সারাদেশ সংবাদে জেলা বা উপজেলা শনাক্ত হয়নি');
         }
 
@@ -153,11 +148,14 @@ final class NewsImporter
 
         $image = self::importImage($item['image'] ?? null, $author, $config);
 
-        $description = self::body($content, $excerpt !== '' ? $excerpt : $title)
+        $report = self::body($content, $excerpt !== '' ? $excerpt : $title);
+
+        $description = $report
+            .self::relatedBlock($categories, $location, $report)
             .self::sourceLine($link, $sourceName);
 
         try {
-            $news = DB::transaction(function () use ($item, $category, $categories, $location, $reporter, $author, $title, $summary, $description, $image, $sourceKey, $sourceName, $link, $titleKey, $externalHash) {
+            $news = DB::transaction(function () use ($item, $category, $categories, $location, $reporter, $author, $title, $summary, $description, $image, $sourceKey, $link, $titleKey, $externalHash) {
                 $news = News::create([
                     'category_id' => $category->id,
                     'location_id' => $location?->id,
@@ -169,7 +167,6 @@ final class NewsImporter
                     'description' => $description,
                     'reporter' => $reporter,
                     'image' => $image,
-                    'image_credit' => $image ? $sourceName : null,
                     'status' => News::STATUS_DRAFT,
                     'published_at' => $item['published_at'] ? Carbon::parse((string) $item['published_at']) : null,
                 ]);
@@ -233,6 +230,7 @@ final class NewsImporter
                 $row['state'] = 'skipped';
                 $row['reason'] = 'সংবাদ পাওয়া যায়নি';
                 $result['rows'][] = $row;
+
                 continue;
             }
 
@@ -243,6 +241,7 @@ final class NewsImporter
                 $row['state'] = 'skipped';
                 $row['reason'] = 'এই সোর্সের বডি আনা যায় না';
                 $result['rows'][] = $row;
+
                 continue;
             }
 
@@ -255,6 +254,7 @@ final class NewsImporter
                 $row['state'] = 'skipped';
                 $row['reason'] = 'আগেই পূর্ণ বা সম্পাদিত';
                 $result['rows'][] = $row;
+
                 continue;
             }
 
@@ -265,6 +265,7 @@ final class NewsImporter
                 $row['state'] = 'failed';
                 $row['reason'] = $e->getMessage();
                 $result['rows'][] = $row;
+
                 continue;
             }
 
@@ -275,10 +276,19 @@ final class NewsImporter
                 $row['state'] = 'skipped';
                 $row['reason'] = 'বডি পাওয়া যায়নি';
                 $result['rows'][] = $row;
+
                 continue;
             }
 
-            $news->description = $content.self::sourceLine((string) $import->link, $sourceName);
+            $categories = $news->categories;
+
+            if ($news->category && ! $categories->contains('id', $news->category->id)) {
+                $categories = $categories->prepend($news->category);
+            }
+
+            $news->description = $content
+                .self::relatedBlock($categories, $news->location, $content, (int) $news->id)
+                .self::sourceLine((string) $import->link, $sourceName);
             $news->save();
 
             $result['updated']++;
@@ -305,6 +315,90 @@ final class NewsImporter
     private static function sourceLine(string $link, string $sourceName): string
     {
         return '<p>সূত্র: <a href="'.e($link).'" rel="nofollow noopener" target="_blank">'.e($sourceName).'</a></p>';
+    }
+
+    /**
+     * "আরও পড়ুন>>" block: links to our own already published stories on the same place
+     * or section, written inside the body just before the source line. A short report
+     * carries one link, a longer report up to three. When nothing matches, no block is
+     * added — the draft never gets an empty heading.
+     *
+     * @param  Collection<int, Category>  $categories
+     */
+    private static function relatedBlock(Collection $categories, ?Location $location, string $body, int $excludeId = 0): string
+    {
+        $items = self::relatedArticles($categories, $location, $excludeId, self::relatedLimit($body));
+
+        if ($items->isEmpty()) {
+            return '';
+        }
+
+        $html = '<p class="sa-more-label"><strong>আরও পড়ুন&gt;&gt;</strong></p>';
+
+        foreach ($items as $item) {
+            $html .= '<p class="sa-more-item"><a href="/article/'.e((string) $item->slug).'">'.e((string) $item->title).'</a></p>';
+        }
+
+        return $html;
+    }
+
+    /** One link up to ~800 characters of text, two up to ~1800, three for a full report. */
+    private static function relatedLimit(string $body): int
+    {
+        $length = mb_strlen(trim(strip_tags($body)));
+
+        return match (true) {
+            $length > 1800 => 3,
+            $length > 800 => 2,
+            default => 1,
+        };
+    }
+
+    /**
+     * Published candidates, nearest first: the same district/upazila, then the same
+     * sections. Ordering is the priority itself, so an article found by place is never
+     * pushed down by a newer one that only shares a category.
+     *
+     * @param  Collection<int, Category>  $categories
+     * @return Collection<int, News>
+     */
+    private static function relatedArticles(Collection $categories, ?Location $location, int $excludeId, int $limit): Collection
+    {
+        if ($limit < 1) {
+            return collect();
+        }
+
+        $candidates = fn () => News::query()
+            ->where('status', News::STATUS_PUBLISHED)
+            ->where('id', '!=', $excludeId)
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->limit($limit);
+
+        $found = collect();
+
+        if ($location) {
+            // An upazila story also counts as belonging to its district.
+            $group = $location->isUpazila() ? [$location->id, $location->parent_id] : [$location->id];
+
+            $found = $found->merge($candidates()->whereIn('location_id', array_filter($group))->get());
+        }
+
+        if ($found->count() < $limit) {
+            $ids = $categories->pluck('id')->all();
+
+            if ($ids !== []) {
+                $found = $found->merge(
+                    $candidates()
+                        ->where(fn ($query) => $query
+                            ->whereIn('category_id', $ids)
+                            ->orWhereHas('categories', fn ($pivot) => $pivot->whereIn('categories.id', $ids)))
+                        ->get()
+                );
+            }
+        }
+
+        return $found->unique('id')->take($limit)->values();
     }
 
     /**

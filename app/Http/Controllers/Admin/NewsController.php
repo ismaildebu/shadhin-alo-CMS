@@ -10,15 +10,20 @@ use App\Models\Category;
 use App\Models\Location;
 use App\Models\Media;
 use App\Models\News;
+use App\Models\Tag;
 use App\Services\LocationResolver;
 use App\Services\NewsWorkflow;
 use App\Support\ArticleDesign;
+use App\Support\BanglaTime;
 use App\Support\HtmlSanitizer;
 use App\Support\NewsVideo;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
@@ -546,14 +551,14 @@ class NewsController extends Controller
     public function preview(News $news): View
     {
         Gate::authorize('view', $news);
- 
+
         $news->loadMissing([
             'category',
             'categories',
             'tags',
             'location.parent.parent',
         ]);
- 
+
         return view('frontend.news', [
             'news' => $news,
             'relatedNews' => collect(),
@@ -562,12 +567,112 @@ class NewsController extends Controller
     }
 
     /**
+     * JSON for the composer's "সম্পর্কিত সংবাদের লিংক" picker.
+     * Only published articles are offered, the one being edited is left out, and the
+     * editor's own category and tag picks steer what comes up first.
+     */
+    public function relatedSearch(Request $request): JsonResponse
+    {
+        Gate::authorize('viewAny', News::class);
+
+        $term = trim((string) $request->query('q', ''));
+        $exclude = max(0, (int) $request->query('exclude'));
+
+        $query = News::with('category')
+            ->where('status', News::STATUS_PUBLISHED)
+            ->where('id', '!=', $exclude);
+
+        if ($term !== '') {
+            $like = '%'.addcslashes($term, '%_\\').'%';
+
+            $items = $query
+                ->where(fn (Builder $q) => $q->where('title', 'like', $like)->orWhere('slug', 'like', $like))
+                ->orderByDesc('published_at')
+                ->limit(20)
+                ->get();
+        } else {
+            $items = $this->relatedSuggestions(
+                $query,
+                $this->relatedCategoryIds($request),
+                $this->relatedTagSlugs($request)
+            );
+        }
+
+        return response()->json([
+            'items' => $items->map(fn (News $news) => [
+                'id' => $news->id,
+                'title' => $news->title,
+                'url' => '/article/'.$news->slug,
+                'category' => $news->category?->name,
+                'date' => BanglaTime::date($news->display_date),
+            ])->values(),
+        ]);
+    }
+
+    /**
+     * Same category first, then anything sharing a tag; newest titles when neither matches.
+     *
+     * @param  list<int>  $categoryIds
+     * @param  list<string>  $tagSlugs
+     */
+    private function relatedSuggestions(Builder $query, array $categoryIds, array $tagSlugs): Collection
+    {
+        $byCategory = $categoryIds === []
+            ? collect()
+            : $query->clone()
+                ->where(fn (Builder $q) => $q
+                    ->whereIn('category_id', $categoryIds)
+                    ->orWhereHas('categories', fn (Builder $c) => $c->whereIn('categories.id', $categoryIds)))
+                ->orderByDesc('published_at')
+                ->limit(12)
+                ->get();
+
+        $byTag = $tagSlugs === []
+            ? collect()
+            : $query->clone()
+                ->whereHas('tags', fn (Builder $t) => $t->whereIn('tags.slug', $tagSlugs))
+                ->orderByDesc('published_at')
+                ->limit(12)
+                ->get();
+
+        $items = $byCategory
+            ->concat($byTag)
+            ->unique('id')
+            ->sortByDesc('published_at')
+            ->take(20);
+
+        return $items->isNotEmpty() ? $items : $query->orderByDesc('published_at')->limit(12)->get();
+    }
+
+    /** @return list<int> */
+    private function relatedCategoryIds(Request $request): array
+    {
+        return collect((array) $request->query('categories', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => $id > 0)
+            ->take(6)
+            ->values()
+            ->all();
+    }
+
+    /** @return list<string> */
+    private function relatedTagSlugs(Request $request): array
+    {
+        return collect((array) $request->query('tags', []))
+            ->map(fn ($name) => is_string($name) ? Tag::slugFor(Tag::cleanName($name)) : '')
+            ->filter()
+            ->take(10)
+            ->values()
+            ->all();
+    }
+
+    /**
      * Return divisions, districts and upazilas for dependent selects.
      *
      * @return array{
-     *     divisions: \Illuminate\Support\Collection,
-     *     districts: \Illuminate\Support\Collection,
-     *     upazilas: \Illuminate\Support\Collection
+     *     divisions: Collection,
+     *     districts: Collection,
+     *     upazilas: Collection
      * }
      */
     private function locationTree(): array

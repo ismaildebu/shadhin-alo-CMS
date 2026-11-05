@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\News;
+use App\Support\BanglaTime;
+use App\Support\FrontendCache;
+use App\Support\NewsCard;
 use App\Support\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use App\Support\FrontendCache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -17,20 +19,13 @@ use Illuminate\View\View;
 
 class NewsCardController extends Controller
 {
-    public const DIR = 'uploads/cards';
-        /** কার্ডের ডিজাইন: কী => লেবেল। নতুন ডিজাইন যোগ করলে এখানে ও admin-photocard.js এ যোগ করতে হয়। */
-        public const TEMPLATES = [
-        'top' => 'ওপরে শিরোনাম, নিচে ছবি (পোর্ট্রেটে ভালো)',
-        'quote' => 'উদ্ধৃতি কার্ড, ব্যক্তির ছবিসহ (পোর্ট্রেটে ভালো)',
-        'cream' => 'ক্রিম পটভূমিতে লেখা ও সারাংশ (পোর্ট্রেটে ভালো)',
-        'column' => 'কলাম কার্ড, লেখকের গোল ছবিসহ (পোর্ট্রেটে ভালো)',
-        'brand' => 'ব্র্যান্ড ফ্রেম, সোশ্যাল হ্যান্ডেল ও ফিতা (পোর্ট্রেটে ভালো)',
-        'overlay' => 'ছবির ওপর লেখা',
-        'split' => 'ওপরে ছবি, নিচে লেখা',
-        'frame' => 'সাদা ফ্রেমে ছবি',
-        'breaking' => 'ব্রেকিং নিউজ',
-        'text' => 'শুধু লেখা (ছবি ছাড়া)',
-    ];
+    public const DIR = NewsCard::DIR;
+
+    /** কার্ডে না-থাকা ডিজাইনের নাম সেটিংয়ে থাকলে যেটিতে ফিরে যায়। */
+    public const DEFAULT_TEMPLATE = NewsCard::FALLBACK;
+
+    /** কার্ডের ডিজাইন: কী => লেবেল। তালিকা App\Support\NewsCard এ (JS-এর সঙ্গে একই নাম)। */
+    public const TEMPLATES = NewsCard::TEMPLATES;
 
     /** একটি খবরের কার্ড তৈরির পেজ। */
     public function show(News $news): View
@@ -111,12 +106,11 @@ class NewsCardController extends Controller
             'defaults' => $this->currentDefaults(),
             'templates' => self::TEMPLATES,
             'queueUrl' => route('photocards.queue', [], false),
-            'footerFallback' => $this->footerText(),
+            'footerFallback' => NewsCard::footerText(),
         ]);
     }
 
     /** কার্ড নেই এমন প্রকাশিত খবরের তালিকা (JSON), কেন্দ্রের "সব তৈরি করুন" বোতামের জন্য। */
-    
     public function queue(): JsonResponse
     {
         $items = News::published()
@@ -133,25 +127,22 @@ class NewsCardController extends Controller
                 'category' => $n->category->name ?? '',
                 'color' => $n->category?->home_color,
                 'date' => $n->display_date->format('d M Y'),
+                'dateBn' => BanglaTime::date($n->display_date),
                 'image' => $n->image ? '/uploads/news/'.$n->image : null,
                 'storeUrl' => route('news.card.store', $n, false),
-                'excerpt' => $this->plain($n->summary ?: $n->description, 280),
-                'caption' => $this->caption($n),
-                'byline' => (string) $n->reporter,
+                'excerpt' => NewsCard::plain($n->summary ?: $n->description, 280),
             ])->values(),
-            'logo' => $this->path(Settings::logoUrl()),
-            'emblem' => $this->emblem(),
+            'logo' => NewsCard::path(Settings::logoUrl()),
+            'emblem' => NewsCard::emblem(),
             'siteName' => Settings::get('site_name'),
-            'tagline' => Settings::get('site_tagline'),
-            'footer' => $this->footerText(),
-            'social' => $this->social(),
+            'footer' => NewsCard::footerText(),
         ]);
     }
 
     public function saveDefaults(Request $request): RedirectResponse
     {
         $request->validate([
-            
+
             'card_template' => ['required', Rule::in(array_keys(self::TEMPLATES))],
             'card_size' => ['required', Rule::in(['landscape', 'square', 'portrait'])],
             'card_accent' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
@@ -175,118 +166,23 @@ class NewsCardController extends Controller
 
     private function payload(News $news): array
     {
-        return [
+        return array_merge(NewsCard::data($news), [
             'id' => $news->id,
-            'title' => $news->title,
-            'category' => $news->category->name ?? '',
-            'color' => $news->category?->home_color,
-            'date' => $news->display_date->format('d M Y'),
-            'image' => $news->image ? '/uploads/news/'.$news->image : null,
-            'logo' => $this->path(Settings::logoUrl()),
-            'emblem' => $this->emblem(),
-            'siteName' => Settings::get('site_name'),
-            'tagline' => Settings::get('site_tagline'),
-            'footer' => $this->footerText(),
-            'excerpt' => $this->plain($news->summary ?: $news->description, 280),
-            'caption' => $this->caption($news),
-            'byline' => (string) $news->reporter,
-            'social' => $this->social(),
-            'card' => $news->card_image ? '/'.self::DIR.'/'.$news->card_image : null,
+            'card' => $news->card_image ? '/'.NewsCard::DIR.'/'.$news->card_image : null,
             'storeUrl' => route('news.card.store', $news, false),
             'deleteUrl' => route('news.card.destroy', $news, false),
-        ];
+        ]);
     }
 
     private function currentDefaults(): array
     {
-        $template = Settings::get('card_template');
-
-        return [
-            // বাদ দেওয়া ডিজাইন সেটিংয়ে থাকলে ড্রপডাউন প্রথম অপশন দেখাত, আঁকা হতো overlay — তাই ফেরত।
-            'template' => isset(self::TEMPLATES[$template]) ? $template : 'overlay',
-            'size' => Settings::get('card_size'),
-            'logo' => Settings::get('card_logo') === '1',
-            'category' => Settings::get('card_category') === '1',
-            'date' => Settings::get('card_date') === '1',
-            'accent' => Settings::get('card_accent'),
-            'footer' => Settings::get('card_footer'),
-        ];
-    }
-
-    /** কার্ডের নিচে ডানে যে লেখা বসবে: সেটিংয়ের লেখা, না থাকলে সাইটের ডোমেইন। */
-    private function footerText(): string
-    {
-        $custom = Settings::get('card_footer');
-
-        if ($custom !== '') {
-            return $custom;
-        }
-
-        return (string) (parse_url((string) config('app.url'), PHP_URL_HOST) ?? '');
-    }
-
-    /** পূর্ণ ঠিকানা থেকে শুধু পথ (একই উৎসের ছবি, ক্যানভাস নিরাপদ থাকে)। */
-    private function path(string $url): string
-    {
-        return parse_url($url, PHP_URL_PATH) ?: $url;
-    }
-
-    /** HTML থেকে সাধারণ লেখা: ট্যাগ বাদ, সংক্ষিপ্ত করা। */
-    private function plain(?string $html, int $limit): string
-    {
-        $text = html_entity_decode(strip_tags((string) $html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-
-        return Str::limit(trim((string) preg_replace('/\s+/u', ' ', $text)), $limit, '…');
-    }
-
-    private function caption(News $news): string
-    {
-        $caption = trim((string) $news->image_caption);
-        $credit = trim((string) $news->image_credit);
-
-        return trim($caption.($credit !== '' ? ' (ছবি: '.$credit.')' : ''));
-    }
-
-    /** গোল প্রতীকের জন্য ফেভিকন (সেট করা থাকলে)। */
-    private function emblem(): ?string
-    {
-        $url = Settings::faviconUrl();
-
-        return $url ? $this->path($url) : null;
-    }
-
-    /**
-     * সাইট সেটিংয়ের সোশ্যাল লিংক থেকে হ্যান্ডেলের নাম (যেমন facebook.com/abc হলে "abc")।
-     *
-     * @return list<array{type: string, text: string}>
-     */
-    private function social(): array
-    {
-        $items = [];
-
-        foreach (['facebook' => 'social_facebook', 'instagram' => 'social_instagram', 'youtube' => 'social_youtube', 'x' => 'social_x'] as $type => $key) {
-            $url = Settings::get($key);
-
-            if ($url === '') {
-                continue;
-            }
-
-            $path = trim((string) parse_url($url, PHP_URL_PATH), '/');
-            $handle = ltrim(Str::afterLast($path, '/'), '@');
-
-            $items[] = [
-                'type' => $type,
-                'text' => $handle !== '' ? $handle : (string) parse_url($url, PHP_URL_HOST),
-            ];
-        }
-
-        return $items;
+        return NewsCard::defaults();
     }
 
     private function deleteFile(?string $name): void
     {
         if ($name) {
-            File::delete(public_path(self::DIR.'/'.basename($name)));
+            File::delete(public_path(NewsCard::DIR.'/'.basename($name)));
         }
     }
 }

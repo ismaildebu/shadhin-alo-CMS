@@ -16,6 +16,14 @@ Schedule::command('videos:sync')->everyThirtyMinutes()->withoutOverlapping();
 
 Schedule::command('news:import')->everyThirtyMinutes()->withoutOverlapping();
 
+// খুলনা বিভাগের দশটি জেলার নিজস্ব পোর্টাল বেশি; সেগুলো ৩০ মিনিট পর পর পড়ার দরকার নেই,
+// কিন্তু ১০ ঘণ্টার পুরোনো-সংবাদ ছাঁকনির ভেতরে থাকতে হবে — তাই দুই ঘণ্টা পর পর।
+Schedule::command('news:import --group=khulna')->everyTwoHours()->withoutOverlapping();
+
+// আলোচিত সার্চ (Google Trends BD) আলাদা সিস্টেম: ফিড প্রতি ঘণ্টায় ঘোরে, তাই ঘণ্টায়
+// একবার চালানো হয়। নিজের ছাঁকনি ও চাল-সীমা, ওপরের সংগ্রহের নিয়মে হাত দেওয়া হয়নি।
+Schedule::command('news:trends')->hourly()->withoutOverlapping();
+
 // তৈরি ভিডিও, অডিও ও ফটোকার্ড এক দিন পর মুছে যায়; এরপর ক্যাশও পরিষ্কার হয়।
 Schedule::command('media:prune')->dailyAt('03:10')->withoutOverlapping();
 

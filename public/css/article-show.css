@@ -115,18 +115,32 @@
     font-size: 1.05rem;
 }
 
+/* লেখকের ছবি না থাকলে লোগো বসে — লোগো কেটে গোল করা হয় না, পুরো দেখানো হয় */
+.sa-author-mark.is-logo,
+.sa-author-photo.is-logo {
+    background: var(--sa-paper);
+    object-fit: contain;
+}
+.sa-author-mark.is-logo { padding: .3rem; }
+.sa-author-photo.is-logo { padding: .6rem; }
+
 .sa-share { display: flex; flex-wrap: wrap; gap: .5rem; }
-.sa-share a {
+.sa-share a,
+.sa-share button {
     padding: .35rem .85rem;
     border: 1px solid var(--sa-line);
     border-radius: 999px;
     background: var(--sa-paper);
     color: var(--sa-ink);
+    font-family: inherit;
     font-size: .88rem;
     text-decoration: none;
     transition: background-color .15s, border-color .15s, color .15s;
 }
-.sa-share a:hover {
+.sa-share button { cursor: pointer; }
+.sa-share button:disabled { opacity: .6; cursor: progress; }
+.sa-share a:hover,
+.sa-share button:hover {
     background: var(--sa-ink);
     border-color: var(--sa-ink);
     color: #fff;
@@ -208,6 +222,34 @@
 .sa-article-body th,
 .sa-article-body td { padding: .55rem .75rem; border: 1px solid var(--sa-line); }
 .sa-article-body th { background: var(--sa-mist); text-align: left; }
+
+/* ---------- "আরও পড়ুন>>" related links inside the body ----------
+   The heading keeps its own brand colours: the dashboard accent can be set to a
+   dark or pale value, and a "read more" heading has to stay colourful either way. */
+.sa-article-body .sa-more-label {
+    margin-top: 1.6em;
+    margin-bottom: .7em;
+    font-family: var(--sa-font-ui);
+    font-size: .95em;
+    line-height: 1.4;
+}
+.sa-article-body .sa-more-label strong {
+    display: inline-block;
+    padding: .35em .9em;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #d60000, #e8890c);
+    color: #fff;
+    letter-spacing: .02em;
+}
+.sa-article-body .sa-more-item {
+    margin-bottom: .35em;
+    padding-left: .9em;
+    border-left: 3px solid #d60000;
+    font-size: .97em;
+    line-height: 1.7;
+}
+.sa-article-body .sa-more-item a { color: var(--sa-ink); font-weight: 600; text-decoration: none; }
+.sa-article-body .sa-more-item a:hover { color: #d60000; text-decoration: underline; }
 
 /* ---------- Inline chart shortcode ---------- */
 .sa-html-chart {

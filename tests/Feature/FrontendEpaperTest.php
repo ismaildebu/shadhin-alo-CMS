@@ -43,7 +43,7 @@ function feBody(string $html): string
 {
     $from = strpos($html, 'sa-epaper-print');
 
-    return $from === false ? $html : substr($html, $from, strpos($html, 'sa-sidebar', $from) - $from);
+    return $from === false ? $html : substr($html, $from, strpos($html, 'sa-epaper-foot', $from) - $from);
 }
 
 // ------------------------------------------------------------- which page shows
@@ -178,6 +178,79 @@ it('shows an empty page message when the edition has no blocks', function () {
     fePage($this->today, [['width' => 40, 'blocks' => []]]);
 
     $this->get('/e-paper')->assertOk()->assertSee('এই পাতায় এখনো কোনো সংবাদ বসানো হয়নি।', false);
+});
+
+// ------------------------------------------------------------- the printed look
+
+it('sets the paper name, the Bangla date and how many news the page holds', function () {
+    $page = fePage($this->today, [
+        ['width' => 50, 'blocks' => [['news_id' => $this->withImage->id], ['news_id' => $this->plain->id]]],
+    ]);
+
+    $html = feBody($this->get('/e-paper')->assertOk()->getContent());
+    $edition = $page->edition_date;
+
+    expect($html)->toContain('স্বাধীন আলো')
+        ->and($html)->toContain(\App\Support\BanglaTime::weekday($edition))
+        ->and($html)->toContain(\App\Support\BanglaTime::date($edition))
+        ->and($html)->toContain('২টি সংবাদ');
+});
+
+it('lists the top headlines as teasers, but never for a one-news page', function () {
+    fePage($this->today, [
+        ['width' => 50, 'blocks' => [['news_id' => $this->withImage->id], ['news_id' => $this->plain->id]]],
+    ]);
+
+    $html = feBody($this->get('/e-paper')->assertOk()->getContent());
+
+    expect(substr_count($html, 'sa-epaper-teaser"'))->toBe(2)
+        ->and($html)->toContain('পড়ুন');
+
+    fePage(date('Y-m-d', strtotime($this->today.' -3 days')), [
+        ['width' => 50, 'blocks' => [['news_id' => $this->plain->id]]],
+    ]);
+
+    expect(feBody($this->get(route('frontend.epaper.show', date('Y-m-d', strtotime($this->today.' -3 days'))))->assertOk()->getContent()))
+        ->not->toContain('sa-epaper-teaser');
+});
+
+it('marks the first news of the page as the lead story', function () {
+    fePage($this->today, [
+        ['width' => 50, 'blocks' => [['news_id' => $this->withImage->id], ['news_id' => $this->plain->id]]],
+    ]);
+
+    $html = feBody($this->get('/e-paper')->assertOk()->getContent());
+
+    expect(substr_count($html, 'sa-epaper-block is-lead'))->toBe(1)
+        ->and(substr_count($html, 'sa-epaper-block'))->toBe(2);
+});
+
+it('prints the shoulder, sub-headline, byline and picture caption of a story', function () {
+    $this->withImage->update([
+        'shoulder' => 'চীন-বাংলাদেশ চুক্তি',
+        'sub_title' => 'দুই দেশের বাণী',
+        'reporter' => 'ঢাকা অফিস',
+        'image_caption' => 'স্বাক্ষর অনুষ্ঠান',
+        'image_credit' => 'সংগৃহীত',
+    ]);
+
+    fePage($this->today, [['width' => 50, 'blocks' => [['news_id' => $this->withImage->id]]]]);
+
+    $html = feBody($this->get('/e-paper')->assertOk()->getContent());
+
+    expect($html)->toContain('চীন-বাংলাদেশ চুক্তি')
+        ->and($html)->toContain('দুই দেশের বাণী')
+        ->and($html)->toContain('ঢাকা অফিস')
+        ->and($html)->toContain('সংগৃহীত')
+        ->and($html)->toContain('sa-epaper-cap');
+});
+
+it('falls back to the category when a story has no byline', function () {
+    fePage($this->today, [['width' => 50, 'blocks' => [['news_id' => $this->plain->id]]]]);
+
+    $html = feBody($this->get('/e-paper')->assertOk()->getContent());
+
+    expect($html)->toContain('<span class="sa-epaper-by">জাতীয়</span>');
 });
 
 // ------------------------------------------------------------- the archive

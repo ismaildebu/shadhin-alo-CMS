@@ -4,6 +4,7 @@ use App\Models\Category;
 use App\Models\News;
 use App\Models\User;
 use App\Support\NewsVideo;
+use App\Support\Settings;
 use Illuminate\Support\Facades\File;
 
 beforeEach(function () {
@@ -88,6 +89,38 @@ it('returns 404 when the article has no video yet', function () {
     $this->actingAs($this->admin)
         ->get(route('news.video.show', $news))
         ->assertNotFound();
+});
+
+it('builds slides in the same design language as the photocards', function () {
+    $news = videoNews();
+
+    Settings::set(['card_accent' => '#1f6feb']);
+
+    $slides = NewsVideo::slides($news);
+
+    // কভার, তারপর প্রতিটি ব্লকের একটি স্লাইড (ধরন lead/rail/points/quote ঘোরে) ও সমাপনী।
+    expect(array_column($slides, 'kind'))->toBe(['cover', 'lead', 'closing'])
+        ->and(array_column($slides, 'duration'))->toBe([7, 6, 7]);
+
+    $cover = $slides[0]['html'];
+    $body = $slides[1]['html'];
+    $closing = $slides[2]['html'];
+
+    expect($cover)
+        ->toContain('data-accent="#1f6feb"')
+        // রিলসের ওপর-নিচ ইউআই অংশ ফাঁকা রাখার ঘের
+        ->toContain('padding:264px 80px 320px')
+        ->toContain('<span class="chip" data-rv>'.$news->category->name.'</span>')
+        ->toContain('<div class="head"><span data-rv>'.e($news->title).'</span>');
+
+    expect($body)
+        ->toContain('<div class="label" data-rv>প্রতিবেদন</div>')
+        ->toContain(strip_tags($news->description));
+
+    // সাইটের পরিচয় সমাপনীতে: নাম, ট্যাগলাইন ও "বিস্তারিত পড়ুন"
+    expect($closing)
+        ->toContain('বিস্তারিত পড়ুন')
+        ->toContain('<div class="site" data-rv>'.Settings::get('site_name').'</div>');
 });
 
 it('keeps video generation and playback behind the panel login', function () {

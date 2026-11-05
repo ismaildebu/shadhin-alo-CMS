@@ -143,7 +143,6 @@
 
     
     <script src="{{ asset('js/admin-photocard.js') }}?v={{ filemtime(public_path('js/admin-photocard.js')) }}"></script>
-    <script src="{{ asset('js/admin-photocard-more.js') }}?v={{ filemtime(public_path('js/admin-photocard-more.js')) }}"></script>
     <script>
         (function () {
             const queueUrl = @json($queueUrl);
@@ -162,14 +161,7 @@
                     category: form.elements.card_category.checked,
                     date: form.elements.card_date.checked,
                     accent: item.color || form.elements.card_accent.value,
-                    color2: '#123b68',
-                    twoTone: false,
-                    badge: '',
-                    cta: '',
-                    kicker: item.byline || '',
-                    excerpt: true,
-                    caption: true,
-                    social: true
+                    excerpt: true
                 };
             }
 
@@ -219,16 +211,13 @@
                             title: item.title,
                             category: item.category,
                             date: item.date,
+                            dateBn: item.dateBn,
                             image: item.image,
                             logo: data.logo,
                             emblem: data.emblem,
                             siteName: data.siteName,
-                            tagline: data.tagline,
                             footer: footer,
-                            excerpt: item.excerpt,
-                            caption: item.caption,
-                            byline: item.byline,
-                            social: data.social
+                            excerpt: item.excerpt
                         }, options(item));
 
                         const blob = await PhotoCard.toBlob(canvas, 'image/jpeg', 0.92);

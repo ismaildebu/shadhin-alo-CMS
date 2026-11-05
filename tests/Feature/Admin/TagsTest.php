@@ -76,9 +76,11 @@ it('collapses duplicates within one article', function () {
     expect(News::firstOrFail()->tags)->toHaveCount(2);
 });
 
-it('limits an article to ten tags and each tag to fifty characters', function () {
+it('limits an article to the tag cap and each tag to fifty characters', function () {
+    $cap = Tag::MAX_PER_ARTICLE;
+
     $this->actingAs($this->editor)
-        ->post('/admin/news', tgPayload(['tags' => array_map(fn ($i) => "ট্যাগ{$i}", range(1, 11))]))
+        ->post('/admin/news', tgPayload(['tags' => array_map(fn ($i) => "ট্যাগ{$i}", range(1, $cap + 1))]))
         ->assertSessionHasErrors('tags');
 
     $this->actingAs($this->editor)
@@ -88,10 +90,10 @@ it('limits an article to ten tags and each tag to fifty characters', function ()
     expect(News::count())->toBe(0)->and(Tag::count())->toBe(0);
 
     $this->actingAs($this->editor)
-        ->post('/admin/news', tgPayload(['tags' => array_map(fn ($i) => "ট্যাগ{$i}", range(1, 10))]))
+        ->post('/admin/news', tgPayload(['tags' => array_map(fn ($i) => "ট্যাগ{$i}", range(1, $cap))]))
         ->assertSessionHasNoErrors();
 
-    expect(News::firstOrFail()->tags)->toHaveCount(10);
+    expect(News::firstOrFail()->tags)->toHaveCount($cap);
 });
 
 it('stores tag names as plain text', function () {
@@ -417,7 +419,7 @@ it('merges a tag into another: articles move over, duplicates are not created, t
         ->and($into->news()->count())->toBe(3)
         ->and($onlyFrom->fresh()->tags->pluck('name')->all())->toBe(['বাংলাদেশ'])
         ->and($both->fresh()->tags)->toHaveCount(1)
-        ->and(\DB::table('article_tag')->count())->toBe(3);
+        ->and(DB::table('article_tag')->count())->toBe(3);
 
     $log = Activity::where('action', 'tag.merged')->firstOrFail();
     expect($log->properties)->toMatchArray(['merged_name' => 'বাংলাদেশে', 'merged_slug' => 'বাংলাদেশে', 'into' => 'বাংলাদেশ', 'articles_moved' => 1]);
@@ -455,7 +457,7 @@ it('deletes a tag and detaches it from articles, keeping the articles', function
 
     expect(Tag::count())->toBe(0)->and(News::find($news->id))->not->toBeNull()
         ->and($news->fresh()->tags)->toHaveCount(0)
-        ->and(\DB::table('article_tag')->count())->toBe(0)
+        ->and(DB::table('article_tag')->count())->toBe(0)
         ->and(Activity::where('action', 'tag.deleted')->first()->properties['articles'])->toBe(1);
 });
 
@@ -465,7 +467,7 @@ it('removes tag links when an article is deleted for good', function () {
 
     $news->forceDelete();
 
-    expect(\DB::table('article_tag')->count())->toBe(0)->and(Tag::count())->toBe(1);
+    expect(DB::table('article_tag')->count())->toBe(0)->and(Tag::count())->toBe(1);
 });
 
 it('renders the tag admin pages', function () {
@@ -481,7 +483,7 @@ it('renders the tag admin pages', function () {
 // ------------------------------------------------- gaps found by mutation testing
 
 it('caps tags per article in the model too, not only in the form request', function () {
-    $names = array_map(fn ($i) => "মডেল-ট্যাগ{$i}", range(1, 15));
+    $names = array_map(fn ($i) => "মডেল-ট্যাগ{$i}", range(1, Tag::MAX_PER_ARTICLE + 5));
 
     expect(Tag::idsForNames($names))->toHaveCount(Tag::MAX_PER_ARTICLE);
 

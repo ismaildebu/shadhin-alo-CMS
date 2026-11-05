@@ -26,11 +26,17 @@
         href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600&family=Noto+Serif+Bengali:wght@500;600;700;800&display=swap"
         rel="stylesheet"
     >
-    <link rel="stylesheet" href="{{ asset('css/article-show.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/article-show.css') }}?v={{ filemtime(public_path('css/article-show.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/article-visuals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/news-fallback.css') }}">
 
     @include('partials.chart-scripts')
+
+    {{-- ফটোকার্ড: কার্ড না থাকলে পাঠকের ক্লিকেই ব্রাউজারে আঁকা হয়, তাই আঁকার লাইব্রেরি এখানেই লাগে --}}
+    @if($design['toggles']['photocard'])
+        <script src="{{ asset('js/admin-photocard.js') }}?v={{ filemtime(public_path('js/admin-photocard.js')) }}" defer></script>
+        <script src="{{ asset('js/article-photocard.js') }}?v={{ filemtime(public_path('js/article-photocard.js')) }}" defer></script>
+    @endif
 
     {{-- Dashboard design values. Built only from whitelisted options and validated hex colors. --}}
     <style>{!! $design['css'] !!}</style>

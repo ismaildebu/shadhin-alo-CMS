@@ -1,43 +1,47 @@
 <?php
 
 use App\Http\Controllers\Admin\ActivityController;
+use App\Http\Controllers\Admin\AdController;
+use App\Http\Controllers\Admin\ArticleDesignController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ChartController;
 use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Frontend\ChartController as FrontendChartController;
+use App\Http\Controllers\Admin\EpaperController as AdminEpaperController;
 use App\Http\Controllers\Admin\HomeLayoutController;
 use App\Http\Controllers\Admin\MediaController;
+use App\Http\Controllers\Admin\MenuController;
+use App\Http\Controllers\Admin\MenuFooterDesignController;
+use App\Http\Controllers\Admin\NewsCardController;
 use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\Admin\NewsImportController;
 use App\Http\Controllers\Admin\NewsRevisionController;
 use App\Http\Controllers\Admin\NewsVideoController;
 use App\Http\Controllers\Admin\NewsWorkflowController;
-use App\Http\Controllers\Admin\TagController;
 use App\Http\Controllers\Admin\RolePermissionController;
-use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\VideoController;
-use App\Http\Controllers\Admin\VideoChannelController;
-use App\Http\Controllers\Admin\AdController;
-use App\Http\Controllers\Admin\EpaperController as AdminEpaperController;
-use App\Http\Controllers\Admin\SiteSettingController;
-use App\Http\Controllers\Admin\MenuController;
-use App\Http\Controllers\Admin\MenuFooterDesignController;
 use App\Http\Controllers\Admin\SidebarController;
-use App\Http\Controllers\Admin\NewsCardController;
-use App\Http\Controllers\Admin\ArticleDesignController;
+use App\Http\Controllers\Admin\SiteSettingController;
+use App\Http\Controllers\Admin\TagController;
+use App\Http\Controllers\Admin\TrendController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\VideoChannelController;
+use App\Http\Controllers\Admin\VideoController;
 use App\Http\Controllers\Admin\VisualBuilderController;
+use App\Http\Controllers\AudioNewsController;
+use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\Frontend\AdClickController;
 use App\Http\Controllers\Frontend\CategoryController as FrontendCategoryController;
+use App\Http\Controllers\Frontend\ChartController as FrontendChartController;
 use App\Http\Controllers\Frontend\EpaperController as FrontendEpaperController;
 use App\Http\Controllers\Frontend\HomeController;
+use App\Http\Controllers\Frontend\LocationChildrenController;
 use App\Http\Controllers\Frontend\LocationController;
+use App\Http\Controllers\Frontend\PollController;
 use App\Http\Controllers\Frontend\SearchController;
 use App\Http\Controllers\Frontend\TagController as FrontendTagController;
 use App\Http\Controllers\Frontend\VideoController as FrontendVideoController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\AvatarController;
-use App\Http\Controllers\AudioNewsController;
 use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Middleware\SetLocale;
 use Illuminate\Support\Facades\Route;
 
 // Frontend
@@ -46,9 +50,9 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/article/{slug}/next', [HomeController::class, 'next'])
     ->middleware('throttle:60,1')
     ->name('frontend.news.next');
- Route::get('/article/{slug}/view', [HomeController::class, 'view'])
+Route::get('/article/{slug}/view', [HomeController::class, 'view'])
     ->middleware('throttle:60,1')
-    ->name('frontend.news.view');   
+    ->name('frontend.news.view');
 
 Route::get('/article/{slug}', [HomeController::class, 'show'])
     ->name('frontend.news.show');
@@ -81,7 +85,6 @@ Route::get('/ads/{id}/go', AdClickController::class)
     ->middleware('throttle:120,1')
     ->name('frontend.ad.click');
 
-
 // /location/{division}[/{district}[/{upazila}]]
 Route::get('/location/{division}/{district?}/{upazila?}', [LocationController::class, 'show'])
     ->name('frontend.location.show');
@@ -106,6 +109,11 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
         Route::post('news/{news}/restore', [NewsController::class, 'restore'])->name('news.restore')->withTrashed();
         Route::post('news/{news}/category', [NewsController::class, 'updateCategory'])->name('news.category');
         Route::get('news/{news}/preview', [NewsController::class, 'preview'])->name('news.preview');
+
+        // Related-article search for the article form ("সম্পর্কিত সংবাদের লিংক")
+        Route::get('news/related-search', [NewsController::class, 'relatedSearch'])
+            ->middleware('throttle:60,1')
+            ->name('news.related-search');
 
         Route::get('news/{news}/card', [NewsCardController::class, 'show'])->name('news.card');
         Route::post('news/{news}/card', [NewsCardController::class, 'store'])->name('news.card.store');
@@ -202,6 +210,16 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
             Route::put('photocards/defaults', [NewsCardController::class, 'saveDefaults'])->name('photocards.defaults');
         });
 
+        // আলোচিত সার্চ (Google Trends): permission "trends_manage"
+        Route::middleware('can:manage-trends')->group(function () {
+            Route::get('trends', [TrendController::class, 'index'])->name('trends.index');
+            Route::post('trends/run', [TrendController::class, 'run'])->middleware('throttle:6,1')->name('trends.run');
+            Route::post('trends/verify', [TrendController::class, 'verify'])->middleware('throttle:20,1')->name('trends.verify');
+            Route::put('trends/{event}', [TrendController::class, 'update'])->whereNumber('event')->name('trends.update');
+            Route::delete('trends/{event}', [TrendController::class, 'destroy'])->whereNumber('event')->name('trends.destroy');
+            Route::delete('trends/check/{check}', [TrendController::class, 'destroyCheck'])->whereNumber('check')->name('trends.checkDestroy');
+        });
+
         // Roles & permissions matrix: super administrator only
         Route::middleware('can:manage-roles')->group(function () {
             Route::get('roles', [RolePermissionController::class, 'edit'])->name('roles.edit');
@@ -233,26 +251,22 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 
-
 // --- home-page "desh" block: cascading division / district / upazila filter ---
-\Illuminate\Support\Facades\Route::get('/locations/{location}/children', \App\Http\Controllers\Frontend\LocationChildrenController::class)
+Route::get('/locations/{location}/children', LocationChildrenController::class)
     ->whereNumber('location')
     ->name('frontend.locations.children');
 
-
 // --- online poll (sidebar widget) ---
-\Illuminate\Support\Facades\Route::get('/polls', [\App\Http\Controllers\Frontend\PollController::class, 'index'])->name('frontend.polls.index');
-\Illuminate\Support\Facades\Route::get('/polls/{poll}', [\App\Http\Controllers\Frontend\PollController::class, 'show'])->whereNumber('poll')->name('frontend.polls.show');
-\Illuminate\Support\Facades\Route::post('/polls/{poll}/vote', [\App\Http\Controllers\Frontend\PollController::class, 'vote'])->whereNumber('poll')->middleware('throttle:30,1')->name('frontend.polls.vote');
+Route::get('/polls', [PollController::class, 'index'])->name('frontend.polls.index');
+Route::get('/polls/{poll}', [PollController::class, 'show'])->whereNumber('poll')->name('frontend.polls.show');
+Route::post('/polls/{poll}/vote', [PollController::class, 'vote'])->whereNumber('poll')->middleware('throttle:30,1')->name('frontend.polls.vote');
 
 // Poll management: permission "polls_manage"
-\Illuminate\Support\Facades\Route::middleware(['auth', 'can:manage-cms', 'can:manage-polls'])->prefix('admin')->name('admin.')->group(function () {
-    \Illuminate\Support\Facades\Route::resource('polls', \App\Http\Controllers\Admin\PollController::class)->except('show');
+Route::middleware(['auth', 'can:manage-cms', 'can:manage-polls'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('polls', App\Http\Controllers\Admin\PollController::class)->except('show');
 });
 
-
-
-Route::middleware(['web', \App\Http\Middleware\SetLocale::class])->group(function () {
+Route::middleware(['web', SetLocale::class])->group(function () {
     // Language Switcher Route
     Route::get('lang/{locale}', [LanguageController::class, 'switch'])->name('lang.switch');
 

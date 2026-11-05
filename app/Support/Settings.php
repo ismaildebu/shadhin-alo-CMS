@@ -41,7 +41,7 @@ final class Settings
         'ticker_max_hours' => '0',
         'menu_more_label' => 'অন্যান্য',
         
-        'card_template' => 'overlay',
+        'card_template' => 'paper',
         'card_size' => 'landscape',
         'card_logo' => '1',
         'card_category' => '1',

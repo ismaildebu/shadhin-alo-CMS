@@ -12,12 +12,20 @@
     $shareText = urlencode($poll->question);
     $notice    = (int) session('poll_notice_id') === (int) $poll->id ? session('poll_notice') : null;
 
-    $layout = in_array(($layout ?? null), ['cover', 'side', 'plain'], true) ? $layout : 'cover';
-    $accent = is_string($accent ?? null) && preg_match('/^#[0-9a-f]{6}$/i', $accent) ? $accent : '#d60000';
+    // অ্যাডমিনের "সাইডবার অংশ" পেজে সেট করা ডিজাইন — ভোটের নিজের পেজ ও আর্কাইভেও একই চলবে।
+    $design = \App\Models\SidebarWidget::designFor('poll');
+
+    $pollLayouts = array_keys(\App\Models\SidebarWidget::META['poll']['layouts'] ?? []);
+
+    $layout = in_array(($layout ?? null), $pollLayouts, true) ? $layout : ($design['layout'] ?? 'cover');
+    $accent = \App\Support\Colors::isHex($accent ?? null) ? $accent : ($design['accent'] ?? '#d60000');
     $image  = $poll->imageUrl(900);
     $showImage = $image !== '' && $layout !== 'plain';
+
+    // ভোট দেওয়ার আগে শতাংশ ও বার লুকানো থাকে; ভোট দিলে বা ভোট শেষ হলে খুলে যায়।
+    $reveal = (bool) $mine || ! $isOpen;
 @endphp
-<div class="sa-poll{{ $canVote ? '' : ' is-voted' }} sa-poll--{{ $layout }}" id="poll-{{ $poll->id }}" data-poll style="--sa-poll-accent: {{ $accent }};">
+<div class="sa-poll{{ $canVote ? '' : ' is-voted' }}{{ $reveal ? '' : ' sa-poll--blind' }} sa-poll--{{ $layout }}" id="poll-{{ $poll->id }}" data-poll style="--sa-poll-accent: {{ $accent }};">
 
     @if($withHead ?? true)
         <div class="sa-poll-head">
@@ -49,38 +57,40 @@
         @endif
 
         <div class="sa-poll-inner{{ $showImage && $layout === 'side' ? ' has-side-media' : '' }}">
-            @if($showImage && $layout === 'side')
-                <figure class="sa-poll-media sa-poll-media--side">
-                    <img src="{{ $image }}" alt="{{ $poll->imageAlt() }}" loading="lazy">
-                </figure>
-            @endif
-
             <div class="sa-poll-content">
-                @if(! $showImage || $layout === 'side')
-                    <div class="sa-poll-date">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 5v5.4l3.6 2.1-.8 1.3L11 13V7h2z"/></svg>
-                        <span>{{ \App\Support\BanglaTime::date($poll->shownDate()) }}</span>
-                        <span class="sa-poll-status {{ $isOpen ? 'is-live' : 'is-ended' }}">{{ $isOpen ? 'চলছে' : 'সমাপ্ত' }}</span>
-                    </div>
-                @endif
+                <div class="sa-poll-lead">
+                    @if($showImage && $layout === 'side')
+                        <figure class="sa-poll-media sa-poll-media--side">
+                            <img src="{{ $image }}" alt="{{ $poll->imageAlt() }}" loading="lazy">
+                        </figure>
+                    @endif
 
-                <p class="sa-poll-q">{{ $poll->question }}</p>
+                    @if(! $showImage || $layout === 'side')
+                        <div class="sa-poll-date">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 5v5.4l3.6 2.1-.8 1.3L11 13V7h2z"/></svg>
+                            <span>{{ \App\Support\BanglaTime::date($poll->shownDate()) }}</span>
+                            <span class="sa-poll-status {{ $isOpen ? 'is-live' : 'is-ended' }}">{{ $isOpen ? 'চলছে' : 'সমাপ্ত' }}</span>
+                        </div>
+                    @endif
+
+                    <p class="sa-poll-q">{{ $poll->question }}</p>
+                </div>
 
                 <form method="POST" action="{{ route('frontend.polls.vote', $poll) }}" class="sa-poll-form">
                     @csrf
                     @foreach($poll->options as $option)
-                        <label class="sa-poll-opt{{ $mineId === (int) $option->id ? ' is-mine' : '' }}" data-option="{{ $option->id }}" style="--pct: {{ $percent[$option->id] ?? 0 }}%">
+                        <label class="sa-poll-opt{{ $mineId === (int) $option->id ? ' is-mine' : '' }}" data-option="{{ $option->id }}" style="--pct: {{ $reveal ? ($percent[$option->id] ?? 0) : 0 }}%">
                             <input type="radio" name="option" value="{{ $option->id }}" @checked($mineId === (int) $option->id) @disabled(! $canVote)>
                             <span class="sa-poll-mark" aria-hidden="true"></span>
                             <span class="sa-poll-label">{{ $option->label }}</span>
-                            <span class="sa-poll-pct" data-pct>{{ \App\Support\BanglaTime::digits($percent[$option->id] ?? 0) }} %</span>
+                            <span class="sa-poll-pct" data-pct @hidden(! $reveal)>{{ $reveal ? \App\Support\BanglaTime::digits($percent[$option->id] ?? 0).' %' : '' }}</span>
                         </label>
                     @endforeach
 
                     @if($canVote)
-                        <p class="sa-poll-hint">
+                        <p class="sa-poll-hint" data-hint>
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
-                            একটি অপশন বেছে নিলেই ভোট জমা হবে
+                            {{ $reveal ? 'একটি অপশন বেছে নিলেই ভোট জমা হবে' : 'একটি অপশন বেছে নিন — ভোট দেওয়ার পর ফলাফল দেখা যাবে' }}
                         </p>
                         <noscript><button type="submit" class="sa-poll-btn">ভোট দিন</button></noscript>
                     @endif
@@ -122,5 +132,5 @@
 
     </div>
 
-    <script src="{{ asset('js/poll.js') }}" defer></script>
+    <script src="{{ asset('js/poll.js') }}?v={{ filemtime(public_path('js/poll.js')) }}" defer></script>
 </div>

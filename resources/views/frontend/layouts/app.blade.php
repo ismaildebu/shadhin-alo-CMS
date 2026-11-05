@@ -123,7 +123,7 @@ body{
 }
 
 
-/* sub-categories: hover dropdown on desktop, always-open indented list on mobile */
+/* sub-categories: hover dropdown on desktop, click-to-open indented list on mobile */
 @media (min-width:992px){
     .navbar-custom .nav-item.dropdown:hover > .dropdown-menu{
         display:block !important;
@@ -133,9 +133,15 @@ body{
     }
 }
 @media (max-width:991.98px){
+    /* মোবাইলে সাব-মেনু বন্ধ থাকে; ক্লিকে খোলে (js/nav-submenu.js), খোলা অবস্থায় আবার ক্লিক করলে নিজের পেজে যায় */
     .navbar-custom .nav-item.dropdown > .dropdown-menu{
-        display:block; position:static; background:#0e2d50; border:0; border-radius:0;
+        display:none; position:static; background:#0e2d50; border:0; border-radius:0;
     }
+    .navbar-custom .nav-item.dropdown.is-open > .dropdown-menu,
+    .navbar-custom .nav-item.dropdown > .dropdown-menu.show{
+        display:block;
+    }
+    .navbar-custom .nav-item.dropdown.is-open > .nav-link .sa-nav-caret{transform:rotate(180deg);opacity:1}
     .navbar-custom .dropdown-item{ color:#fff; padding-left:2rem; }
     .navbar-custom .dropdown-item:hover{ background:#0b2745; color:#fff; }
 }
@@ -161,6 +167,7 @@ body{
 @include('frontend.partials.footer')
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ asset('js/nav-submenu.js') }}?v={{ filemtime(public_path('js/nav-submenu.js')) }}"></script>
 
 </body>
 </html>

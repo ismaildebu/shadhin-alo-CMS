@@ -1372,6 +1372,67 @@ body.ad-auth-body{
 
 .ad-modal-status{ padding:14px 0; text-align:center; font-size:.9rem; color:var(--ad-muted); }
 
+/* Hand cropping of the article photo (the system never crops by itself) */
+.ad-crop-stage{
+    position:relative;
+    display:inline-block;
+    max-width:100%;
+    line-height:0;
+    background:var(--ad-bg);
+}
+
+.ad-crop-stage img{
+    display:block;
+    max-width:100%;
+    max-height:46vh;
+}
+
+.ad-crop-box{
+    position:absolute;
+    left:0;
+    top:0;
+    box-sizing:border-box;
+    border:2px solid #fff;
+    box-shadow:0 0 0 9999px rgba(11,39,69,.55);
+    cursor:move;
+    touch-action:none;
+}
+
+.ad-crop-handle{
+    position:absolute;
+    right:-11px;
+    bottom:-11px;
+    width:22px;
+    height:22px;
+    border:2px solid #fff;
+    border-radius:50%;
+    background:var(--ad-primary);
+    cursor:nwse-resize;
+    touch-action:none;
+}
+
+/* "সম্পর্কিত সংবাদ" link picker */
+.ad-rel-list{ display:flex; flex-direction:column; gap:8px; }
+
+.ad-rel{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    padding:10px 12px;
+    border:1px solid var(--ad-line);
+    border-radius:10px;
+    background:#fff;
+    font:inherit;
+    text-align:left;
+    cursor:pointer;
+}
+
+.ad-rel:hover,
+.ad-rel:focus-visible{ border-color:var(--ad-primary); outline:0; }
+
+.ad-rel b{ font-weight:600; color:var(--ad-primary); }
+.ad-rel span{ font-size:.78rem; color:var(--ad-muted); }
+
 
 
 

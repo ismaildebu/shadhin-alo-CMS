@@ -23,7 +23,10 @@
     // লেখকের নাম, ছবি ও পরিচিতি (অটো-লোড হওয়া খবরেও কাজ করে, তাই এখানেই হিসাব)
     $by = \App\Support\Avatars::byline($news);
     $bylineName = $by['name'] !== '' ? $by['name'] : 'স্বাধীন আলো';
-    $bylineMark = $by['name'] !== '' ? \Illuminate\Support\Str::substr($by['name'], 0, 1) : 'সা';
+
+    // লেখকের ছবি না থাকলে ছবির জায়গায় সাইটের লোগো বসে
+    $bylineLogo = \App\Support\Settings::logoUrl();
+    $siteName = \App\Support\Settings::get('site_name');
 @endphp
 
 <div
@@ -56,16 +59,12 @@
 
         <div class="sa-article-meta">
             <div class="sa-byline">
-                @if($by['photo'])
-                    <img
-                        src="{{ $by['photo'] }}"
-                        alt="{{ $by['name'] }}"
-                        class="sa-author-mark"
-                        loading="lazy"
-                    >
-                @else
-                    <span class="sa-author-mark" aria-hidden="true">{{ $bylineMark }}</span>
-                @endif
+                <img
+                    src="{{ $by['photo'] ?: $bylineLogo }}"
+                    alt="{{ $by['photo'] ? $by['name'] : $siteName }}"
+                    @class(['sa-author-mark', 'is-logo' => ! $by['photo']])
+                    loading="lazy"
+                >
 
                 <span>
                     <strong>
@@ -73,8 +72,15 @@
                     </strong>
 
                     <time datetime="{{ $news->display_date->toIso8601String() }}">
-                        প্রকাশ: {{ $news->display_date->format('d M Y, h:i A') }}
+                        প্রকাশ: {{ \App\Support\BanglaTime::dateTime($news->display_date) }}
                     </time>
+
+                    {{-- পাবলিশের এক মিনিটের মধ্যে সংরক্ষণ হলে সেটি আপডেট নয় — শুধু সত্যিকারের আপডেটই দেখানো হয় --}}
+                    @if($news->updated_at && $news->updated_at->greaterThan($news->display_date->copy()->addMinute()))
+                        <time datetime="{{ $news->updated_at->toIso8601String() }}">
+                            সর্বশেষ আপডেট: {{ \App\Support\BanglaTime::dateTime($news->updated_at) }}
+                        </time>
+                    @endif
                 </span>
             </div>
 
@@ -97,10 +103,21 @@
                         WhatsApp
                     </a>
 
-                    @if($show['photocard'] && $news->card_url)
-                        <a href="{{ $news->card_url }}" download>
-                            ফটোকার্ড
-                        </a>
+                    @if($show['photocard'])
+                        @if($news->card_url)
+                            <a href="{{ $news->card_url }}" download>
+                                ফটোকার্ড
+                            </a>
+                        @else
+                            {{-- কার্ড আগে থেকে তৈরি না থাকলে পাঠকের ক্লিকেই ব্রাউজারে আঁকা হয় (js/article-photocard.js) --}}
+                            <button type="button" data-sa-card>
+                                ফটোকার্ড
+                            </button>
+
+                            <script type="application/json" data-sa-card-data>
+                                @json(['data' => \App\Support\NewsCard::data($news), 'options' => \App\Support\NewsCard::defaults()])
+                            </script>
+                        @endif
                     @endif
                 </div>
             @endif

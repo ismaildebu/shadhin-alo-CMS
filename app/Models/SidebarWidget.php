@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Colors;
 use App\Support\FrontendCache;
 use Illuminate\Database\Eloquent\Model;
 
@@ -90,6 +91,9 @@ class SidebarWidget extends Model
         ],
     ];
 
+    /** @var array<string, array{layout: ?string, accent: ?string}> সেভ করার পর পুরোনো ডিজাইন না বসে, তাই memo এখানেই */
+    private static array $designCache = [];
+
     protected $fillable = ['name', 'visible', 'item_limit', 'serial', 'layout', 'accent', 'box_height'];
 
     protected function casts(): array
@@ -102,9 +106,40 @@ class SidebarWidget extends Model
         ];
     }
 
+    /**
+     * অ্যাডমিনের "সাইডবার অংশ" পেজে সেট করা ডিজাইন (লেআউট ও রঙ)।
+     * ভোটের কার্ড সাইডবারের বাইরেও (আর্কাইভ, ভোটের নিজের পেজ) বসে,
+     * তাই সেটিংস এক জায়গা থেকেই পড়া হয় — একই অনুরোধে বারবার ডেটাবেসে যাওয়া ঠেকাতে memo।
+     *
+     * @return array{layout: ?string, accent: ?string}
+     */
+    public static function designFor(string $name): array
+    {
+        if (isset(self::$designCache[$name])) {
+            return self::$designCache[$name];
+        }
+
+        $widget = static::firstWhere('name', $name);
+        $meta = self::META[$name] ?? [];
+        $layouts = $meta['layouts'] ?? [];
+        $layout = (string) ($widget->layout ?? '');
+
+        return self::$designCache[$name] = [
+            'layout' => array_key_exists($layout, (array) $layouts) ? $layout : ($meta['default_layout'] ?? null),
+            'accent' => Colors::isHex($widget->accent ?? null) ? $widget->accent : null,
+        ];
+    }
+
     protected static function booted(): void
     {
-        static::saved(fn () => FrontendCache::flush());
-        static::deleted(fn () => FrontendCache::flush());
+        static::saved(function () {
+            self::$designCache = [];
+            FrontendCache::flush();
+        });
+
+        static::deleted(function () {
+            self::$designCache = [];
+            FrontendCache::flush();
+        });
     }
 }
