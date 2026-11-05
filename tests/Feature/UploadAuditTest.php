@@ -50,3 +50,19 @@ test('কমান্ড কিছুই মুছে ফেলে না', func
     expect(File::exists($this->orphan))->toBeTrue()
         ->and(File::exists($this->used))->toBeTrue();
 });
+
+test('মুছার আগে উত্তর না পেলে কিছুই যায় না', function () {
+    Artisan::call('news:audit-uploads', ['--delete' => true]);
+    $output = Artisan::output();
+
+    expect($output)->toContain('কিছুই মুছে ফেলা হয়নি')
+        ->and(File::exists($this->orphan))->toBeTrue()
+        ->and(File::exists($this->used))->toBeTrue();
+});
+
+test('হ্যাঁ উত্তরে শুধু রেফারেন্সহীন ফাইলটি মুছে ফেলে', function () {
+    Artisan::call('news:audit-uploads', ['--delete' => true, '--force' => true]);
+
+    expect(File::exists($this->orphan))->toBeFalse()
+        ->and(File::exists($this->used))->toBeTrue();
+});

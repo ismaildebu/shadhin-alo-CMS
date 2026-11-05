@@ -5,24 +5,28 @@ namespace App\Console\Commands;
 use App\Support\BanglaTime;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 
 /**
- * Lists files under public/uploads that no content and no code points at.
+ * Reports the files under public/uploads that no content and no code points at, and — only
+ * after the desk answers yes to --delete — removes exactly those.
  *
- * This command only reports. Deleting is the desk's decision, and the answer is only
- * trustworthy against the database that actually serves readers — a dev database has
- * far fewer articles and would call published photos unused.
+ * The count is only trustworthy against the database that actually serves readers: a dev
+ * database has far fewer articles and would call published photos unused. That is why the
+ * numbers are printed first and an empty answer deletes nothing.
  */
 class AuditUploads extends Command
 {
     protected $signature = 'news:audit-uploads
-        {--list : রেফারেন্সহীন ফাইলের পূর্ণ তালিকা দেখাও}';
+        {--list : রেফারেন্সহীন ফাইলের পূর্ণ তালিকা দেখাও}
+        {--delete : যে ফাইল কোনো খবর, মিডিয়া লাইব্রেরি বা কোডে নেই সেগুলো মুছে ফেলো; আগে অনুমোদন চাইবে}
+        {--force : মুছে ফেলার আগে প্রশ্ন করা হবে না}';
 
-    protected $description = 'কোন ছবি/ফাইল কোনো খবর বা কোডে ব্যবহার হচ্ছে না তার তালিকা; কিছুই মুছে ফেলা হয় না';
+    protected $description = 'কোন ছবি/ফাইল কোনো খবর বা কোডে ব্যবহার হচ্ছে না তার তালিকা; --delete দিলে জিজ্ঞেস করে শুধু সেগুলোই মুছে ফেলে';
 
     private const EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'mp3', 'mp4', 'svg'];
 
@@ -82,8 +86,50 @@ class AuditUploads extends Command
             }
         }
 
+        if ($this->option('delete')) {
+            return $this->deleteUnused($unused, $bytes);
+        }
+
         $this->newLine();
         $this->warn('কিছুই মুছে ফেলা হয়নি — এটি শুধু তালিকা। প্রোডাকশনের ডেটাবেসে চালানোর পরেই সংখ্যা বিশ্বাসযোগ্য।');
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * Only the files this database does not know. An empty answer — or no answer at all —
+     * leaves the folder exactly as it was.
+     *
+     * @param  list<string>  $unused
+     */
+    private function deleteUnused(array $unused, int $bytes): int
+    {
+        $this->newLine();
+
+        if ($unused === []) {
+            $this->info('মুছে ফেলার মতো কিছু নেই — প্রতিটি ফাইল কোথাও না কোথাও ব্যবহৃত।');
+
+            return self::SUCCESS;
+        }
+
+        if (! $this->option('force')
+            && ! $this->confirm('এই '.$this->bn(count($unused)).'টি ফাইল ('.$this->bn(round($bytes / 1048576, 1)).' MB) মুছে দেওয়া হবে? ব্যবহৃত ফাইল ছোঁয়া হবে না।')) {
+            $this->warn('কিছুই মুছে ফেলা হয়নি।');
+
+            return self::SUCCESS;
+        }
+
+        $deleted = 0;
+
+        foreach ($unused as $path) {
+            if (File::delete($path)) {
+                $deleted++;
+            }
+        }
+
+        $this->newLine();
+        $this->info($this->bn($deleted).'টি ফাইল মুছে ফেলা হয়েছে।');
+        $this->line('ফাইলগুলো গিটে ছিল — ফেরাতে চাইলে: git checkout HEAD -- public/uploads');
 
         return self::SUCCESS;
     }

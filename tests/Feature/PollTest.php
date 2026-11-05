@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Category;
+use App\Models\Media;
 use App\Models\News;
 use App\Models\Poll;
 use App\Models\PollVote;
@@ -310,9 +311,15 @@ it('stores a poll image and shows it with the sidebar design', function () {
     SidebarWidget::where('name', 'poll')->firstOrFail()->update(['layout' => 'side', 'accent' => '#0f766e']);
     pollHomeNeedsNews();
 
-    $this->get('/')->assertOk()
-        ->assertSee('ছবিসহ প্রশ্ন?')
-        ->assertSee('sa-poll--side', false)
-        ->assertSee('--sa-poll-accent: #0f766e', false)
-        ->assertSee($poll->imageUrl(900), false);
+    try {
+        $this->get('/')->assertOk()
+            ->assertSee('ছবিসহ প্রশ্ন?')
+            ->assertSee('sa-poll--side', false)
+            ->assertSee('--sa-poll-accent: #0f766e', false)
+            ->assertSee($poll->imageUrl(900), false);
+    } finally {
+        // The upload really lands in public/uploads, and the desk's folder is version
+        // controlled — so the test file and its thumbnails leave the same way they came.
+        Media::removeFiles((string) $poll->image);
+    }
 });
