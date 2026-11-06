@@ -52,7 +52,8 @@ test('কমান্ড কিছুই মুছে ফেলে না', func
 });
 
 test('মুছার আগে উত্তর না পেলে কিছুই যায় না', function () {
-    Artisan::call('news:audit-uploads', ['--delete' => true]);
+    // -n মানে প্রশ্নের ডিফল্ট উত্তর "না" — টার্মিনাল না লাগিয়েই পথটি পরীক্ষা হয়।
+    Artisan::call('news:audit-uploads', ['--delete' => true, '--no-interaction' => true]);
     $output = Artisan::output();
 
     expect($output)->toContain('কিছুই মুছে ফেলা হয়নি')
