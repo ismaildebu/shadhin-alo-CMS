@@ -18,7 +18,7 @@ class Category extends Model
     public const NATIONWIDE_SLUG = 'saradesh';
 
         
-       /** হোমপেজে ক্যাটাগরির স্টাইল: কী => লেবেল (অ্যাডমিনের "হোমপেজ সাজান" পেজে দেখায়)à¥¤ */
+       /** হোমপেজে ক্যাটাগরির স্টাইল: কী => লেবেল (অ্যাডমিনের "হোমপেজ সাজান" পেজে দেখায়)। */
     public const HOME_LAYOUTS = [
         'split'     => 'বামে বড় খবর, ডানে তালিকা',
         'mosaic'    => 'ছবির মোজাইক',
@@ -65,6 +65,7 @@ class Category extends Model
         'slug',
         'status',
         'show_in_menu',
+        'fb_auto',
         'serial',
         'meta_title',
         'meta_description',
@@ -86,6 +87,7 @@ class Category extends Model
             'parent_id' => 'integer',
             'status' => 'boolean',
             'show_in_menu' => 'boolean',
+            'fb_auto' => 'boolean',
             'serial' => 'integer',
             'show_on_home' => 'boolean',
             'home_full' => 'boolean',

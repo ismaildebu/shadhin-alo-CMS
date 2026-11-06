@@ -48,6 +48,11 @@ final class Settings
         'card_date' => '1',
         'card_accent' => '#d60000',
         'card_footer' => '',
+
+        // ফেসবুক পেজে পোস্ট: ছবি এডিটরের তৈরি ফটোকার্ড, কমেন্টে খবরের লিংক।
+        'fb_enabled' => '0',
+        'fb_message' => "{title}\n\n{summary}",
+        'fb_comment' => '{url}',
         
         ...MenuFooterDesign::DEFAULTS,
         ...ArticleDesign::DEFAULTS,

@@ -3,26 +3,24 @@
 namespace App\Models;
 
 use App\Models\Concerns\GeneratesUniqueSlug;
+use App\Support\FacebookShare;
 use App\Support\FrontendCache;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-
-
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\App;
 
 class News extends Model
 {
     use GeneratesUniqueSlug;
-    use SoftDeletes;
     use HasFactory;
+    use SoftDeletes;
 
-    
     public const STATUS_DRAFT = 'draft';
 
     public const STATUS_PENDING = 'pending';
@@ -120,6 +118,13 @@ class News extends Model
     protected static function booted(): void
     {
         static::saved(fn () => FrontendCache::flush());
+        static::saved(function (News $news) {
+            // একবারে প্রকাশিত খবরে wasChanged('status') খালি থাকে — insert-এ changes বসার আগেই saved চলে।
+            if ($news->status === self::STATUS_PUBLISHED
+                && ($news->wasRecentlyCreated || $news->wasChanged('status'))) {
+                FacebookShare::enqueue($news);
+            }
+        });
         static::deleted(fn () => FrontendCache::flush());
         static::restored(fn () => FrontendCache::flush());
     }
@@ -161,15 +166,16 @@ class News extends Model
     {
         return $this->belongsTo(Category::class);
     }
-public function categories(): BelongsToMany
-{
-    return $this->belongsToMany(
-        Category::class,
-        'category_news',
-        'news_id',
-        'category_id'
-    );
-}
+
+    public function categories(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Category::class,
+            'category_news',
+            'news_id',
+            'category_id'
+        );
+    }
 
     public function location(): BelongsTo
     {
@@ -197,7 +203,6 @@ public function categories(): BelongsToMany
         return $this->published_at ?? $this->created_at;
     }
 
-
     /** সংরক্ষিত ফটোকার্ডের পূর্ণ ঠিকানা; না থাকলে null। */
     public function getCardUrlAttribute(): ?string
     {
@@ -222,9 +227,6 @@ public function categories(): BelongsToMany
         // sync() fires no model events, so flush the front-end cache by hand.
         FrontendCache::flush();
     }
-
-
-    
 
     /**
      * Access localized title safely
@@ -252,6 +254,3 @@ public function categories(): BelongsToMany
         return $this->translations[$currentLocale]['content'] ?? $this->content ?? '';
     }
 }
-
-
-

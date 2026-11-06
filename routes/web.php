@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ChartController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EpaperController as AdminEpaperController;
+use App\Http\Controllers\Admin\FacebookShareController;
 use App\Http\Controllers\Admin\HomeLayoutController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\MenuController;
@@ -208,6 +209,16 @@ Route::middleware(['auth', 'can:manage-cms'])->group(function () {
             Route::get('photocards', [NewsCardController::class, 'center'])->name('photocards.index');
             Route::get('photocards/queue', [NewsCardController::class, 'queue'])->name('photocards.queue');
             Route::put('photocards/defaults', [NewsCardController::class, 'saveDefaults'])->name('photocards.defaults');
+        });
+
+        // ফেসবুক পোস্ট (প্রকাশিত খবরের কার্ড পেজে শেয়ার): permission "facebook_manage"
+        Route::middleware('can:manage-facebook')->group(function () {
+            Route::get('facebook', [FacebookShareController::class, 'index'])->name('facebook.index');
+            Route::put('facebook', [FacebookShareController::class, 'update'])->name('facebook.update');
+            Route::post('facebook/verify', [FacebookShareController::class, 'verify'])->middleware('throttle:20,1')->name('facebook.verify');
+            Route::post('facebook/{post}/send', [FacebookShareController::class, 'send'])->whereNumber('post')->name('facebook.send');
+            Route::post('facebook/{post}/resend', [FacebookShareController::class, 'resend'])->whereNumber('post')->name('facebook.resend');
+            Route::delete('facebook/{post}', [FacebookShareController::class, 'destroy'])->whereNumber('post')->name('facebook.destroy');
         });
 
         // আলোচিত সার্চ (Google Trends): permission "trends_manage"

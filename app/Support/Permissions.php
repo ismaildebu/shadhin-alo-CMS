@@ -155,6 +155,16 @@ class Permissions
                 'locked' => [],
             ],
 
+            'facebook_manage' => [
+                'group' => 'content',
+                'label' => 'ফেসবুক পোস্ট',
+                'short' => 'ফেসবুক',
+                'help' => 'প্রকাশিত খবর ফেসবুক পেজে পোস্ট, টেমপ্লেট, ক্যাটাগরির টিক ও পোস্টের লগ।',
+                'danger' => false,
+                'defaults' => [$admin, $editor, $deputy, $newsEditor],
+                'locked' => [],
+            ],
+
             'polls_manage' => [
                 'group' => 'content',
                 'label' => 'অনলাইন ভোট',

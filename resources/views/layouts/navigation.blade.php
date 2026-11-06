@@ -2,7 +2,7 @@
     $navActive = [
         'news' => request()->routeIs('news.*', 'categories.*', 'tags.*'),
         'design' => request()->routeIs('home-layout.*', 'article-design.*', 'visual-builder.*', 'charts.*', 'menu.*', 'menu-footer-design.*', 'sidebar.*', 'admin.polls.*'),
-        'media' => request()->routeIs('photocards.*', 'ads.*', 'media.*', 'videos.*', 'epaper.*'),
+        'media' => request()->routeIs('photocards.*', 'facebook.*', 'ads.*', 'media.*', 'videos.*', 'epaper.*'),
         'system' => request()->routeIs('users.*', 'roles.*', 'activity.*', 'site-settings.*'),
         'account' => request()->routeIs('profile.*'),
     ];
@@ -193,6 +193,14 @@
                        class="ad-link {{ request()->routeIs('photocards.*') ? 'is-active' : '' }}">
                         <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15l3-4 3 3 2-2 3 3"/></svg>
                         ফটোকার্ড
+                    </a>
+                @endcan
+
+                @can('manage-facebook')
+                    <a href="{{ route('facebook.index') }}"
+                       class="ad-link {{ request()->routeIs('facebook.*') ? 'is-active' : '' }}">
+                        <svg class="ad-ico" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M15 8h2V5h-2a4 4 0 00-4 4v2H9v3h2v6h3v-6h2l1-3h-3V9a1 1 0 011-1z"/></svg>
+                        ফেসবুক পোস্ট
                     </a>
                 @endcan
 

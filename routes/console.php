@@ -12,6 +12,9 @@ Artisan::command('inspire', function () {
 // During local development run:      php artisan schedule:work
 Schedule::command('articles:publish-scheduled')->everyMinute()->withoutOverlapping();
 
+// টিক করা ক্যাটাগরির নতুন প্রকাশিত খবর ফেসবুক পেজে পোস্ট (ফটোকার্ড + কমেন্টে লিংক)।
+Schedule::command('facebook:publish')->everyMinute()->withoutOverlapping();
+
 Schedule::command('videos:sync')->everyThirtyMinutes()->withoutOverlapping();
 
 Schedule::command('news:import')->everyThirtyMinutes()->withoutOverlapping();

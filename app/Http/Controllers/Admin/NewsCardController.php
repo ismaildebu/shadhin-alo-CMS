@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\News;
 use App\Support\BanglaTime;
+use App\Support\FacebookShare;
 use App\Support\FrontendCache;
 use App\Support\NewsCard;
 use App\Support\Settings;
@@ -70,6 +71,9 @@ class NewsCardController extends Controller
 
         $this->deleteFile($old);
 
+        // কার্ড এখন আছে — ফেসবুকের লাইনটি এখন পাঠানো যাবে।
+        FacebookShare::sync($news->refresh());
+
         if ($request->expectsJson()) {
             return response()->json(['ok' => true, 'url' => '/'.self::DIR.'/'.$name]);
         }
@@ -88,6 +92,9 @@ class NewsCardController extends Controller
         FrontendCache::flush();
 
         $this->deleteFile($old);
+
+        // কার্ড মোছা মানে ফেসবুকের লাইনটি আবার কার্ডের অপেক্ষায়।
+        FacebookShare::sync($news->refresh());
 
         if ($request->expectsJson()) {
             return response()->json(['ok' => true]);

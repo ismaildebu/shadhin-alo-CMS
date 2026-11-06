@@ -31,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('manage-tags', fn (User $user) => $user->hasPermission('tags_manage'));
         Gate::define('manage-videos', fn (User $user) => $user->hasPermission('videos_manage'));
         Gate::define('manage-photocards', fn (User $user) => $user->hasPermission('photocards_manage'));
+        Gate::define('manage-facebook', fn (User $user) => $user->hasPermission('facebook_manage'));
         Gate::define('manage-polls', fn (User $user) => $user->hasPermission('polls_manage'));
         Gate::define('manage-ads', fn (User $user) => $user->hasPermission('ads_manage'));
         Gate::define('manage-epaper', fn (User $user) => $user->hasPermission('epaper_manage'));
