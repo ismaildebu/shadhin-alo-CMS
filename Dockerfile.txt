@@ -1,0 +1,48 @@
+
+# Build frontend assets
+FROM node:22-alpine AS frontend
+WORKDIR /app
+COPY . .
+RUN npm install && npm run build
+
+# Install PHP dependencies
+FROM composer:2 AS vendor
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+
+# Laravel application
+FROM php:8.3-apache
+RUN apt-get update && apt-get install -y \
+    libicu-dev libzip-dev libpng-dev libjpeg62-turbo-dev \
+    libfreetype6-dev libonig-dev libsqlite3-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_mysql pdo_sqlite mbstring bcmath exif pcntl gd intl zip opcache \
+    && a2enmod rewrite \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
+RUN sed -ri 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
+    /etc/apache2/sites-available/*.conf \
+    /etc/apache2/apache2.conf
+
+WORKDIR /var/www/html
+COPY . .
+COPY --from=vendor /app/vendor ./vendor
+COPY --from=frontend /app/public/build ./public/build
+
+ENV DB_CONNECTION=sqlite
+ENV DB_DATABASE=/var/www/html/database/database.sqlite
+ENV SESSION_DRIVER=file
+ENV CACHE_STORE=file
+ENV QUEUE_CONNECTION=sync
+ENV APP_ENV=production
+ENV APP_DEBUG=false
+
+RUN php artisan package:discover --ansi \
+    && mkdir -p database \
+    && touch database/database.sqlite \
+    && chown -R www-data:www-data storage bootstrap/cache database \
+    && chmod -R ug+rwx storage bootstrap/cache database
+
+CMD ["bash", "-lc", "php artisan migrate --force && apache2-foreground"]
